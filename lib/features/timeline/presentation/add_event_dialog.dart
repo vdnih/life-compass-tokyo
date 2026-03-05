@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../logic/timeline_provider.dart';
+import '../logic/timeline_events_provider.dart';
 import '../domain/career_event.dart';
 
 class AddEventDialog extends ConsumerStatefulWidget {
@@ -88,19 +88,18 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<bool>(
-                value: _isLifeEvent,
-                decoration: const InputDecoration(labelText: '種別'),
-                items: const [
-                  DropdownMenuItem(value: false, child: Text('仕事')),
-                  DropdownMenuItem(value: true, child: Text('プライベート')),
+              const Text('種別'),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('仕事')),
+                  ButtonSegment(value: true, label: Text('プライベート')),
                 ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _isLifeEvent = value;
-                    });
-                  }
+                selected: {_isLifeEvent},
+                onSelectionChanged: (newSelection) {
+                  setState(() {
+                    _isLifeEvent = newSelection.first;
+                  });
                 },
               ),
               const SizedBox(height: 16),

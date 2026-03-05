@@ -1,0 +1,342 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../user_profile/user_profile.dart';
+import '../../domain/career_event.dart';
+
+class YearTimeline extends ConsumerWidget {
+  final List<CareerEvent> events;
+
+  const YearTimeline({super.key, required this.events});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (events.isEmpty) return const Center(child: Text('No events found'));
+
+    final profile = ref.watch(userProfileNotifierProvider);
+
+    final sortedEvents = List<CareerEvent>.from(events)
+      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+    final firstYear = sortedEvents.first.dateTime.year;
+    int lastYear = sortedEvents.last.dateTime.year;
+
+    for (var event in events) {
+      if (event.hasDuration && event.endDateTime!.year > lastYear) {
+        lastYear = event.endDateTime!.year;
+      }
+    }
+
+    final startYear = firstYear - 2;
+    final endYear = lastYear + 3;
+    final totalYears = endYear - startYear;
+
+    const double yearWidth = 80.0;
+    const double axisHeight = 60.0;
+    const double rowHeight = 160.0;
+
+    return SingleChildScrollView(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 左側の固定ラベル
+          Padding(
+            padding: const EdgeInsets.only(top: 40),
+            child: SizedBox(
+              width: 36,
+              height: axisHeight + rowHeight * 2,
+              child: Column(
+                children: [
+                  SizedBox(height: axisHeight),
+                  Container(
+                    height: rowHeight,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      border: Border(
+                        right: BorderSide(
+                          color: Colors.blueGrey.withOpacity(0.3),
+                        ),
+                      ),
+                    ),
+                    child: const RotatedBox(
+                      quarterTurns: 3,
+                      child: Text(
+                        '仕事',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueGrey,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    height: rowHeight,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.blueGrey.withOpacity(0.3),
+                        ),
+                        right: BorderSide(
+                          color: Colors.blueGrey.withOpacity(0.3),
+                        ),
+                      ),
+                    ),
+                    child: const RotatedBox(
+                      quarterTurns: 3,
+                      child: Text(
+                        'プライベート',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueGrey,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // 右側のスクロール可能なタイムライン
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(top: 40, bottom: 40, right: 40),
+              child: SizedBox(
+                width: totalYears * yearWidth + 100,
+                height: axisHeight + rowHeight * 2,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // 仕事とプライベートの境界線
+                    Positioned(
+                      top: axisHeight + rowHeight,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 1,
+                        color: Colors.blueGrey.withOpacity(0.3),
+                      ),
+                    ),
+
+                    // メインの横線
+                    Positioned(
+                      top: axisHeight,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 2,
+                        color: Colors.blueGrey.withOpacity(0.3),
+                      ),
+                    ),
+
+                    // 年ごとの目盛りとラベル
+                    ...List.generate(totalYears + 1, (index) {
+                      final year = startYear + index;
+                      final xPos = 20.0 + (index * yearWidth);
+                      final ageAtDate = profile.calculateAgeAt(DateTime(year, 1));
+
+                      return Positioned(
+                        left: xPos - 20,
+                        top: axisHeight - 55,
+                        child: SizedBox(
+                          width: 40,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (ageAtDate != null)
+                                Text(
+                                  '$ageAtDate歳',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.blueGrey.withOpacity(0.8),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              Text(
+                                '$year',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Colors.blueGrey,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                width: 2,
+                                height: 12,
+                                color: Colors.blueGrey,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+
+                    // 期間を持つイベントの矢印
+                    ...events.where((e) => e.hasDuration).map((event) {
+                      final startOffset = event.dateTime.year - startYear;
+                      final endOffset = event.endDateTime!.year - startYear;
+
+                      final startXPos = 20.0 + (startOffset * yearWidth);
+                      final endXPos = 20.0 + (endOffset * yearWidth);
+
+                      final rowTop = event.isLifeEvent
+                          ? axisHeight + rowHeight
+                          : axisHeight;
+                      final baseTop = rowTop + 24.0 + 50.0 + 6.0 + 12.0;
+
+                      final color = event.isLifeEvent ? Colors.orange : Colors.blue;
+
+                      return Positioned(
+                        left: startXPos + 12,
+                        top: baseTop - 1,
+                        width: endXPos - startXPos - 12,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 2,
+                                color: color.withOpacity(0.6),
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_right,
+                              color: color.withOpacity(0.6),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    // イベントの配置
+                    ...events.map((event) {
+                      final yearOffset = event.dateTime.year - startYear;
+                      final xPos = 20.0 + (yearOffset * yearWidth);
+
+                      final rowTop = event.isLifeEvent
+                          ? axisHeight + rowHeight
+                          : axisHeight;
+                      const topPadding = 24.0;
+
+                      return Positioned(
+                        left: xPos - 60,
+                        top: rowTop + topPadding,
+                        child: GestureDetector(
+                          onTap: () => _showEventDetails(context, event),
+                          child: SizedBox(
+                            width: 120,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  height: 50,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: event.isLifeEvent
+                                        ? Colors.orange.shade50
+                                        : Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: event.isLifeEvent
+                                          ? Colors.orange
+                                          : Colors.blue,
+                                      width: 1,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    event.title,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: event.isLifeEvent
+                                          ? Colors.orange.shade800
+                                          : Colors.blue.shade800,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Icon(
+                                  event.isLifeEvent ? Icons.favorite : Icons.work,
+                                  color: event.isLifeEvent
+                                      ? Colors.orange
+                                      : Colors.blue,
+                                  size: 24,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEventDetails(BuildContext context, CareerEvent event) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              event.isLifeEvent ? Icons.favorite : Icons.work,
+              color: event.isLifeEvent ? Colors.orange : Colors.blue,
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(event.title)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              event.hasDuration
+                  ? '${event.date} 〜 ${event.endDate}'
+                  : event.date,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(event.description),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('了解'),
+          ),
+        ],
+      ),
+    );
+  }
+}

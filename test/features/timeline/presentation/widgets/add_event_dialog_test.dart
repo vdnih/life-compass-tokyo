@@ -1,119 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:my_career_app/features/timeline/presentation/widgets/add_event_dialog.dart';
+import 'package:my_career_app/features/timeline/presentation/add_event_dialog.dart';
+
+Widget _buildTestWidget() {
+  return const ProviderScope(
+    child: MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: _dialogLauncher,
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _dialogLauncher(BuildContext context) {
+  return ElevatedButton(
+    onPressed: () {
+      showDialog(
+        context: context,
+        builder: (_) => const AddEventDialog(),
+      );
+    },
+    child: const Text('ダイアログを開く'),
+  );
+}
 
 void main() {
   group('AddEventDialog の機能一覧（仕様）', () {
     testWidgets('タイトル、開始・終了年月、仕事/プライベートの選択が正しくUI入力できること', (tester) async {
-      bool isSubmitted = false;
+      await tester.pumpWidget(_buildTestWidget());
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showAddEventDialog(
-                      context,
-                      initialDate: DateTime(2023, 8),
-                      onSubmit: (title, startDateStr, endDateStr, isLifeEvent) {
-                        isSubmitted = true;
-                        expect(title, 'テストイベント');
-                        expect(
-                          startDateStr,
-                          startsWith('2023-'),
-                        ); // 日付のフォーマットチェック
-                        expect(isLifeEvent, false); // 初期値が仕事であることを確認
-                      },
-                    );
-                  },
-                  child: const Text('ダイアログ開く'),
-                );
-              },
-            ),
-          ),
-        ),
-      );
-
-      // ボタンをタップしてダイアログを開く
-      await tester.tap(find.text('ダイアログ開く'));
+      await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
 
-      // UI 요소의 렌더링 확인
       expect(find.text('イベントを追加'), findsOneWidget);
 
-      // イベント名入力
-      await tester.enterText(find.byType(TextField), 'テストイベント');
+      // タイトル入力
+      await tester.enterText(find.byType(TextFormField).first, 'テストイベント');
 
       // 追加ボタンタップ
       await tester.tap(find.text('追加'));
       await tester.pumpAndSettle();
 
-      expect(isSubmitted, true);
+      // ダイアログが閉じていることを確認（正常に送信された）
+      expect(find.text('イベントを追加'), findsNothing);
     });
 
     testWidgets('イベント名が空の場合は「追加」ボタンを押しても処理が実行されない(ダイアログが閉じない)こと', (
       tester,
     ) async {
-      bool isSubmitted = false;
+      await tester.pumpWidget(_buildTestWidget());
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showAddEventDialog(
-                      context,
-                      onSubmit: (title, startDateStr, endDateStr, isLifeEvent) {
-                        isSubmitted = true;
-                      },
-                    );
-                  },
-                  child: const Text('ダイアログ開く'),
-                );
-              },
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('ダイアログ開く'));
+      await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
 
-      // TextFieldは空のまま、「追加」ボタンをタップ
+      // タイトルは空のまま、「追加」ボタンをタップ
       await tester.tap(find.text('追加'));
       await tester.pump();
 
-      // Submit関数は呼ばれていない
-      expect(isSubmitted, false);
       // ダイアログは依然として開いている
       expect(find.text('イベントを追加'), findsOneWidget);
     });
 
     testWidgets('期間指定トグルをONにすると終了年月が入力可能になること', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showAddEventDialog(
-                      context,
-                      onSubmit:
-                          (title, startDateStr, endDateStr, isLifeEvent) {},
-                    );
-                  },
-                  child: const Text('ダイアログを開く'),
-                );
-              },
-            ),
-          ),
-        ),
-      );
+      await tester.pumpWidget(_buildTestWidget());
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -121,7 +73,9 @@ void main() {
       // 当初は終了年月が表示されていない
       expect(find.text('終了年月'), findsNothing);
 
-      // 期間指定トグルをタップ
+      // 期間指定トグルをスクロールして表示してからタップ
+      await tester.ensureVisible(find.text('期間を指定する'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('期間を指定する'));
       await tester.pumpAndSettle();
 
