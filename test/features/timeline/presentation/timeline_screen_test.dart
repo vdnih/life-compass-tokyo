@@ -28,6 +28,15 @@ Widget _buildTestWidget() {
   );
 }
 
+// タップ座標の計算根拠:
+// - AppBar 高さ: 56px
+// - 水平 ScrollView の top padding: 40px
+// - GestureDetector 開始位置 (screen y): 56 + 40 = 96px
+// - 軸エリア高さ (axisHeight): 60px → screen y 96–156
+// - 仕事レーン (rowHeight=160): screen y 156–316
+// - プライベートレーン:         screen y 316–476
+// - ラベル列幅 (left column): 36px → GestureDetector 開始 screen x: 36px
+
 void main() {
   group('TimelineScreen の機能一覧（仕様）', () {
     testWidgets('デフォルトは年月表示であること', (tester) async {
@@ -61,6 +70,94 @@ void main() {
 
       expect(find.byType(YearMonthTimeline), findsOneWidget);
       expect(find.byType(YearTimeline), findsNothing);
+    });
+  });
+
+  group('タイムラインタップによるイベント追加（年月表示）', () {
+    testWidgets('仕事レーンをタップするとAddEventDialogが開くこと', (tester) async {
+      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // 仕事レーン中央付近 (screen y ≈ 230, x ≈ 400、イベントカードを避ける)
+      await tester.tapAt(const Offset(400, 230));
+      await tester.pumpAndSettle();
+
+      expect(find.text('イベントを追加'), findsOneWidget);
+    });
+
+    testWidgets('仕事レーンをタップすると「仕事」が選択済みでダイアログが開くこと', (tester) async {
+      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(400, 230));
+      await tester.pumpAndSettle();
+
+      // SegmentedButton で 仕事 が選択されていることを確認
+      expect(find.text('仕事'), findsOneWidget);
+    });
+
+    testWidgets('プライベートレーンをタップするとAddEventDialogが開くこと', (tester) async {
+      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // プライベートレーン中央付近 (screen y ≈ 380)
+      await tester.tapAt(const Offset(400, 380));
+      await tester.pumpAndSettle();
+
+      expect(find.text('イベントを追加'), findsOneWidget);
+    });
+
+    testWidgets('プライベートレーンをタップすると「プライベート」が選択済みでダイアログが開くこと',
+        (tester) async {
+      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(400, 380));
+      await tester.pumpAndSettle();
+
+      expect(find.text('プライベート'), findsOneWidget);
+    });
+
+    testWidgets('軸エリア（年月ラベル部分）をタップしてもダイアログが開かないこと', (tester) async {
+      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // 軸エリア (screen y ≈ 110、axisHeight 内)
+      await tester.tapAt(const Offset(400, 110));
+      await tester.pumpAndSettle();
+
+      expect(find.text('イベントを追加'), findsNothing);
+    });
+  });
+
+  group('タイムラインタップによるイベント追加（年表示）', () {
+    testWidgets('年表示の仕事レーンをタップするとAddEventDialogが開くこと', (tester) async {
+      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // 年表示に切り替え
+      await tester.tap(find.text('年'));
+      await tester.pumpAndSettle();
+
+      // 仕事レーン中央付近
+      await tester.tapAt(const Offset(400, 230));
+      await tester.pumpAndSettle();
+
+      expect(find.text('イベントを追加'), findsOneWidget);
+    });
+
+    testWidgets('年表示のプライベートレーンをタップするとAddEventDialogが開くこと', (tester) async {
+      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('年'));
+      await tester.pumpAndSettle();
+
+      // プライベートレーン
+      await tester.tapAt(const Offset(400, 380));
+      await tester.pumpAndSettle();
+
+      expect(find.text('イベントを追加'), findsOneWidget);
     });
   });
 }

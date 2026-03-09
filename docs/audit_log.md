@@ -6,6 +6,22 @@
 
 ---
 
+## 2026-03-09 - [機能追加] タイムラインタップによるイベント追加機能を実装
+
+- **判断内容**: `YearMonthTimeline` と `YearTimeline` の空きエリアをタップすると、タップした年月・レーン（仕事/プライベート）を初期値にした `AddEventDialog` が開く機能を追加した。
+- **理由**: ユーザーがタイムライン上を直接タップしてイベントを追加できるようにすることで、UX を向上させるため。FAB からの追加と併用可能。
+- **実装方針**:
+  - 各タイムラインウィジェット内の水平スクロール配下に `GestureDetector`（`behavior: HitTestBehavior.translucent`）を追加。
+  - `onTapUp` でタップ座標を取得し、X 座標から月/年インデックス、Y 座標から仕事/プライベートを算出。
+  - 軸エリア（axisHeight 未満）と範囲外タップは無視。
+  - イベントカードの `GestureDetector` が先に処理するため、既存のイベント詳細表示動作と干渉しない。
+- **影響範囲**:
+  - `lib/features/timeline/presentation/widgets/year_month_timeline.dart`: `GestureDetector` 追加、`add_event_dialog.dart` インポート追加
+  - `lib/features/timeline/presentation/widgets/year_timeline.dart`: 同上
+  - `test/features/timeline/presentation/timeline_screen_test.dart`: タップ系テスト 7 件追加
+
+---
+
 ## 2026-03-10 - [環境・バグ修正] IDE 指摘事項の修正
 
 - **判断内容**: Androidビルドで発生していた「Unsupported class file major version 69」エラーと、テストコードの `const` コンストラクタ警告を修正。

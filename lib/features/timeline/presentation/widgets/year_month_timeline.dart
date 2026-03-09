@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/life_event.dart';
 import '../../domain/constraint_result.dart';
+import '../add_event_dialog.dart';
 import 'event_style.dart';
 
 class YearMonthTimeline extends ConsumerWidget {
@@ -121,7 +122,35 @@ class YearMonthTimeline extends ConsumerWidget {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(top: 40, bottom: 40, right: 40),
-              child: SizedBox(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTapUp: (details) {
+                  final tapX = details.localPosition.dx;
+                  final tapY = details.localPosition.dy;
+
+                  // 軸エリアと下余白は無視する
+                  if (tapY < axisHeight || tapY >= axisHeight + rowHeight * 2) {
+                    return;
+                  }
+
+                  final monthIndex = ((tapX - 20.0) / monthWidth).floor();
+                  if (monthIndex < 0 || monthIndex >= totalMonths) return;
+
+                  final tappedDate = DateTime(
+                    startDate.year,
+                    startDate.month + monthIndex,
+                  );
+                  final isWork = tapY < axisHeight + rowHeight;
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AddEventDialog(
+                      initialDate: tappedDate,
+                      initialIsWork: isWork,
+                    ),
+                  );
+                },
+                child: SizedBox(
                 width: totalMonths * monthWidth + 100,
                 height: axisHeight + rowHeight * 2,
                 child: Stack(
@@ -403,6 +432,7 @@ class YearMonthTimeline extends ConsumerWidget {
                     }),
                   ],
                 ),
+              ),
               ),
             ),
           ),

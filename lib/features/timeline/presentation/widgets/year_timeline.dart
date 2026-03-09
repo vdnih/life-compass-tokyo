@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/life_event.dart';
 import '../../domain/constraint_result.dart';
+import '../add_event_dialog.dart';
 import 'event_style.dart';
 
 class YearTimeline extends ConsumerWidget {
@@ -117,7 +118,32 @@ class YearTimeline extends ConsumerWidget {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(top: 40, bottom: 40, right: 40),
-              child: SizedBox(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTapUp: (details) {
+                  final tapX = details.localPosition.dx;
+                  final tapY = details.localPosition.dy;
+
+                  // 軸エリアと下余白は無視する
+                  if (tapY < axisHeight || tapY >= axisHeight + rowHeight * 2) {
+                    return;
+                  }
+
+                  final yearIndex = ((tapX - 20.0) / yearWidth).floor();
+                  if (yearIndex < 0 || yearIndex >= totalYears) return;
+
+                  final tappedDate = DateTime(startYear + yearIndex, 1);
+                  final isWork = tapY < axisHeight + rowHeight;
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AddEventDialog(
+                      initialDate: tappedDate,
+                      initialIsWork: isWork,
+                    ),
+                  );
+                },
+                child: SizedBox(
                 width: totalYears * yearWidth + 100,
                 height: axisHeight + rowHeight * 2,
                 child: Stack(
@@ -371,6 +397,7 @@ class YearTimeline extends ConsumerWidget {
                     }),
                   ],
                 ),
+              ),
               ),
             ),
           ),
