@@ -1,131 +1,155 @@
-## ライフプランアプリ ソフトウェアアーキテクチャ設計書
+# ソフトウェアアーキテクチャ設計書
 
-**Version: 2.0**
+**Version**: 3.0
+**Last Updated**: 2025-XX-XX
+**Owner**: Architect Agent
 
-### 1. 概要
+## 1. 概要
 
-本文書は、Flutterで開発する「ライフプランアプリ」のソフトウェアアーキテクチャを定義するものです。
-本アプリは、女性が自身のキャリアとプライベートの両面から、これまでの歩みとこれからの人生を俯瞰的に見つめ、主体的にライフプランを考えるためのタイムラインアプリです。プロダクト仕様の詳細は `PRODUCT_SPEC.md` を参照してください。
+本文書は、ライフプランアプリのソフトウェアアーキテクチャを定義する。
+高いメンテナンス性、テスト容易性、拡張性を確保し、AIコーディングエージェントによる開発支援を効率化することを設計目標とする。
 
-本設計の目的は、インフラ基盤（Firebase）との連携を最適化し、高いメンテナンス性、テスト容易性、拡張性を確保することです。また、AIコーディングエージェントによる開発支援を効率化することも重要な設計目標とします。
+## 2. 設計思想
 
-### 2. 設計思想とアーキテクチャスタイル
+- **アーキテクチャスタイル**: レイヤードアーキテクチャ（3層）
+- **設計原則**: 関心の分離（Separation of Concerns）
+- **層構成**: Presentation（UI）→ Logic → Data
 
-- **アーキテクチャスタイル**: **レイヤードアーキテクチャ（3層アーキテクチャ）**を採用します。
-- **設計思想**: **関心の分離 (Separation of Concerns)** を徹底します。アプリケーションの責務を「プレゼンテーション（UI）」「ビジネスロジック（Logic）」「データアクセス（Data）」の3つの層に明確に分割します。
+## 3. 技術スタック
 
-### 3. 主要技術スタック
+> 詳細は `CLAUDE.md` セクション3を参照。ここでは設計に関わる選定理由を記述する。
 
-- **UIフレームワーク**: Flutter
-- **状態管理・依存性の注入(DI)**: **Riverpod (v2, `riverpod_generator` 利用)**
-- **ルーティング**: **GoRouter** (`go_router_builder` を利用予定)
-- **バックエンド (BaaS)**: Firebase (Authentication, Firestore, Storage) ※インフラ設計書参照
+| 技術 | 選定理由 |
+|---|---|
+| Riverpod v2 + Generator | コンパイル時のProvider型安全性。AIエージェントがコード生成しやすいアノテーションベース。 |
+| GoRouter | 宣言的ルーティング。Deep Link対応。Web対応が容易。 |
+| Freezed | イミュータブルなデータモデル。copyWith / == / toString の自動生成。 |
+| mocktail | コード生成不要のモックライブラリ。AIエージェントとの相性良好。 |
 
-### 4. アーキテクチャ階層（レイヤー）
+## 4. レイヤー定義
 
-各層はRiverpodの「Provider」を介して疎結合に連携します。
+### 4.1. Presentation層（UI Layer）
+- **責務**: 画面描画とユーザー入力受付のみ。
+- **構成**: `ConsumerWidget` / `ConsumerStatefulWidget`
+- **ルール**:
+  - `ref.watch()` でLogic層の状態を購読しUIを描画する。
+  - ユーザー操作は `ref.read(provider.notifier).method()` でLogic層に通知する。
+  - **ビジネスロジック（計算、データ通信、状態加工）を一切持たない。**
 
-#### 4.1. プレゼンテーション層 (UI Layer)
+### 4.2. Logic層（Business Logic Layer）
+- **責務**: 状態管理とビジネスロジック実行。
+- **構成**: `@riverpod` アノテーションで生成されるProvider群
+  - `AsyncNotifierProvider`: 非同期データ + ユーザー操作ロジック
+  - `NotifierProvider`: 同期的な状態管理
+- **ルール**:
+  - UI層からの通知を受け、Data層のRepositoryを呼び出す。
+  - Repositoryから受け取ったデータをUIが表示しやすい状態モデルに加工する。
 
-- **責務**: 画面の描画とユーザー入力の受付に専念します。
-- **構成要素**: `ConsumerWidget` または `ConsumerStatefulWidget`。
-- **役割**:
-  - ビジネスロジック層が提供する「状態 (State)」を `ref.watch()` してUIを描画します。
-  - ユーザー操作（ボタンタップ等）をトリガーに、 `ref.read(provider.notifier).method()` を呼び出し、ビジネスロジック層に処理を通知します。
-  - **この層はビジネスロジック（計算、データ通信、状態の加工）を一切持ちません。**
+### 4.3. Data層（Data Layer）
+- **責務**: 外部データソースとのI/O。
+- **構成**: Repositoryクラス + Provider
+- **ルール**:
+  - リポジトリパターンを実装する。
+  - データ取得元の実装詳細をLogic層から隠蔽する。
+  - MVP時はインメモリ実装。Phase 3でFirestore実装に差し替え。
 
-#### 4.2. ビジネスロジック層 (Logic Layer)
+## 5. ディレクトリ構造
 
-- **責務**: アプリケーションの「頭脳」として、状態管理とビジネスロジックを実行します。
-- **構成要素**: Riverpodの各種Provider (`@riverpod` アノテーションで生成)。
-  - `AsyncNotifierProvider` / `NotifierProvider`: ユーザー操作に基づくロジックと、変更可能な状態を管理します。（例: `TimelineEventsProvider`）
-- **役割**:
-  - UI層からの通知を受け取ります。
-  - データ層のRepositoryを呼び出し、データ操作を依頼します。
-  - Repositoryから受け取ったデータや、メモリ上で保持するデータを、UIが表示しやすい「状態(State)」モデルに加工して提供します。
-
-#### 4.3. データ層 (Data Layer)
-
-- **責務**: 外部データソース（Firestoreなど）や永続化の仕組みとの具体的なデータI/Oを担当します。（初期はインメモリのモック対応も含みます）
-- **構成要素**: Repositoryクラス（例: `EventRepository`）と、それを注入するProvider。
-- **役割**:
-  - **リポジトリパターン**を実装します。
-  - データの取得元や保存先という実装詳細を、ロジック層から隠蔽します。
-
-### 5. ディレクトリ構造
-
-責務の分離を明確にするため、機能ベース（feature-first）のディレクトリ構造を採用します。
-
-```text
+```
 lib/
-├── main.dart
-│
-├── core/                     # アプリ全体で共通の要素
-│   ├── router/               # 画面遷移 (GoRouter)
-│   └── models/               # 全体で共通のモデルや例外クラスなど
-│
-└── features/                 # 機能ごとのディレクトリ
-    └── timeline/             # タイムライン（イベント）機能
+├── main.dart                           # エントリポイント + ProviderScope
+├── core/
+│   ├── router/
+│   │   └── app_router.dart             # GoRouter設定
+│   ├── theme/
+│   │   └── app_theme.dart              # ThemeData定義
+│   └── constants/
+│       └── app_constants.dart          # 文字数上限等の定数
+└── features/
+    ├── timeline/
+    │   ├── data/
+    │   │   └── event_repository.dart   # Repository（MVP: InMemory実装）
+    │   ├── domain/
+    │   │   └── life_event.dart         # @freezed データモデル
+    │   ├── logic/
+    │   │   └── timeline_events_provider.dart  # @riverpod 状態管理
+    │   └── presentation/
+    │       ├── timeline_screen.dart    # メイン画面
+    │       └── widgets/
+    │           ├── timeline_view.dart  # タイムライン描画
+    │           ├── event_card.dart     # イベントカード
+    │           └── add_event_dialog.dart # イベント追加ダイアログ
+    └── profile/
         ├── data/
-        │   └── event_repository.dart       (Data Layer)
+        │   └── profile_repository.dart
         ├── domain/
-        │   └── life_event.dart             (データモデル)
+        │   └── user_profile.dart       # @freezed データモデル
         ├── logic/
-        │   └── timeline_events_provider.dart (Logic Layer)
+        │   └── profile_provider.dart
         └── presentation/
-            ├── timeline_screen.dart        (UI Layer)
-            └── widgets/
-                ├── year_month_timeline.dart
-                └── add_event_dialog.dart
+            └── profile_dialog.dart
 ```
 
-### 6. アーキテクチャ図 (Mermaid)
+## 6. データフロー図
 
-#### 6.1. コンポーネント図
+### 6.1. コンポーネント図
 
 ```mermaid
-componentDiagram
-    actor User
-
-    node "Flutter App" {
-        [UI Layer (Widgets)]
-        [Logic Layer (Riverpod)]
-        [Data Layer (Repositories)]
-    }
-
-    node "Firebase (BaaS)" {
-        [Firestore (DB)]
-    }
-
-    User --> [UI Layer (Widgets)] : "操作"
-    [UI Layer (Widgets)] ..> [Logic Layer (Riverpod)] : "1. watch / read"
-    [Logic Layer (Riverpod)] ..> [Data Layer (Repositories)] : "2. データ要求"
-
-    [Data Layer (Repositories)] ..> [Firestore (DB)] : "3. 読み書き (将来機能)"
+graph TD
+    User((User)) --> UI[Presentation Layer<br>ConsumerWidget]
+    UI -->|ref.watch| Logic[Logic Layer<br>Riverpod Provider]
+    UI -->|ref.read.notifier| Logic
+    Logic -->|メソッド呼出| Data[Data Layer<br>Repository]
+    Data -->|InMemory| Memory[(List / Map)]
+    Data -.->|Phase 3| Firestore[(Cloud Firestore)]
 ```
 
-#### 6.2. シーケンス図 (イベント追加)
+### 6.2. イベント追加シーケンス
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant UI as TimelineScreen/Dialog
+    participant UI as AddEventDialog
     participant Logic as TimelineEventsProvider
     participant Data as EventRepository
-    participant External as Database(InMemory/Firestore)
+    participant Store as InMemory Store
 
-    User->>+UI: イベント情報を入力し「追加」をタップ
-    UI->>+Logic: addEvent(eventData) を呼び出す
-    Logic->>+Data: save(careerEvent) を呼び出す
-    Data->>+External: データの永続化
-    External-->>-Data: 保存成功
-    Data-->>-Logic: 処理完了
-    Logic->>Logic: 内部状態(List<CareerEvent>)を更新
-    Logic-->>-UI: 新しい状態をUIに反映(自動)
-    UI-->>-User: 画面上のタイムラインに表示
+    User->>UI: イベント情報入力 → 追加タップ
+    UI->>Logic: addEvent(LifeEvent)
+    Logic->>Data: save(LifeEvent)
+    Data->>Store: リストに追加
+    Store-->>Data: 成功
+    Data-->>Logic: 完了
+    Logic->>Logic: state = AsyncData(updatedList)
+    Logic-->>UI: ref.watch で自動再描画
+    UI-->>User: タイムラインに新イベント表示
 ```
 
-### 7. 主要な設計決定の根拠
+## 7. 主要モデル定義（参考）
 
-- **Riverpod (v2 + Generator) の採用理由**: AI開発エージェントがコード生成しやすく、Providerエラーをコンパイル時に検知できるため。
-- **Feature-firstフォルダ構成**: 機能ごとにモジュールが独立し、将来的な機能拡張（例: Auth, Profileなど）が発生した場合に他の機能への影響を最小限に抑えられます。
+```dart
+// life_event.dart
+@freezed
+class LifeEvent with _$LifeEvent {
+  const factory LifeEvent({
+    required String id,
+    required String title,
+    required EventType type,       // enum: work, private
+    required DateTime startDate,
+    DateTime? endDate,
+    String? detail,
+    WorkIconType? iconType,        // enum: join, careerUp, goal (Workのみ)
+  }) = _LifeEvent;
+
+  factory LifeEvent.fromJson(Map<String, dynamic> json) =>
+      _$LifeEventFromJson(json);
+}
+```
+
+## 変更履歴
+
+| バージョン | 日付 | 変更内容 |
+|---|---|---|
+| 1.0 | - | 初版作成 |
+| 2.0 | - | AI開発効率化を設計目標に追加 |
+| 3.0 | - | Claude Code体制に合わせて再構成。ディレクトリ構造を具体化。モデル定義を追加。 |

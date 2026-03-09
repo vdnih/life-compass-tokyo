@@ -1,77 +1,110 @@
-# ライフプランアプリ テスト方針ドキュメント (v1.1)
+# テスト方針ドキュメント
 
-## 1. 概要と目的
+**Version**: 2.0
+**Last Updated**: 2025-XX-XX
+**Owner**: QA Agent
 
-本文書は、「ライフプランアプリ」の品質担保とリグレッション防止を目的としたテスト方針を定義します。
+## 1. 概要
 
-本アプリは**3層レイヤードアーキテクチャ (UI, Logic, Data) + Riverpod**を採用しています。テストは、このアーキテクチャの「関心の分離」を維持・検証することを最優先とします。
+本文書は、ライフプランアプリの品質担保とリグレッション防止を目的としたテスト方針を定義する。
+3層レイヤードアーキテクチャ（UI, Logic, Data）+ Riverpodの「関心の分離」を維持・検証することを最優先とする。
 
-## 2. テスト戦略 (テストピラミッド)
+## 2. テスト戦略（テストピラミッド）
 
-コストと速度のバランスに基づき、以下の比率でテストを構成します。
+| 優先度 | テスト種別 | 対象 | 比率目安 |
+|---|---|---|---|
+| 1（主力） | ユニットテスト | Logic層・Data層 | 70% |
+| 2（中間） | ウィジェットテスト | Presentation層 | 25% |
+| 3（少数） | 統合テスト | クリティカルパス | 5% |
 
-1. **ユニットテスト (Unit Tests) [主力]**: 高速・低コスト。ロジック層とデータ層の検証。
-2. **ウィジェットテスト (Widget Tests) [中間]**: UI層の状態とインタラクションを検証。
-3. **統合テスト (Integration Tests) [少数]**: 重要なユーザーフロー（クリティカルパス）のみを実機（またはエミュレータ）で検証。
+## 3. レイヤー別テスト方針
 
-## 3. レイヤー別テスト方針 (AI指示ガイド)
+### 3.1. Presentation層（ウィジェットテスト）
 
-### 3.1. プレゼンテーション層 (UI Layer)
+- **対象**: `lib/features/*/presentation/` 配下のWidget
+- **検証項目**:
+  1. 状態（AsyncValue）に基づき、期待されるWidgetが表示されること
+  2. ユーザー操作が Logic層の Provider に正しく通知されること
+- **モック戦略**: Logic層のProviderを `mocktail` でモック化し、`ProviderScope.overrides` に指定
 
-* **担当**: `lib/features/*/presentation/` 配下の Widget (`TimelineScreen` など)
-* **手法**: **ウィジェットテスト (Widget Test)**
-* **目的**:
-    1.  状態（State）に基づき、期待されるWidgetが表示されること。
-    2.  ユーザー操作（タップなど）が、Logic層のProviderに正しく通知されること。
-* **AI指示ガイド**:
-    * テスト対象のProvider (Logic層) は、`mocktail` を使用して**モック化**し、`ProviderScope` の `overrides` に指定します。
-    * **状態別テスト (指示例)**: 「`TimelineScreen` のウィジェットテストを作成して。`timelineEventsProvider` を `Override` し、`AsyncValue.loading()` を返した場合に `CircularProgressIndicator` が表示されることを確認して。」
-    * **インタラクションテスト (指示例)**: 「`AddEventDialog` (またはタイムラインの追加ボタン) を `tester.tap()` した際に、`timelineEventsProvider.notifier` のイベント追加メソッドが1回呼び出されることを `verify()` して。」
+#### テストパターン
 
----
+**状態別テスト**:
+- `AsyncValue.loading()` → `CircularProgressIndicator` が表示される
+- `AsyncValue.data([])` → 空状態メッセージが表示される
+- `AsyncValue.data([event1, event2])` → イベントカードが2つ表示される
+- `AsyncValue.error(Exception('...'))` → エラーメッセージが表示される
 
-### 3.2. ビジネスロジック層 (Logic Layer)
+**インタラクションテスト**:
+- FABタップ → `AddEventDialog` が表示される
+- イベント追加ボタンタップ → `provider.notifier.addEvent()` が1回呼び出される
+- 削除ボタンタップ → `provider.notifier.deleteEvent()` が1回呼び出される
 
-* **担当**: `lib/features/*/logic/` 配下の Provider (`TimelineEventsProvider` 等)
-* **手法**: **ユニットテスト (Unit Test)** - **【最重要テスト領域】**
-* **目的**:
-    1.  ビジネスロジック（状態遷移、計算）が正しいこと。
-    2.  Data層のRepositoryが例外を投げた場合に、状態(State)が適切に `AsyncError` に遷移すること。
-* **AI指示ガイド**:
-    * テスト対象のProviderが依存するRepository (Data層) は、`mocktail` を使用して**モック化**します。
-    * テストには `ProviderContainer` を直接使用します。
-    * **指示例 (成功時)**: 「`TimelineEventsProvider` のユニットテストを作成して。`EventRepository` は `mocktail` でモック化し、イベント保存メソッドが成功した場合に、状態(State)が `AsyncLoading` を経て新しいイベントを含む `AsyncData` に遷移することを確認して。」
-    * **指示例 (失敗時)**: 「`EventRepository` のデータ保存処理が例外 (`Exception` または `FirebaseException`) を `throw` するように `when` で設定し、`TimelineEventsProvider` でイベント追加を実行した際、状態(State)が `AsyncError` になることを確認して。」
+### 3.2. Logic層（ユニットテスト）【最重要】
 
----
+- **対象**: `lib/features/*/logic/` 配下のProvider
+- **検証項目**:
+  1. ビジネスロジック（状態遷移）が正しいこと
+  2. Repository例外時に `AsyncError` へ遷移すること
+- **モック戦略**: Data層のRepositoryを `mocktail` でモック化
+- **テスト基盤**: `ProviderContainer` を直接使用
 
-### 3.3. データ層 (Data Layer)
+#### テストパターン
 
-* **担当**: `lib/features/*/data/` 配下の Repository (`EventRepository` 等)
-* **手法**: **ユニットテスト (Unit Test)**
-* **目的**:
-    1.  Firebase等の外部データソース（将来機能）が、期待通りに呼び出されること。
-    2.  `Map` (JSON) と `DomainModel` (`LifeEvent` など) の相互変換が正しいこと。
-* **AI指示ガイド**:
-    * `FirebaseAuth` や `FirebaseFirestore` のクライアントは `mocktail` で**モック化**します。
-    * **指示例 (API呼び出し)**: 「`AuthRepository` の `signIn` メソッドのユニットテストを作成して。`FirebaseAuth` (モック) の `signInWithEmailAndPassword` メソッドが、渡されたEmailとPasswordで1回呼び出されることを `verify()` して。」
-    * **指示例 (データ変換)**: 「`LifeEvent` モデルの `fromJson` と `toJson` のユニットテストを作成して。特定のJSONマップからモデルが正しく生成されること、およびモデルから期待通りのJSONマップが生成されることを確認して。」
+**正常系**:
+- イベント追加成功 → state が `AsyncData` に遷移し、新イベントを含む
+- イベント削除成功 → state が `AsyncData` に遷移し、該当イベントが含まれない
+- イベント一覧取得成功 → state が `AsyncLoading` → `AsyncData` に遷移
 
-## 4. 統合テスト (Integration Test)
+**異常系**:
+- Repository が Exception を throw → state が `AsyncError` に遷移
+- 空のタイトルでイベント追加 → バリデーションエラー
 
-* **担当**: `integration_test/` ディレクトリ
-* **手法**: **`integration_test` パッケージ**
-* **目的**: 複数の機能をまたぐ主要なユーザーフロー（クリティカルパス）を実機/エミュレータで通しでテストする。
-* **方針**:
-    * **テスト用Firebaseプロジェクト**に接続して実行します（モックは使用しません）。
-    * 対象シナリオ: (例) 「新規登録 → ログイン → キャリアイベント（Work/Private）を1件追加 → タイムラインに正しく表示されることを確認 → ログアウト」
-    * コストが高いため、UIの網羅的テストは行わず、クリティカルパスの正常系テストに限定します。
+### 3.3. Data層（ユニットテスト）
+
+- **対象**: `lib/features/*/data/` 配下のRepository
+- **検証項目**:
+  1. 外部データソースが期待通りに呼び出されること（Phase 3）
+  2. `Map`（JSON）と `DomainModel` の相互変換が正しいこと
+- **モック戦略**: MVP時はインメモリ実装のため、モック不要で直接テスト可能
+
+#### テストパターン
+
+**データ変換**:
+- `LifeEvent.fromJson(validMap)` → 正しいモデルが生成される
+- `LifeEvent(...).toJson()` → 期待通りのMapが生成される
+- 不正なJSON（必須フィールド欠損）→ 例外が発生する
+
+**Repository操作（InMemory）**:
+- `save(event)` → `getAll()` に含まれる
+- `delete(id)` → `getAll()` に含まれない
+- 存在しないIDで `delete` → 例外 or 何も起きない（仕様を明確にする）
+
+## 4. 統合テスト
+
+- **対象**: `integration_test/` ディレクトリ
+- **方針**: クリティカルパスの正常系のみ。網羅的UIテストは行わない。
+- **シナリオ例**: 「アプリ起動 → イベント追加 → タイムライン表示確認 → イベント削除」
+- **Phase 3追加シナリオ**: 「新規登録 → ログイン → イベント追加 → タイムライン確認 → ログアウト」
 
 ## 5. テスト環境・ツール
 
-* **モックライブラリ**: **`mocktail`** (コード生成不要のためAIとの相性良し)
-* **CI/CD**: GitHub Actions (または Codemagic) で、プッシュ/プルリクエスト時に全てのユニットテストとウィジェットテストを自動実行します。
-* **Firebase環境**:
-    * **本番用 (Prod)**: リリース用。
-    * **開発用 (Dev)**: 開発・デバッグ用。
-    * **テスト用 (Test)**: **統合テスト専用**。CIで利用します。
+| 項目 | 選定 |
+|---|---|
+| モックライブラリ | `mocktail`（コード生成不要） |
+| CI/CD | GitHub Actions（push / PR時に自動実行） |
+| カバレッジ | `flutter test --coverage` + `lcov` |
+
+## 6. 品質基準（リリースゲート）
+
+- ユニットテスト + ウィジェットテスト: **全件Pass**
+- `dart analyze`: **error 0件**
+- Logic層のテストカバレッジ: **80%以上**（目標）
+
+## 変更履歴
+
+| バージョン | 日付 | 変更内容 |
+|---|---|---|
+| 1.0 | - | 初版作成 |
+| 1.1 | - | AI指示ガイドを追加 |
+| 2.0 | - | Claude Code体制に合わせて再構成。具体的なテストパターンを追記。品質基準を明確化。 |
