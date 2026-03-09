@@ -59,7 +59,7 @@ void main() {
 
   group('LifeEvent の機能一覧（仕様）', () {
     test('date文字列 ("yyyy-MM") から正しい DateTime を取得できること', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2023-08',
         title: 'テスト',
         description: 'テスト詳細',
@@ -71,7 +71,7 @@ void main() {
     });
 
     test('endDate文字列 ("yyyy-MM") から正しい DateTime を取得できること', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2023-08',
         endDate: '2025-12',
         title: 'テスト',
@@ -85,7 +85,7 @@ void main() {
     });
 
     test('endDate が未指定の場合は null を返すこと', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2023-08',
         title: 'テスト',
         description: 'テスト詳細',
@@ -96,7 +96,7 @@ void main() {
     });
 
     test('endDate が設定されている場合、hasDuration は true を返すこと', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2023-08',
         endDate: '2024-03',
         title: 'テスト',
@@ -108,7 +108,7 @@ void main() {
     });
 
     test('endDate が未指定の場合、hasDuration は false を返すこと', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
@@ -119,13 +119,13 @@ void main() {
     });
 
     test('isWork は category.isWork を返すこと', () {
-      final workEvent = LifeEvent(
+      final workEvent = const LifeEvent(
         date: '2023-08',
         title: '入社',
         description: '',
         category: EventCategory.joining,
       );
-      final privateEvent = LifeEvent(
+      final privateEvent = const LifeEvent(
         date: '2023-08',
         title: '結婚',
         description: '',
@@ -137,7 +137,7 @@ void main() {
     });
 
     test('デフォルトのステータスは EventStatus.recorded であること', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2023-08',
         title: 'テスト',
         description: '',
@@ -148,7 +148,7 @@ void main() {
     });
 
     test('将来計画イベントの isFuturePlan が true を返すこと', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2028-04',
         title: '起業',
         description: '',
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('copyWith メソッドで一部のプロパティを変更した新しいインスタンスを生成できること', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2023-08',
         title: '元のタイトル',
         description: '元の詳細',
@@ -180,7 +180,7 @@ void main() {
     });
 
     test('copyWith メソッドで status を変更できること', () {
-      final event = LifeEvent(
+      final event = const LifeEvent(
         date: '2028-04',
         title: '起業',
         description: '',
@@ -193,13 +193,13 @@ void main() {
     });
 
     test('同じプロパティを持つ2つのインスタンスは等しいこと', () {
-      final event1 = LifeEvent(
+      final event1 = const LifeEvent(
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
         category: EventCategory.joining,
       );
-      final event2 = LifeEvent(
+      final event2 = const LifeEvent(
         date: '2023-08',
         title: 'テスト',
         description: '詳細',

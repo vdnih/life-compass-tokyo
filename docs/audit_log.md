@@ -6,6 +6,14 @@
 
 ---
 
+## 2026-03-10 - [環境・バグ修正] IDE 指摘事項の修正
+
+- **判断内容**: Androidビルドで発生していた「Unsupported class file major version 69」エラーと、テストコードの `const` コンストラクタ警告を修正。
+- **理由**: 環境のJava 25がGradle 8.14で未サポートだったため、Android StudioバンドルのJDK 21を使用するよう設定を追加した。また、テストのパフォーマンス向上のため `const` を適用した。
+- **影響範囲**:
+  - `android/gradle.properties`: `org.gradle.java.home` にAndroid StudioのJDKパスを指定
+  - `test/features/timeline/domain/life_event_test.dart`: `LifeEvent` の呼び出しを `const` に変更
+
 ## 2026-03-10 - [設計更新] Issue-001 解消：設計ドキュメントを実装に整合
 
 - **判断内容**: QA検証で指摘された Issue-001（SOFTWARE_ARCHITECTURE v4.0 と実装のモデル乖離）を解消。設計ドキュメントを実装に合わせて更新（QAレポート推奨の方針A）。
