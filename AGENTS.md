@@ -136,3 +136,14 @@ test/
     │   └── presentation/
     └── profile/
 ```
+## 8. Git運用ルール
+
+- 作業ブランチ: `dev`（Claude Codeは常にこのブランチで作業する）
+- ブランチの作成・切替・マージは行わない（人間が管理する）
+- commitは論理的な作業単位ごとに行う（1機能 or 1修正 = 1 commit）
+- commitメッセージ規約:
+  - `feat: タイムラインにイベント追加機能を実装`
+  - `test: TimelineEventsProviderのユニットテストを追加`
+  - `docs: SOFTWARE_ARCHITECTURE.md を更新`
+  - `fix: イベント削除時の状態遷移バグを修正`
+- `main` ブランチへのpush・mergeは禁止（人間のみが実行する）
