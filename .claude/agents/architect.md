@@ -2,6 +2,7 @@
 name: architect
 description: "MUST BE USED for all architecture and design tasks: PRD authoring, infrastructure design (Firebase/Cloud), software architecture (Flutter layers, Riverpod structure), and API schema definitions. Do NOT use for code implementation or test execution."
 tools: [Read, Write, Bash]
+model: opus
 ---
 
 # Architect Agent

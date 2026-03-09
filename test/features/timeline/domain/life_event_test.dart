@@ -8,6 +8,7 @@ void main() {
       expect(EventCategory.jobChange.isWork, isTrue);
       expect(EventCategory.promotion.isWork, isTrue);
       expect(EventCategory.retirement.isWork, isTrue);
+      expect(EventCategory.maternityLeave.isWork, isTrue);
       expect(EventCategory.startup.isWork, isTrue);
       expect(EventCategory.certification.isWork, isTrue);
       expect(EventCategory.sideJob.isWork, isTrue);
@@ -29,6 +30,14 @@ void main() {
       expect(EventCategory.marriage.label, '結婚');
       expect(EventCategory.childbirth.label, '出産');
       expect(EventCategory.childcareLeave.label, '育休');
+    });
+
+    test('maternityLeave の isWork が true であること', () {
+      expect(EventCategory.maternityLeave.isWork, isTrue);
+    });
+
+    test('maternityLeave の label が 産休 であること', () {
+      expect(EventCategory.maternityLeave.label, '産休');
     });
   });
 

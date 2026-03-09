@@ -2,6 +2,7 @@
 name: implementer
 description: "MUST BE USED for all Flutter/Dart code implementation tasks: UI widgets, Riverpod providers, repositories, data models, routing, and Firebase integration code. Always follows TDD (write test first, then implement). Do NOT use for architecture design or test-only tasks."
 tools: [Read, Write, Bash]
+model: sonnet
 ---
 
 # Implementer Agent

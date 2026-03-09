@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../logic/timeline_events_provider.dart';
+import '../logic/constraint_checker_provider.dart';
 import '../domain/life_event.dart';
+import 'widgets/constraint_warning.dart';
 
 class AddEventDialog extends ConsumerStatefulWidget {
   final DateTime? initialDate;
@@ -196,6 +198,38 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () => _selectEndDate(context),
                 ),
+              // 制約チェックのプレビュー表示
+              Builder(
+                builder: (context) {
+                  final eventsAsync = ref.watch(timelineEventsProvider);
+                  if (!eventsAsync.hasValue) {
+                    return const SizedBox.shrink();
+                  }
+                  final previewEvent = LifeEvent(
+                    date:
+                        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
+                    title: _titleController.text.isEmpty
+                        ? '(新規)'
+                        : _titleController.text,
+                    description: '',
+                    category: _category,
+                  );
+                  final allConstraints = checkAllConstraints([
+                    ...eventsAsync.value!,
+                    previewEvent,
+                  ]);
+                  final relevant = allConstraints
+                      .where(
+                        (c) => c.targetEventTitle == previewEvent.title,
+                      )
+                      .toList();
+                  if (relevant.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: ConstraintWarningList(constraints: relevant),
+                  );
+                },
+              ),
             ],
           ),
         ),

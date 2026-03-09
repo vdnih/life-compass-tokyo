@@ -7,6 +7,7 @@ IconData categoryIcon(EventCategory category) => switch (category) {
   EventCategory.jobChange => Icons.swap_horiz,
   EventCategory.promotion => Icons.trending_up,
   EventCategory.retirement => Icons.exit_to_app,
+  EventCategory.maternityLeave => Icons.pregnant_woman,
   EventCategory.startup => Icons.rocket_launch,
   EventCategory.certification => Icons.school,
   EventCategory.sideJob => Icons.work_outline,
@@ -20,15 +21,17 @@ IconData categoryIcon(EventCategory category) => switch (category) {
   EventCategory.caregiving => Icons.volunteer_activism,
 };
 
-/// 仕事系のベースカラー
-const Color workColor = Colors.blue;
-
-/// プライベート系のベースカラー
-const Color privateColor = Colors.orange;
+/// カテゴリ別の詳細カラーを返す（産休・育休関連はピンク系）
+Color categoryColor(EventCategory category) => switch (category) {
+  EventCategory.maternityLeave => Colors.pink.shade300,
+  EventCategory.childcareLeave => Colors.pink.shade200,
+  EventCategory.childbirth => Colors.pink.shade400,
+  _ when category.isWork => Colors.blue,
+  _ => Colors.orange,
+};
 
 /// イベントのカラーを返す
-Color eventColor(LifeEvent event) =>
-    event.isWork ? workColor : privateColor;
+Color eventColor(LifeEvent event) => categoryColor(event.category);
 
 /// 将来計画イベントかどうかで透明度を調整
 double eventOpacity(LifeEvent event) =>

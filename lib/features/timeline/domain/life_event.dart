@@ -8,6 +8,7 @@ enum EventCategory {
   jobChange('転職', true),
   promotion('昇進', true),
   retirement('退職', true),
+  maternityLeave('産休', true),
   startup('起業', true),
   certification('資格取得', true),
   sideJob('副業開始', true),

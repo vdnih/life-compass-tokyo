@@ -99,6 +99,7 @@ docs/
 ├── SOFTWARE_ARCHITECTURE.md    # ソフトウェアアーキテクチャ設計
 ├── TESTING_POLICY.md           # テスト方針
 ├── WBS.md                      # タスク分解・進捗管理
+├── feature_registry.md         # 機能と実装の対応表
 └── audit_log.md                # 監査ログ（全行動の記録）
 ```
 
@@ -147,3 +148,13 @@ test/
   - `docs: SOFTWARE_ARCHITECTURE.md を更新`
   - `fix: イベント削除時の状態遷移バグを修正`
 - `main` ブランチへのpush・mergeは禁止（人間のみが実行する）
+
+## 9. Feature Registry の維持義務
+
+- Implementer Agent は機能の実装完了時に docs/feature_registry.md を更新すること。
+  - 状態を 🟢 RELEASED に変更
+  - 実装ファイルパスとテストファイルパスを記入
+- Architect Agent は設計変更時に、影響を受ける既存機能の状態を 🔵 MODIFY に変更し、
+  備考に変更内容を記載すること。
+- feature_registry.md は PRD.md と常に整合していること。
+  PRD に存在する機能が registry に存在しない場合はエラーとする。

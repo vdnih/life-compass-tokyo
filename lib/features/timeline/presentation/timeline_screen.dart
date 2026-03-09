@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../user_profile/user_profile.dart';
 import '../../user_profile/profile_settings_dialog.dart';
 import '../logic/timeline_events_provider.dart';
+import '../logic/constraint_checker_provider.dart';
 import 'widgets/year_month_timeline.dart';
 import 'widgets/year_timeline.dart';
 import 'add_event_dialog.dart';
@@ -24,6 +25,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     final profile = ref.watch(userProfileNotifierProvider);
     final ageText = profile.age != null ? ' (${profile.age}歳)' : '';
     final eventsAsync = ref.watch(timelineEventsProvider);
+    final constraints = ref.watch(constraintCheckerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -67,8 +69,8 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       ),
       body: eventsAsync.when(
         data: (events) => _viewMode == TimelineViewMode.yearMonth
-            ? YearMonthTimeline(events: events)
-            : YearTimeline(events: events),
+            ? YearMonthTimeline(events: events, constraints: constraints)
+            : YearTimeline(events: events, constraints: constraints),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('エラーが発生しました: $e')),
       ),

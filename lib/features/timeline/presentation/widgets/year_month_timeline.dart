@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/life_event.dart';
+import '../../domain/constraint_result.dart';
 import 'event_style.dart';
 
 class YearMonthTimeline extends ConsumerWidget {
   final List<LifeEvent> events;
+  final List<ConstraintResult> constraints;
 
-  const YearMonthTimeline({super.key, required this.events});
+  const YearMonthTimeline({
+    super.key,
+    required this.events,
+    this.constraints = const [],
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -296,11 +302,20 @@ class YearMonthTimeline extends ConsumerWidget {
                       final color = eventColor(event);
                       final opacity = eventOpacity(event);
 
+                      final eventConstraints = constraints
+                          .where((c) => c.targetEventTitle == event.title)
+                          .toList();
+                      final hasWarning = eventConstraints.isNotEmpty;
+
                       return Positioned(
                         left: xPos - 60,
                         top: rowTop + topPadding,
                         child: GestureDetector(
-                          onTap: () => _showEventDetails(context, event),
+                          onTap: () => _showEventDetails(
+                            context,
+                            event,
+                            eventConstraints,
+                          ),
                           child: Opacity(
                             opacity: opacity,
                             child: SizedBox(
@@ -308,45 +323,61 @@ class YearMonthTimeline extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Container(
-                                    height: 50,
-                                    alignment: Alignment.center,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: event.isWork
-                                          ? Colors.blue.shade50
-                                          : Colors.orange.shade50,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: color,
-                                        width: event.isFuturePlan ? 1 : 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.05,
-                                          ),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
+                                  Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        height: 50,
+                                        alignment: Alignment.center,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 6,
                                         ),
-                                      ],
-                                    ),
-                                    child: Text(
-                                      event.title,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: event.isWork
-                                            ? Colors.blue.shade800
-                                            : Colors.orange.shade800,
+                                        decoration: BoxDecoration(
+                                          color: event.isWork
+                                              ? Colors.blue.shade50
+                                              : Colors.orange.shade50,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: color,
+                                            width: 1,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.05,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Text(
+                                          event.title,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: event.isWork
+                                                ? Colors.blue.shade800
+                                                : Colors.orange.shade800,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 2,
+                                        ),
                                       ),
-                                      textAlign: TextAlign.center,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 2,
-                                    ),
+                                      if (hasWarning)
+                                        Positioned(
+                                          top: -6,
+                                          right: -6,
+                                          child: Icon(
+                                            Icons.warning_amber_rounded,
+                                            color: Colors.amber.shade700,
+                                            size: 18,
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                   const SizedBox(height: 4),
                                   if (event.isFuturePlan)
@@ -380,7 +411,11 @@ class YearMonthTimeline extends ConsumerWidget {
     );
   }
 
-  void _showEventDetails(BuildContext context, LifeEvent event) {
+  void _showEventDetails(
+    BuildContext context,
+    LifeEvent event,
+    List<ConstraintResult> eventConstraints,
+  ) {
     final color = eventColor(event);
     showDialog(
       context: context,
@@ -392,41 +427,80 @@ class YearMonthTimeline extends ConsumerWidget {
             Expanded(child: Text(event.title)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  event.hasDuration
-                      ? '${event.date} 〜 ${event.endDate}'
-                      : event.date,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                if (event.isFuturePlan) ...[
-                  const SizedBox(width: 8),
-                  Chip(
-                    label: Text(
-                      event.status.label,
-                      style: const TextStyle(fontSize: 11),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    event.hasDuration
+                        ? '${event.date} 〜 ${event.endDate}'
+                        : event.date,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    visualDensity: VisualDensity.compact,
                   ),
+                  if (event.isFuturePlan) ...[
+                    const SizedBox(width: 8),
+                    Chip(
+                      label: Text(
+                        event.status.label,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
                 ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                event.category.label,
+                style: TextStyle(fontSize: 13, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(event.description),
+              if (eventConstraints.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                ...eventConstraints.map((c) {
+                  final isWarning =
+                      c.severity == ConstraintSeverity.warning;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isWarning
+                          ? Colors.amber.shade50
+                          : Colors.lightBlue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isWarning
+                              ? Icons.warning_amber_rounded
+                              : Icons.info_outline,
+                          color: isWarning
+                              ? Colors.amber.shade700
+                              : Colors.lightBlue.shade700,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            c.message,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${event.category.label}',
-              style: TextStyle(fontSize: 13, color: color),
-            ),
-            const SizedBox(height: 12),
-            Text(event.description),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(

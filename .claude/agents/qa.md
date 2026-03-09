@@ -2,6 +2,7 @@
 name: qa
 description: "MUST BE USED for test scenario design, test execution and validation, quality reports, and code quality analysis (static analysis, coverage). Do NOT use for production code changes or architecture design."
 tools: [Read, Write, Bash]
+model: sonnet
 ---
 
 # QA Agent
