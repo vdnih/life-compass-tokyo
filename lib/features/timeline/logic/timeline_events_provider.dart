@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/event_repository.dart';
-import '../domain/career_event.dart';
+import '../domain/life_event.dart';
 
-class TimelineEventsNotifier extends AsyncNotifier<List<CareerEvent>> {
+class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
   @override
-  Future<List<CareerEvent>> build() async {
+  Future<List<LifeEvent>> build() async {
     final repository = ref.read(eventRepositoryProvider);
     return repository.fetchEvents();
   }
 
-  Future<void> addEvent(CareerEvent event) async {
+  Future<void> addEvent(LifeEvent event) async {
     final previousState = state;
     state = const AsyncLoading();
     try {
@@ -25,7 +25,7 @@ class TimelineEventsNotifier extends AsyncNotifier<List<CareerEvent>> {
     }
   }
 
-  Future<void> deleteEvent(CareerEvent event) async {
+  Future<void> deleteEvent(LifeEvent event) async {
     final previousState = state;
     state = const AsyncLoading();
     try {
@@ -43,6 +43,6 @@ class TimelineEventsNotifier extends AsyncNotifier<List<CareerEvent>> {
 }
 
 final timelineEventsProvider =
-    AsyncNotifierProvider<TimelineEventsNotifier, List<CareerEvent>>(() {
+    AsyncNotifierProvider<TimelineEventsNotifier, List<LifeEvent>>(() {
       return TimelineEventsNotifier();
     });

@@ -1,48 +1,50 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../domain/career_event.dart';
+import '../domain/life_event.dart';
 
 abstract class EventRepository {
-  Future<List<CareerEvent>> fetchEvents();
-  Future<void> saveEvent(CareerEvent event);
-  Future<void> deleteEvent(CareerEvent event);
+  Future<List<LifeEvent>> fetchEvents();
+  Future<void> saveEvent(LifeEvent event);
+  Future<void> deleteEvent(LifeEvent event);
 }
 
 class InMemoryEventRepository implements EventRepository {
-  final List<CareerEvent> _events = [
-    CareerEvent(
+  final List<LifeEvent> _events = [
+    const LifeEvent(
       date: '2019-04',
       title: 'IT企業に入社',
       description: 'SIerとしてキャリアをスタート',
+      category: EventCategory.joining,
     ),
-    CareerEvent(
+    const LifeEvent(
       date: '2023-08',
       title: '現職へ転職',
       description: 'DX推進エンジニア・AIエンジニアとして参画',
+      category: EventCategory.jobChange,
     ),
-    CareerEvent(
+    const LifeEvent(
       date: '2025-12',
       title: 'ヨーロッパ周遊',
       description: 'サンセバスチャンやロンドンなどを巡る',
-      isLifeEvent: true,
+      category: EventCategory.travel,
     ),
-    CareerEvent(
+    const LifeEvent(
       date: '2026-02',
       title: '結婚式',
       description: 'タイのクラビにて挙式',
-      isLifeEvent: true,
+      category: EventCategory.marriage,
     ),
   ];
 
   @override
-  Future<List<CareerEvent>> fetchEvents() async => List.unmodifiable(_events);
+  Future<List<LifeEvent>> fetchEvents() async => List.unmodifiable(_events);
 
   @override
-  Future<void> saveEvent(CareerEvent event) async {
+  Future<void> saveEvent(LifeEvent event) async {
     _events.add(event);
   }
 
   @override
-  Future<void> deleteEvent(CareerEvent event) async {
+  Future<void> deleteEvent(LifeEvent event) async {
     _events.remove(event);
   }
 }

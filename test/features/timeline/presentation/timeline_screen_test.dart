@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:my_career_app/features/timeline/domain/career_event.dart';
+import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/logic/timeline_events_provider.dart';
 import 'package:my_career_app/features/timeline/presentation/timeline_screen.dart';
 import 'package:my_career_app/features/timeline/presentation/widgets/year_month_timeline.dart';
@@ -9,8 +9,13 @@ import 'package:my_career_app/features/timeline/presentation/widgets/year_timeli
 
 class _StubEventsNotifier extends TimelineEventsNotifier {
   @override
-  Future<List<CareerEvent>> build() async => const [
-    CareerEvent(date: '2020-01', title: 'テストイベント', description: ''),
+  Future<List<LifeEvent>> build() async => const [
+    LifeEvent(
+      date: '2020-01',
+      title: 'テストイベント',
+      description: '',
+      category: EventCategory.joining,
+    ),
   ];
 }
 
@@ -48,11 +53,9 @@ void main() {
       await tester.pumpWidget(_buildTestWidget());
       await tester.pumpAndSettle();
 
-      // 年表示に切り替え
       await tester.tap(find.text('年'));
       await tester.pumpAndSettle();
 
-      // 年月表示に戻す
       await tester.tap(find.text('年月'));
       await tester.pumpAndSettle();
 

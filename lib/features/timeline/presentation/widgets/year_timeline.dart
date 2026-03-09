@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../user_profile/user_profile.dart';
-import '../../domain/career_event.dart';
+import '../../domain/life_event.dart';
+import 'event_style.dart';
 
 class YearTimeline extends ConsumerWidget {
-  final List<CareerEvent> events;
+  final List<LifeEvent> events;
 
   const YearTimeline({super.key, required this.events});
 
@@ -14,7 +15,7 @@ class YearTimeline extends ConsumerWidget {
 
     final profile = ref.watch(userProfileNotifierProvider);
 
-    final sortedEvents = List<CareerEvent>.from(events)
+    final sortedEvents = List<LifeEvent>.from(events)
       ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
     final firstYear = sortedEvents.first.dateTime.year;
@@ -34,6 +35,11 @@ class YearTimeline extends ConsumerWidget {
     const double axisHeight = 60.0;
     const double rowHeight = 160.0;
 
+    // 現在時点のオフセットを計算
+    final now = DateTime.now();
+    final nowOffset = now.year - startYear;
+    final nowXPos = 20.0 + (nowOffset * yearWidth);
+
     return SingleChildScrollView(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +52,7 @@ class YearTimeline extends ConsumerWidget {
               height: axisHeight + rowHeight * 2,
               child: Column(
                 children: [
-                  SizedBox(height: axisHeight),
+                  const SizedBox(height: axisHeight),
                   Container(
                     height: rowHeight,
                     width: double.infinity,
@@ -55,7 +61,7 @@ class YearTimeline extends ConsumerWidget {
                       color: Theme.of(context).scaffoldBackgroundColor,
                       border: Border(
                         right: BorderSide(
-                          color: Colors.blueGrey.withOpacity(0.3),
+                          color: Colors.blueGrey.withValues(alpha: 0.3),
                         ),
                       ),
                     ),
@@ -78,10 +84,10 @@ class YearTimeline extends ConsumerWidget {
                       color: Theme.of(context).scaffoldBackgroundColor,
                       border: Border(
                         top: BorderSide(
-                          color: Colors.blueGrey.withOpacity(0.3),
+                          color: Colors.blueGrey.withValues(alpha: 0.3),
                         ),
                         right: BorderSide(
-                          color: Colors.blueGrey.withOpacity(0.3),
+                          color: Colors.blueGrey.withValues(alpha: 0.3),
                         ),
                       ),
                     ),
@@ -118,7 +124,7 @@ class YearTimeline extends ConsumerWidget {
                       right: 0,
                       child: Container(
                         height: 1,
-                        color: Colors.blueGrey.withOpacity(0.3),
+                        color: Colors.blueGrey.withValues(alpha: 0.3),
                       ),
                     ),
 
@@ -129,7 +135,30 @@ class YearTimeline extends ConsumerWidget {
                       right: 0,
                       child: Container(
                         height: 2,
-                        color: Colors.blueGrey.withOpacity(0.3),
+                        color: Colors.blueGrey.withValues(alpha: 0.3),
+                      ),
+                    ),
+
+                    // 現在時点マーカー
+                    Positioned(
+                      left: nowXPos - 0.5,
+                      top: 0,
+                      child: Container(
+                        width: 2,
+                        height: axisHeight + rowHeight * 2,
+                        color: Colors.red.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    Positioned(
+                      left: nowXPos - 16,
+                      top: axisHeight + rowHeight * 2 - 2,
+                      child: Text(
+                        '現在',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.withValues(alpha: 0.7),
+                        ),
                       ),
                     ),
 
@@ -137,7 +166,9 @@ class YearTimeline extends ConsumerWidget {
                     ...List.generate(totalYears + 1, (index) {
                       final year = startYear + index;
                       final xPos = 20.0 + (index * yearWidth);
-                      final ageAtDate = profile.calculateAgeAt(DateTime(year, 1));
+                      final ageAtDate = profile.calculateAgeAt(
+                        DateTime(year, 1),
+                      );
 
                       return Positioned(
                         left: xPos - 20,
@@ -153,7 +184,9 @@ class YearTimeline extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.blueGrey.withOpacity(0.8),
+                                    color: Colors.blueGrey.withValues(
+                                      alpha: 0.8,
+                                    ),
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -186,31 +219,35 @@ class YearTimeline extends ConsumerWidget {
                       final startXPos = 20.0 + (startOffset * yearWidth);
                       final endXPos = 20.0 + (endOffset * yearWidth);
 
-                      final rowTop = event.isLifeEvent
-                          ? axisHeight + rowHeight
-                          : axisHeight;
+                      final rowTop = event.isWork
+                          ? axisHeight
+                          : axisHeight + rowHeight;
                       final baseTop = rowTop + 24.0 + 50.0 + 6.0 + 12.0;
 
-                      final color = event.isLifeEvent ? Colors.orange : Colors.blue;
+                      final color = eventColor(event);
+                      final opacity = eventOpacity(event);
 
                       return Positioned(
                         left: startXPos + 12,
                         top: baseTop - 1,
                         width: endXPos - startXPos - 12,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 2,
-                                color: color.withOpacity(0.6),
+                        child: Opacity(
+                          opacity: opacity,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 2,
+                                  color: color.withValues(alpha: 0.6),
+                                ),
                               ),
-                            ),
-                            Icon(
-                              Icons.arrow_right,
-                              color: color.withOpacity(0.6),
-                              size: 16,
-                            ),
-                          ],
+                              Icon(
+                                Icons.arrow_right,
+                                color: color.withValues(alpha: 0.6),
+                                size: 16,
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     }),
@@ -220,70 +257,83 @@ class YearTimeline extends ConsumerWidget {
                       final yearOffset = event.dateTime.year - startYear;
                       final xPos = 20.0 + (yearOffset * yearWidth);
 
-                      final rowTop = event.isLifeEvent
-                          ? axisHeight + rowHeight
-                          : axisHeight;
+                      final rowTop = event.isWork
+                          ? axisHeight
+                          : axisHeight + rowHeight;
                       const topPadding = 24.0;
+
+                      final color = eventColor(event);
+                      final opacity = eventOpacity(event);
 
                       return Positioned(
                         left: xPos - 60,
                         top: rowTop + topPadding,
                         child: GestureDetector(
                           onTap: () => _showEventDetails(context, event),
-                          child: SizedBox(
-                            width: 120,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Container(
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: event.isLifeEvent
-                                        ? Colors.orange.shade50
-                                        : Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: event.isLifeEvent
-                                          ? Colors.orange
-                                          : Colors.blue,
-                                      width: 1,
+                          child: Opacity(
+                            opacity: opacity,
+                            child: SizedBox(
+                              width: 120,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    height: 50,
+                                    alignment: Alignment.center,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 6,
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
+                                    decoration: BoxDecoration(
+                                      color: event.isWork
+                                          ? Colors.blue.shade50
+                                          : Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: color,
+                                        width: 1,
                                       ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    event.title,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: event.isLifeEvent
-                                          ? Colors.orange.shade800
-                                          : Colors.blue.shade800,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-                                    textAlign: TextAlign.center,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
+                                    child: Text(
+                                      event.title,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: event.isWork
+                                            ? Colors.blue.shade800
+                                            : Colors.orange.shade800,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 6),
-                                Icon(
-                                  event.isLifeEvent ? Icons.favorite : Icons.work,
-                                  color: event.isLifeEvent
-                                      ? Colors.orange
-                                      : Colors.blue,
-                                  size: 24,
-                                ),
-                              ],
+                                  const SizedBox(height: 4),
+                                  if (event.isFuturePlan)
+                                    Text(
+                                      event.status.label,
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: color,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  Icon(
+                                    categoryIcon(event.category),
+                                    color: color,
+                                    size: 24,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -299,16 +349,14 @@ class YearTimeline extends ConsumerWidget {
     );
   }
 
-  void _showEventDetails(BuildContext context, CareerEvent event) {
+  void _showEventDetails(BuildContext context, LifeEvent event) {
+    final color = eventColor(event);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(
-              event.isLifeEvent ? Icons.favorite : Icons.work,
-              color: event.isLifeEvent ? Colors.orange : Colors.blue,
-            ),
+            Icon(categoryIcon(event.category), color: color),
             const SizedBox(width: 12),
             Expanded(child: Text(event.title)),
           ],
@@ -317,16 +365,35 @@ class YearTimeline extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              event.hasDuration
-                  ? '${event.date} 〜 ${event.endDate}'
-                  : event.date,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+            Row(
+              children: [
+                Text(
+                  event.hasDuration
+                      ? '${event.date} 〜 ${event.endDate}'
+                      : event.date,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                if (event.isFuturePlan) ...[
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text(
+                      event.status.label,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Text(
+              '${event.category.label}',
+              style: TextStyle(fontSize: 13, color: color),
+            ),
+            const SizedBox(height: 12),
             Text(event.description),
           ],
         ),

@@ -49,7 +49,7 @@ void main() {
       await tester.tap(find.text('追加'));
       await tester.pumpAndSettle();
 
-      // ダイアログが閉じていることを確認（正常に送信された）
+      // ダイアログが閉じていることを確認
       expect(find.text('イベントを追加'), findsNothing);
     });
 
@@ -71,7 +71,6 @@ void main() {
       await tester.tap(find.text('追加'));
       await tester.pumpAndSettle();
 
-      // ダイアログが閉じていることを確認
       expect(find.text('イベントを追加'), findsNothing);
     });
 
@@ -101,19 +100,19 @@ void main() {
       expect(find.text('イベントを追加'), findsOneWidget);
     });
 
-    testWidgets('仕事を選択した場合にアイコン選択(入社/キャリアアップ/目標)が表示されること', (tester) async {
+    testWidgets('仕事を選択した場合にカテゴリ選択（仕事系カテゴリ）が表示されること', (tester) async {
       await tester.pumpWidget(_buildTestWidget());
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
 
-      // 仕事はデフォルト選択なのでアイコン選択が表示されているはず
+      // 仕事はデフォルト選択なのでカテゴリが表示されているはず
       expect(find.text('入社'), findsOneWidget);
-      expect(find.text('キャリアアップ'), findsOneWidget);
-      expect(find.text('目標'), findsOneWidget);
+      expect(find.text('転職'), findsOneWidget);
+      expect(find.text('昇進'), findsOneWidget);
     });
 
-    testWidgets('プライベートを選択した場合にアイコン選択が非表示になること', (tester) async {
+    testWidgets('プライベートを選択した場合にプライベート系カテゴリが表示されること', (tester) async {
       await tester.pumpWidget(_buildTestWidget());
 
       await tester.tap(find.text('ダイアログを開く'));
@@ -123,27 +122,21 @@ void main() {
       await tester.tap(find.text('プライベート'));
       await tester.pumpAndSettle();
 
+      // 仕事系カテゴリは非表示
       expect(find.text('入社'), findsNothing);
-      expect(find.text('キャリアアップ'), findsNothing);
-      expect(find.text('目標'), findsNothing);
+      // プライベート系カテゴリが表示される
+      expect(find.text('結婚'), findsOneWidget);
+      expect(find.text('出産'), findsOneWidget);
     });
 
-    testWidgets('アイコンを「目標」に変更して追加できること', (tester) async {
+    testWidgets('ステータス選択（記録/予定/目標/検討中）が表示されること', (tester) async {
       await tester.pumpWidget(_buildTestWidget());
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('目標'));
-      await tester.tap(find.text('目標'));
-      await tester.pumpAndSettle();
-
-      await tester.ensureVisible(find.byType(TextFormField).first);
-      await tester.enterText(find.byType(TextFormField).first, '目標イベント');
-      await tester.tap(find.text('追加'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('イベントを追加'), findsNothing);
+      expect(find.text('記録'), findsOneWidget);
+      expect(find.text('予定'), findsOneWidget);
     });
 
     testWidgets('期間指定トグルをONにすると終了年月が入力可能になること', (tester) async {
@@ -155,13 +148,11 @@ void main() {
       // 当初は終了年月が表示されていない
       expect(find.text('終了年月'), findsNothing);
 
-      // 期間指定トグルをスクロールして表示してからタップ
       await tester.ensureVisible(find.text('期間を指定する'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('期間を指定する'));
       await tester.pumpAndSettle();
 
-      // 終了年月が表示される
       expect(find.text('終了年月'), findsOneWidget);
     });
   });

@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../logic/timeline_events_provider.dart';
-import '../domain/career_event.dart';
-
-const _workEventIconData = {
-  WorkEventIcon.joining: (icon: Icons.business, label: '入社'),
-  WorkEventIcon.careerUp: (icon: Icons.trending_up, label: 'キャリアアップ'),
-  WorkEventIcon.goal: (icon: Icons.flag, label: '目標'),
-};
+import '../domain/life_event.dart';
 
 class AddEventDialog extends ConsumerStatefulWidget {
   final DateTime? initialDate;
-  final bool initialIsLifeEvent;
+  final bool initialIsWork;
 
   const AddEventDialog({
     super.key,
     this.initialDate,
-    this.initialIsLifeEvent = false,
+    this.initialIsWork = true,
   });
 
   @override
@@ -30,8 +24,12 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   late DateTime _selectedDate;
   DateTime? _selectedEndDate;
   bool _hasEndDate = false;
-  late bool _isLifeEvent;
-  WorkEventIcon _workEventIcon = WorkEventIcon.joining;
+  late bool _isWork;
+  late EventCategory _category;
+  EventStatus _status = EventStatus.recorded;
+
+  List<EventCategory> get _availableCategories =>
+      EventCategory.values.where((c) => c.isWork == _isWork).toList();
 
   @override
   void initState() {
@@ -40,7 +38,8 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
     _descriptionController = TextEditingController();
     _selectedDate = widget.initialDate ?? DateTime.now();
     _selectedEndDate = widget.initialDate ?? DateTime.now();
-    _isLifeEvent = widget.initialIsLifeEvent;
+    _isWork = widget.initialIsWork;
+    _category = _isWork ? EventCategory.joining : EventCategory.marriage;
   }
 
   @override
@@ -99,35 +98,49 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
               const SizedBox(height: 8),
               SegmentedButton<bool>(
                 segments: const [
-                  ButtonSegment(value: false, label: Text('仕事')),
-                  ButtonSegment(value: true, label: Text('プライベート')),
+                  ButtonSegment(value: true, label: Text('仕事')),
+                  ButtonSegment(value: false, label: Text('プライベート')),
                 ],
-                selected: {_isLifeEvent},
+                selected: {_isWork},
                 onSelectionChanged: (newSelection) {
                   setState(() {
-                    _isLifeEvent = newSelection.first;
+                    _isWork = newSelection.first;
+                    _category = _availableCategories.first;
                   });
                 },
               ),
-              if (!_isLifeEvent) ...[
-                const SizedBox(height: 12),
-                SegmentedButton<WorkEventIcon>(
-                  segments: WorkEventIcon.values.map((icon) {
-                    final data = _workEventIconData[icon]!;
-                    return ButtonSegment(
-                      value: icon,
-                      icon: Icon(data.icon, size: 18),
-                      label: Text(data.label),
-                    );
-                  }).toList(),
-                  selected: {_workEventIcon},
-                  onSelectionChanged: (newSelection) {
-                    setState(() {
-                      _workEventIcon = newSelection.first;
-                    });
-                  },
-                ),
-              ],
+              const SizedBox(height: 12),
+              const Text('カテゴリ'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _availableCategories.map((cat) {
+                  final selected = _category == cat;
+                  return ChoiceChip(
+                    label: Text(cat.label),
+                    selected: selected,
+                    onSelected: (value) {
+                      if (value) setState(() => _category = cat);
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              const Text('ステータス'),
+              const SizedBox(height: 8),
+              SegmentedButton<EventStatus>(
+                segments: EventStatus.values.map((s) {
+                  return ButtonSegment(value: s, label: Text(s.label));
+                }).toList(),
+                selected: {_status},
+                onSelectionChanged: (newSelection) {
+                  setState(() {
+                    _status = newSelection.first;
+                  });
+                },
+                showSelectedIcon: false,
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _titleController,
@@ -155,7 +168,8 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('開始年月'),
-                subtitle: Text('${_selectedDate.year}年${_selectedDate.month}月'),
+                subtitle:
+                    Text('${_selectedDate.year}年${_selectedDate.month}月'),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () => _selectDate(context),
               ),
@@ -199,14 +213,14 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                 endDateStr =
                     '${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}';
               }
-              final newEvent = CareerEvent(
+              final newEvent = LifeEvent(
                 date:
                     '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
                 endDate: endDateStr,
                 title: _titleController.text,
                 description: _descriptionController.text,
-                isLifeEvent: _isLifeEvent,
-                workEventIcon: _workEventIcon,
+                category: _category,
+                status: _status,
               );
               ref.read(timelineEventsProvider.notifier).addEvent(newEvent);
               Navigator.pop(context);
