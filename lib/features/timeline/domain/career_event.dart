@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+enum WorkEventIcon { joining, careerUp, goal }
+
 @immutable
 class CareerEvent {
   final String date; // yyyy-MM
@@ -7,6 +9,7 @@ class CareerEvent {
   final String title;
   final String description;
   final bool isLifeEvent;
+  final WorkEventIcon workEventIcon;
 
   const CareerEvent({
     required this.date,
@@ -14,6 +17,7 @@ class CareerEvent {
     required this.title,
     required this.description,
     this.isLifeEvent = false,
+    this.workEventIcon = WorkEventIcon.joining,
   });
 
   DateTime get dateTime {
@@ -35,6 +39,7 @@ class CareerEvent {
     String? title,
     String? description,
     bool? isLifeEvent,
+    WorkEventIcon? workEventIcon,
   }) {
     return CareerEvent(
       date: date ?? this.date,
@@ -42,6 +47,7 @@ class CareerEvent {
       title: title ?? this.title,
       description: description ?? this.description,
       isLifeEvent: isLifeEvent ?? this.isLifeEvent,
+      workEventIcon: workEventIcon ?? this.workEventIcon,
     );
   }
 
@@ -54,7 +60,8 @@ class CareerEvent {
         other.endDate == endDate &&
         other.title == title &&
         other.description == description &&
-        other.isLifeEvent == isLifeEvent;
+        other.isLifeEvent == isLifeEvent &&
+        other.workEventIcon == workEventIcon;
   }
 
   @override
@@ -63,6 +70,7 @@ class CareerEvent {
         endDate.hashCode ^
         title.hashCode ^
         description.hashCode ^
-        isLifeEvent.hashCode;
+        isLifeEvent.hashCode ^
+        workEventIcon.hashCode;
   }
 }

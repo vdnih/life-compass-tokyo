@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../logic/timeline_events_provider.dart';
 import '../domain/career_event.dart';
 
+const _workEventIconData = {
+  WorkEventIcon.joining: (icon: Icons.business, label: '入社'),
+  WorkEventIcon.careerUp: (icon: Icons.trending_up, label: 'キャリアアップ'),
+  WorkEventIcon.goal: (icon: Icons.flag, label: '目標'),
+};
+
 class AddEventDialog extends ConsumerStatefulWidget {
   final DateTime? initialDate;
   final bool initialIsLifeEvent;
@@ -25,6 +31,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   DateTime? _selectedEndDate;
   bool _hasEndDate = false;
   late bool _isLifeEvent;
+  WorkEventIcon _workEventIcon = WorkEventIcon.joining;
 
   @override
   void initState() {
@@ -102,6 +109,25 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                   });
                 },
               ),
+              if (!_isLifeEvent) ...[
+                const SizedBox(height: 12),
+                SegmentedButton<WorkEventIcon>(
+                  segments: WorkEventIcon.values.map((icon) {
+                    final data = _workEventIconData[icon]!;
+                    return ButtonSegment(
+                      value: icon,
+                      icon: Icon(data.icon, size: 18),
+                      label: Text(data.label),
+                    );
+                  }).toList(),
+                  selected: {_workEventIcon},
+                  onSelectionChanged: (newSelection) {
+                    setState(() {
+                      _workEventIcon = newSelection.first;
+                    });
+                  },
+                ),
+              ],
               const SizedBox(height: 16),
               TextFormField(
                 controller: _titleController,
@@ -180,6 +206,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                 title: _titleController.text,
                 description: _descriptionController.text,
                 isLifeEvent: _isLifeEvent,
+                workEventIcon: _workEventIcon,
               );
               ref.read(timelineEventsProvider.notifier).addEvent(newEvent);
               Navigator.pop(context);

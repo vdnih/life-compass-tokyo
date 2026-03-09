@@ -129,6 +129,36 @@ void main() {
       verify(() => mockRepository.deleteEvent(targetEvent)).called(1);
     });
 
+    test('削除エラー: EventRepositoryの削除処理が例外を投げた場合、状態がAsyncErrorに遷移すること', () async {
+      final targetEvent = CareerEvent(
+        date: '2020-01',
+        title: 'Test 1',
+        description: '',
+      );
+      final initialEvents = [targetEvent];
+      final exception = Exception('Failed to delete event');
+
+      when(
+        () => mockRepository.fetchEvents(),
+      ).thenAnswer((_) async => initialEvents);
+      when(() => mockRepository.deleteEvent(any())).thenThrow(exception);
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      final states = <AsyncValue<List<CareerEvent>>>[];
+      container.listen(timelineEventsProvider, (previous, next) {
+        states.add(next);
+      });
+
+      await container
+          .read(timelineEventsProvider.notifier)
+          .deleteEvent(targetEvent);
+
+      expect(states.any((s) => s is AsyncError), isTrue);
+      verify(() => mockRepository.deleteEvent(targetEvent)).called(1);
+    });
+
     test('エラー発生時: EventRepositoryの処理が例外を投げた場合、状態がAsyncErrorに遷移すること', () async {
       final initialEvents = [
         CareerEvent(date: '2020-01', title: 'Test 1', description: ''),

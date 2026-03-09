@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/career_event.dart';
 
+IconData _workIcon(WorkEventIcon icon) => switch (icon) {
+  WorkEventIcon.joining => Icons.business,
+  WorkEventIcon.careerUp => Icons.trending_up,
+  WorkEventIcon.goal => Icons.flag,
+};
+
 class YearMonthTimeline extends ConsumerWidget {
   final List<CareerEvent> events;
 
@@ -319,7 +325,7 @@ class YearMonthTimeline extends ConsumerWidget {
                                 Icon(
                                   event.isLifeEvent
                                       ? Icons.favorite
-                                      : Icons.work,
+                                      : _workIcon(event.workEventIcon),
                                   color: event.isLifeEvent
                                       ? Colors.orange
                                       : Colors.blue,
@@ -348,7 +354,9 @@ class YearMonthTimeline extends ConsumerWidget {
         title: Row(
           children: [
             Icon(
-              event.isLifeEvent ? Icons.favorite : Icons.work,
+              event.isLifeEvent
+                  ? Icons.favorite
+                  : _workIcon(event.workEventIcon),
               color: event.isLifeEvent ? Colors.orange : Colors.blue,
             ),
             const SizedBox(width: 12),
