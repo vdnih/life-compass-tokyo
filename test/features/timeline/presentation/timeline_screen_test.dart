@@ -6,6 +6,7 @@ import 'package:my_career_app/features/timeline/logic/timeline_events_provider.d
 import 'package:my_career_app/features/timeline/presentation/timeline_screen.dart';
 import 'package:my_career_app/features/timeline/presentation/widgets/year_month_timeline.dart';
 import 'package:my_career_app/features/timeline/presentation/widgets/year_timeline.dart';
+import 'package:my_career_app/features/timeline/presentation/add_event_dialog.dart';
 
 class _StubEventsNotifier extends TimelineEventsNotifier {
   @override
@@ -93,7 +94,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // SegmentedButton で 仕事 が選択されていることを確認
-      expect(find.text('仕事'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AddEventDialog),
+          matching: find.text('仕事'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('プライベートレーンをタップするとAddEventDialogが開くこと', (tester) async {
@@ -107,15 +114,20 @@ void main() {
       expect(find.text('イベントを追加'), findsOneWidget);
     });
 
-    testWidgets('プライベートレーンをタップすると「プライベート」が選択済みでダイアログが開くこと',
-        (tester) async {
+    testWidgets('プライベートレーンをタップすると「プライベート」が選択済みでダイアログが開くこと', (tester) async {
       await tester.pumpWidget(_buildTestWidget());
       await tester.pumpAndSettle();
 
       await tester.tapAt(const Offset(400, 380));
       await tester.pumpAndSettle();
 
-      expect(find.text('プライベート'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AddEventDialog),
+          matching: find.text('プライベート'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('軸エリア（年月ラベル部分）をタップしてもダイアログが開かないこと', (tester) async {
