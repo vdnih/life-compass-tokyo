@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
 import '../domain/life_event.dart';
@@ -86,19 +87,74 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
     }
   }
 
+  Widget _sectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          color: AppTheme.primary,
+          fontSize: 12,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('イベントを追加'),
+      title: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.add_circle_outline,
+              color: AppTheme.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'イベントを追加',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('種別'),
-              const SizedBox(height: 8),
+              _sectionLabel('種別'),
               SegmentedButton<bool>(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppTheme.primary;
+                    }
+                    return Colors.transparent;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.white;
+                    }
+                    return AppTheme.primary;
+                  }),
+                  side: WidgetStateProperty.all(
+                    BorderSide(
+                      color: AppTheme.primary.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
                 segments: const [
                   ButtonSegment(value: true, label: Text('仕事')),
                   ButtonSegment(value: false, label: Text('プライベート')),
@@ -111,9 +167,8 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                   });
                 },
               ),
-              const SizedBox(height: 12),
-              const Text('カテゴリ'),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              _sectionLabel('カテゴリ'),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
@@ -122,16 +177,45 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                   return ChoiceChip(
                     label: Text(cat.label),
                     selected: selected,
+                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
+                    labelStyle: TextStyle(
+                      color: selected ? AppTheme.primary : null,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: 12,
+                    ),
+                    side: BorderSide(
+                      color: selected
+                          ? AppTheme.primary.withValues(alpha: 0.5)
+                          : Colors.grey.withValues(alpha: 0.3),
+                    ),
                     onSelected: (value) {
                       if (value) setState(() => _category = cat);
                     },
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 12),
-              const Text('ステータス'),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              _sectionLabel('ステータス'),
               SegmentedButton<EventStatus>(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppTheme.primary;
+                    }
+                    return Colors.transparent;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.white;
+                    }
+                    return AppTheme.primary;
+                  }),
+                  side: WidgetStateProperty.all(
+                    BorderSide(
+                      color: AppTheme.primary.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
                 segments: EventStatus.values.map((s) {
                   return ButtonSegment(value: s, label: Text(s.label));
                 }).toList(),
@@ -149,6 +233,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                 decoration: const InputDecoration(
                   labelText: 'タイトル',
                   hintText: '例: 昇進、引越しなど',
+                  prefixIcon: Icon(Icons.title, size: 18),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -157,27 +242,78 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
                   labelText: '詳細',
                   hintText: 'イベントの詳細を入力',
+                  prefixIcon: Icon(Icons.notes, size: 18),
+                  alignLabelWithHint: true,
                 ),
                 maxLines: 3,
               ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('開始年月'),
-                subtitle:
-                    Text('${_selectedDate.year}年${_selectedDate.month}月'),
-                trailing: const Icon(Icons.calendar_today),
+              const SizedBox(height: 12),
+              InkWell(
                 onTap: () => _selectDate(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 18,
+                        color: AppTheme.primary.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '開始年月',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.primary.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            '${_selectedDate.year}年${_selectedDate.month}月',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Icon(
+                        Icons.chevron_right,
+                        color: AppTheme.primary.withValues(alpha: 0.4),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+              const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('期間を指定する'),
+                title: const Text(
+                  '期間を指定する',
+                  style: TextStyle(fontSize: 14),
+                ),
+                activeColor: AppTheme.primary,
                 value: _hasEndDate,
                 onChanged: (bool value) {
                   setState(() {
@@ -189,14 +325,57 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                 },
               ),
               if (_hasEndDate)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('終了年月'),
-                  subtitle: Text(
-                    '${_selectedEndDate?.year ?? _selectedDate.year}年${_selectedEndDate?.month ?? _selectedDate.month}月',
-                  ),
-                  trailing: const Icon(Icons.calendar_today),
+                InkWell(
                   onTap: () => _selectEndDate(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 18,
+                          color: AppTheme.primary.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '終了年月',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.primary.withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '${_selectedEndDate?.year ?? _selectedDate.year}年${_selectedEndDate?.month ?? _selectedDate.month}月',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.chevron_right,
+                          color: AppTheme.primary.withValues(alpha: 0.4),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               // 制約チェックのプレビュー表示
               Builder(
@@ -239,7 +418,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('キャンセル'),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               String? endDateStr;

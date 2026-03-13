@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_theme.dart';
 import 'user_profile.dart';
 
 class ProfileSettingsDialog extends ConsumerStatefulWidget {
@@ -45,7 +46,28 @@ class _ProfileSettingsDialogState extends ConsumerState<ProfileSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('プロフィール設定'),
+      title: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              color: AppTheme.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'プロフィール設定',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -54,19 +76,64 @@ class _ProfileSettingsDialogState extends ConsumerState<ProfileSettingsDialog> {
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: 'お名前',
-                hintText: '例: 田中 太郎',
+                hintText: '例: 田中 花子',
+                prefixIcon: Icon(Icons.badge_outlined, size: 18),
               ),
             ),
-            const SizedBox(height: 20),
-            ListTile(
-              title: const Text('生年月日'),
-              subtitle: Text(
-                _selectedDate == null
-                    ? '未設定'
-                    : '${_selectedDate!.year}年${_selectedDate!.month}月${_selectedDate!.day}日',
-              ),
-              trailing: const Icon(Icons.calendar_today),
+            const SizedBox(height: 16),
+            InkWell(
               onTap: () => _selectDate(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cake_outlined,
+                      size: 18,
+                      color: AppTheme.primary.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '生年月日',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.primary.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          _selectedDate == null
+                              ? '未設定'
+                              : '${_selectedDate!.year}年${_selectedDate!.month}月${_selectedDate!.day}日',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.chevron_right,
+                      color: AppTheme.primary.withValues(alpha: 0.4),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -76,7 +143,7 @@ class _ProfileSettingsDialogState extends ConsumerState<ProfileSettingsDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('キャンセル'),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: () {
             final notifier = ref.read(userProfileNotifierProvider.notifier);
             notifier.updateName(_nameController.text);
