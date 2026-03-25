@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/theme/app_theme.dart';
 import 'features/timeline/presentation/timeline_screen.dart';
 
 void main() {
@@ -13,10 +14,7 @@ class LifePlanApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'わたしのライフプラン',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: const TimelineScreen(),
     );
   }

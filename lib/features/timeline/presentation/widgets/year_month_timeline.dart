@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/life_event.dart';
 import '../../domain/constraint_result.dart';
@@ -18,7 +19,37 @@ class YearMonthTimeline extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (events.isEmpty) return const Center(child: Text('No events found'));
+    if (events.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.timeline,
+              size: 64,
+              color: AppTheme.primary.withValues(alpha: 0.25),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'まだイベントがありません',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primary.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '＋ボタンでイベントを追加しましょう',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppTheme.primary.withValues(alpha: 0.35),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     final profile = ref.watch(userProfileNotifierProvider);
 
@@ -44,8 +75,8 @@ class YearMonthTimeline extends ConsumerWidget {
     const double monthWidth = 60.0;
     const double axisHeight = 60.0;
     const double rowHeight = 160.0;
+    const double sidebarWidth = 40.0;
 
-    // 現在時点のオフセットを計算
     final now = DateTime.now();
     final nowOffset =
         ((now.year - startDate.year) * 12) + (now.month - startDate.month);
@@ -59,56 +90,56 @@ class YearMonthTimeline extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 40),
             child: SizedBox(
-              width: 36,
+              width: sidebarWidth,
               height: axisHeight + rowHeight * 2,
               child: Column(
                 children: [
                   const SizedBox(height: axisHeight),
+                  // 仕事ラベル
                   Container(
                     height: rowHeight,
                     width: double.infinity,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
+                      color: Colors.white,
                       border: Border(
-                        right: BorderSide(
-                          color: Colors.blueGrey.withValues(alpha: 0.3),
-                        ),
+                        right: BorderSide(color: Colors.grey.shade200),
                       ),
                     ),
-                    child: const RotatedBox(
+                    child: RotatedBox(
                       quarterTurns: 3,
                       child: Text(
                         '仕事',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          color: AppTheme.primary,
+                          letterSpacing: 1.5,
                         ),
                       ),
                     ),
                   ),
+                  // プライベートラベル
                   Container(
                     height: rowHeight,
                     width: double.infinity,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
+                      color: Colors.white,
                       border: Border(
-                        top: BorderSide(
-                          color: Colors.blueGrey.withValues(alpha: 0.3),
-                        ),
-                        right: BorderSide(
-                          color: Colors.blueGrey.withValues(alpha: 0.3),
-                        ),
+                        top: BorderSide(color: Colors.grey.shade200),
+                        right: BorderSide(color: Colors.grey.shade200),
                       ),
                     ),
-                    child: const RotatedBox(
+                    child: RotatedBox(
                       quarterTurns: 3,
                       child: Text(
                         'プライベート',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          color: AppTheme.primary,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ),
@@ -156,14 +187,14 @@ class YearMonthTimeline extends ConsumerWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    // 仕事とプライベートの境界線
+                    // 仕事・プライベートの境界線
                     Positioned(
                       top: axisHeight + rowHeight,
                       left: 0,
                       right: 0,
                       child: Container(
                         height: 1,
-                        color: Colors.blueGrey.withValues(alpha: 0.3),
+                        color: Colors.grey.shade200,
                       ),
                     ),
 
@@ -173,30 +204,41 @@ class YearMonthTimeline extends ConsumerWidget {
                       left: 0,
                       right: 0,
                       child: Container(
-                        height: 2,
-                        color: Colors.blueGrey.withValues(alpha: 0.3),
+                        height: 1,
+                        color: AppTheme.primary.withValues(alpha: 0.15),
                       ),
                     ),
 
-                    // 現在時点マーカー
+                    // 現在時点マーカー（縦線）
                     Positioned(
-                      left: nowXPos - 0.5,
+                      left: nowXPos - 0.75,
                       top: 0,
                       child: Container(
-                        width: 2,
+                        width: 1.5,
                         height: axisHeight + rowHeight * 2,
-                        color: Colors.red.withValues(alpha: 0.4),
+                        color: AppTheme.nowMarker.withValues(alpha: 0.5),
                       ),
                     ),
+                    // 現在時点ラベル（ピル型）
                     Positioned(
-                      left: nowXPos - 16,
-                      top: axisHeight + rowHeight * 2 - 2,
-                      child: Text(
-                        '現在',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.withValues(alpha: 0.7),
+                      left: nowXPos - 18,
+                      top: axisHeight + rowHeight * 2 - 18,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.nowMarker,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          '現在',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -225,19 +267,17 @@ class YearMonthTimeline extends ConsumerWidget {
                                     '$ageAtDate歳',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.blueGrey.withValues(
-                                        alpha: 0.8,
-                                      ),
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.secondary,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
                                 Text(
                                   '${currentDate.year}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: Colors.blueGrey,
+                                    fontSize: 13,
+                                    color: AppTheme.primary,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -247,8 +287,8 @@ class YearMonthTimeline extends ConsumerWidget {
                                   '${currentDate.month}',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.blueGrey.withValues(
-                                      alpha: 0.6,
+                                    color: AppTheme.primary.withValues(
+                                      alpha: 0.45,
                                     ),
                                   ),
                                   textAlign: TextAlign.center,
@@ -256,11 +296,11 @@ class YearMonthTimeline extends ConsumerWidget {
                                 const SizedBox(height: 4),
                               ],
                               Container(
-                                width: 2,
+                                width: isJan ? 1.5 : 1,
                                 height: isJan ? 12 : 6,
                                 color: isJan
-                                    ? Colors.blueGrey
-                                    : Colors.blueGrey.withValues(alpha: 0.5),
+                                    ? AppTheme.primary.withValues(alpha: 0.6)
+                                    : AppTheme.primary.withValues(alpha: 0.25),
                               ),
                             ],
                           ),
@@ -301,7 +341,10 @@ class YearMonthTimeline extends ConsumerWidget {
                               Expanded(
                                 child: Container(
                                   height: 2,
-                                  color: color.withValues(alpha: 0.6),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
                                 ),
                               ),
                               Icon(
@@ -357,71 +400,90 @@ class YearMonthTimeline extends ConsumerWidget {
                                     children: [
                                       Container(
                                         height: 50,
-                                        alignment: Alignment.center,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 6,
-                                        ),
+                                        clipBehavior: Clip.antiAlias,
                                         decoration: BoxDecoration(
-                                          color: event.isWork
-                                              ? Colors.blue.shade50
-                                              : Colors.orange.shade50,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
                                           border: Border.all(
-                                            color: color,
+                                            color: Colors.grey.shade200,
                                             width: 1,
                                           ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.05,
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            Positioned(
+                                              left: 0,
+                                              top: 0,
+                                              bottom: 0,
+                                              width: 3,
+                                              child: Container(color: color),
+                                            ),
+                                            Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 6,
+                                                ),
+                                                child: Text(
+                                                  event.title,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: color,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  maxLines: 2,
+                                                ),
                                               ),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
                                             ),
                                           ],
-                                        ),
-                                        child: Text(
-                                          event.title,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: event.isWork
-                                                ? Colors.blue.shade800
-                                                : Colors.orange.shade800,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 2,
                                         ),
                                       ),
                                       if (hasWarning)
                                         Positioned(
                                           top: -6,
                                           right: -6,
-                                          child: Icon(
-                                            Icons.warning_amber_rounded,
-                                            color: Colors.amber.shade700,
-                                            size: 18,
+                                          child: Container(
+                                            width: 18,
+                                            height: 18,
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFFF8C42),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.warning_rounded,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
                                           ),
                                         ),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
                                   if (event.isFuturePlan)
-                                    Text(
-                                      event.status.label,
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: color,
-                                        fontWeight: FontWeight.w500,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        event.status.label,
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: color,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   Icon(
                                     categoryIcon(event.category),
-                                    color: color,
-                                    size: 24,
+                                    color: color.withValues(alpha: 0.7),
+                                    size: 20,
                                   ),
                                 ],
                               ),
@@ -452,9 +514,22 @@ class YearMonthTimeline extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(categoryIcon(event.category), color: color),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(categoryIcon(event.category), color: color, size: 20),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: Text(event.title)),
+            Expanded(
+              child: Text(
+                event.title,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -464,64 +539,123 @@ class YearMonthTimeline extends ConsumerWidget {
             children: [
               Row(
                 children: [
+                  Icon(
+                    Icons.calendar_month_outlined,
+                    size: 14,
+                    color: AppTheme.primary.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 4),
                   Text(
                     event.hasDuration
                         ? '${event.date} 〜 ${event.endDate}'
                         : event.date,
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primary,
+                      fontSize: 13,
                     ),
                   ),
                   if (event.isFuturePlan) ...[
                     const SizedBox(width: 8),
-                    Chip(
-                      label: Text(
-                        event.status.label,
-                        style: const TextStyle(fontSize: 11),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
                       ),
-                      visualDensity: VisualDensity.compact,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        event.status.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                event.category.label,
-                style: TextStyle(fontSize: 13, color: color),
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    event.category.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(event.description),
+              if (event.description.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  event.description,
+                  style: const TextStyle(fontSize: 13, height: 1.5),
+                ),
+              ],
               if (eventConstraints.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 ...eventConstraints.map((c) {
                   final isWarning =
                       c.severity == ConstraintSeverity.warning;
+                  final bgColor = isWarning
+                      ? const Color(0xFFFFF3E0)
+                      : const Color(0xFFEDE7F6);
+                  final borderColor = isWarning
+                      ? const Color(0xFFFFB74D)
+                      : AppTheme.primary.withValues(alpha: 0.4);
+                  final iconColor = isWarning
+                      ? const Color(0xFFE65100)
+                      : AppTheme.primary;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(10),
+                    clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
-                      color: isWarning
-                          ? Colors.amber.shade50
-                          : Colors.lightBlue.shade50,
-                      borderRadius: BorderRadius.circular(8),
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Row(
+                    child: Stack(
                       children: [
-                        Icon(
-                          isWarning
-                              ? Icons.warning_amber_rounded
-                              : Icons.info_outline,
-                          color: isWarning
-                              ? Colors.amber.shade700
-                              : Colors.lightBlue.shade700,
-                          size: 18,
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 3,
+                          child: Container(color: borderColor),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            c.message,
-                            style: const TextStyle(fontSize: 12),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isWarning
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.info_outline,
+                                color: iconColor,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  c.message,
+                                  style: const TextStyle(fontSize: 12, height: 1.4),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -533,9 +667,9 @@ class YearMonthTimeline extends ConsumerWidget {
           ),
         ),
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('了解'),
+            child: const Text('閉じる'),
           ),
         ],
       ),
