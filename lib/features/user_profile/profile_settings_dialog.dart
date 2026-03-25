@@ -90,18 +90,15 @@ class _ProfileSettingsDialogState extends ConsumerState<ProfileSettingsDialog> {
                   vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.background,
+                  color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.2),
-                  ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.cake_outlined,
                       size: 18,
-                      color: AppTheme.primary.withValues(alpha: 0.7),
+                      color: Colors.grey[600],
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -111,7 +108,7 @@ class _ProfileSettingsDialogState extends ConsumerState<ProfileSettingsDialog> {
                           '生年月日',
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppTheme.primary.withValues(alpha: 0.7),
+                            color: Colors.grey[600],
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -127,10 +124,7 @@ class _ProfileSettingsDialogState extends ConsumerState<ProfileSettingsDialog> {
                       ],
                     ),
                     const Spacer(),
-                    Icon(
-                      Icons.chevron_right,
-                      color: AppTheme.primary.withValues(alpha: 0.4),
-                    ),
+                    Icon(Icons.chevron_right, color: Colors.grey[400]),
                   ],
                 ),
               ),

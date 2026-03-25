@@ -31,7 +31,7 @@ class _ConstraintWarningCard extends StatelessWidget {
     final isWarning = constraint.severity == ConstraintSeverity.warning;
     final bgColor = isWarning
         ? const Color(0xFFFFF3E0)
-        : const Color(0xFFEDE7F6);
+        : const Color(0xFFEBF0F8);
     final borderColor = isWarning
         ? const Color(0xFFFFB74D)
         : AppTheme.primary.withValues(alpha: 0.4);
@@ -42,23 +42,34 @@ class _ConstraintWarningCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: borderColor, width: 3),
-        ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Icon(icon, color: iconColor, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              constraint.message,
-              style: const TextStyle(fontSize: 13, height: 1.4),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 3,
+            child: Container(color: borderColor),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: iconColor, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    constraint.message,
+                    style: const TextStyle(fontSize: 13, height: 1.4),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

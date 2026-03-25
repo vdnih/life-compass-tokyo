@@ -92,9 +92,9 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: AppTheme.primary,
+          color: Colors.grey[700],
           fontSize: 12,
           letterSpacing: 0.5,
         ),
@@ -263,18 +263,15 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.background,
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppTheme.primary.withValues(alpha: 0.2),
-                    ),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.calendar_today,
                         size: 18,
-                        color: AppTheme.primary.withValues(alpha: 0.7),
+                        color: Colors.grey[600],
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -284,7 +281,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                             '開始年月',
                             style: TextStyle(
                               fontSize: 11,
-                              color: AppTheme.primary.withValues(alpha: 0.7),
+                              color: Colors.grey[600],
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -298,10 +295,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                         ],
                       ),
                       const Spacer(),
-                      Icon(
-                        Icons.chevron_right,
-                        color: AppTheme.primary.withValues(alpha: 0.4),
-                      ),
+                      Icon(Icons.chevron_right, color: Colors.grey[400]),
                     ],
                   ),
                 ),
@@ -313,7 +307,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                   '期間を指定する',
                   style: TextStyle(fontSize: 14),
                 ),
-                activeColor: AppTheme.primary,
+                activeThumbColor: AppTheme.primary,
                 value: _hasEndDate,
                 onChanged: (bool value) {
                   setState(() {
@@ -334,18 +328,15 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.background,
+                      color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppTheme.primary.withValues(alpha: 0.2),
-                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           Icons.calendar_today,
                           size: 18,
-                          color: AppTheme.primary.withValues(alpha: 0.7),
+                          color: Colors.grey[600],
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -355,7 +346,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                               '終了年月',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: AppTheme.primary.withValues(alpha: 0.7),
+                                color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -369,10 +360,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                           ],
                         ),
                         const Spacer(),
-                        Icon(
-                          Icons.chevron_right,
-                          color: AppTheme.primary.withValues(alpha: 0.4),
-                        ),
+                        Icon(Icons.chevron_right, color: Colors.grey[400]),
                       ],
                     ),
                   ),

@@ -100,11 +100,9 @@ class YearMonthTimeline extends ConsumerWidget {
                     width: double.infinity,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppTheme.workSidebarBackground,
+                      color: Colors.white,
                       border: Border(
-                        right: BorderSide(
-                          color: AppTheme.primary.withValues(alpha: 0.15),
-                        ),
+                        right: BorderSide(color: Colors.grey.shade200),
                       ),
                     ),
                     child: RotatedBox(
@@ -126,14 +124,10 @@ class YearMonthTimeline extends ConsumerWidget {
                     width: double.infinity,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppTheme.personalSidebarBackground,
+                      color: Colors.white,
                       border: Border(
-                        top: BorderSide(
-                          color: AppTheme.secondary.withValues(alpha: 0.2),
-                        ),
-                        right: BorderSide(
-                          color: AppTheme.secondary.withValues(alpha: 0.15),
-                        ),
+                        top: BorderSide(color: Colors.grey.shade200),
+                        right: BorderSide(color: Colors.grey.shade200),
                       ),
                     ),
                     child: RotatedBox(
@@ -143,7 +137,7 @@ class YearMonthTimeline extends ConsumerWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
-                          color: AppTheme.secondary,
+                          color: AppTheme.primary,
                           letterSpacing: 1.0,
                         ),
                       ),
@@ -164,24 +158,6 @@ class YearMonthTimeline extends ConsumerWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    // 仕事レーン背景
-                    Positioned(
-                      top: axisHeight,
-                      left: 0,
-                      right: 0,
-                      height: rowHeight,
-                      child: Container(color: AppTheme.workLaneBackground),
-                    ),
-
-                    // プライベートレーン背景
-                    Positioned(
-                      top: axisHeight + rowHeight,
-                      left: 0,
-                      right: 0,
-                      height: rowHeight,
-                      child: Container(color: AppTheme.personalLaneBackground),
-                    ),
-
                     // 仕事・プライベートの境界線
                     Positioned(
                       top: axisHeight + rowHeight,
@@ -189,7 +165,7 @@ class YearMonthTimeline extends ConsumerWidget {
                       right: 0,
                       child: Container(
                         height: 1,
-                        color: AppTheme.secondary.withValues(alpha: 0.2),
+                        color: Colors.grey.shade200,
                       ),
                     ),
 
@@ -395,40 +371,44 @@ class YearMonthTimeline extends ConsumerWidget {
                                     children: [
                                       Container(
                                         height: 50,
-                                        alignment: Alignment.center,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 6,
-                                        ),
+                                        clipBehavior: Clip.antiAlias,
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          border: Border(
-                                            left: BorderSide(
-                                              color: color,
-                                              width: 3,
-                                            ),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Colors.grey.shade200,
+                                            width: 1,
                                           ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppTheme.primary
-                                                  .withValues(alpha: 0.12),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            Positioned(
+                                              left: 0,
+                                              top: 0,
+                                              bottom: 0,
+                                              width: 3,
+                                              child: Container(color: color),
+                                            ),
+                                            Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 6,
+                                                ),
+                                                child: Text(
+                                                  event.title,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: color,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  maxLines: 2,
+                                                ),
+                                              ),
                                             ),
                                           ],
-                                        ),
-                                        child: Text(
-                                          event.title,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: color,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 2,
                                         ),
                                       ),
                                       if (hasWarning)
@@ -613,28 +593,39 @@ class YearMonthTimeline extends ConsumerWidget {
                       : AppTheme.primary;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(10),
+                    clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
                       color: bgColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border(
-                        left: BorderSide(color: borderColor, width: 3),
-                      ),
                     ),
-                    child: Row(
+                    child: Stack(
                       children: [
-                        Icon(
-                          isWarning
-                              ? Icons.warning_amber_rounded
-                              : Icons.info_outline,
-                          color: iconColor,
-                          size: 18,
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 3,
+                          child: Container(color: borderColor),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            c.message,
-                            style: const TextStyle(fontSize: 12, height: 1.4),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isWarning
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.info_outline,
+                                color: iconColor,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  c.message,
+                                  style: const TextStyle(fontSize: 12, height: 1.4),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
