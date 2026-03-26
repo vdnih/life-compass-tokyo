@@ -6,6 +6,14 @@
 
 ---
 
+## 2026-03-26 - [ドキュメント修正] WBS.md の不整合を解消
+
+- **判断内容**: Phase 4 タスク（I2-01〜I2-07）の状態を `⬜ TODO` → `✅ DONE` に修正
+- **理由**: 実装はコミット済み（38a7999, e0261f7, b60ed0f, b704401）だったが、WBS.md のみ更新漏れが発生していた。feature_registry.md・audit_log.md は正しく更新済みだった。
+- **影響範囲**: `docs/WBS.md` のみ（実装コードへの変更なし）
+
+---
+
 ## 2026-03-26 - [実装完了] Phase 4 UI層実装（I2-06, I2-07）完了
 
 - **判断内容**: 目標逆算機能のUI層を全て実装完了。ゴール設定ダイアログ（GoalSetupDialog）、依存関係コネクタ（DependencyConnector）、ドラッグ&ドロップ対応（LongPressDraggable + DragTarget）、EventCardウィジェット抽出を実施。

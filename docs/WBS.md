@@ -1,6 +1,6 @@
 # WBS（Work Breakdown Structure）
 
-**Last Updated**: 2026-03-09
+**Last Updated**: 2026-03-26
 **Owner**: メインエージェント（Project Manager）
 
 ## Phase 1: 設計（Architect主導）
@@ -40,13 +40,13 @@
 
 | ID | タスク | 担当Agent | 状態 | 成果物 |
 |---|---|---|---|---|
-| I2-01 | ドメインモデル拡張（LifeEvent id追加、EventDependency、GoalTemplate新規） | Implementer | ⬜ TODO | `lib/features/timeline/domain/` |
-| I2-02 | Repository層拡張（updateEvent追加、DependencyRepository新規） | Implementer | ⬜ TODO | `lib/features/timeline/data/` |
-| I2-03 | ゴールテンプレートデータ定義（出産テンプレート） | Implementer | ⬜ TODO | `lib/features/timeline/data/goal_template_data.dart` |
-| I2-04 | Logic層実装（DependencyProvider、GoalTemplateProvider、CascadeMoveProvider） | Implementer | ⬜ TODO | `lib/features/timeline/logic/` |
-| I2-05 | 制約チェッカー拡張（C-03: 依存オフセット違反） | Implementer | ⬜ TODO | `lib/features/timeline/logic/constraint_checker_provider.dart` |
-| I2-06 | UI実装（ゴール設定ダイアログ、テンプレート選択） | Implementer | ⬜ TODO | `lib/features/timeline/presentation/` |
-| I2-07 | UI実装（依存関係線の描画、ドラッグ&ドロップ） | Implementer | ⬜ TODO | `lib/features/timeline/presentation/widgets/` |
+| I2-01 | ドメインモデル拡張（LifeEvent id追加、EventDependency、GoalTemplate新規） | Implementer | ✅ DONE | `lib/features/timeline/domain/` |
+| I2-02 | Repository層拡張（updateEvent追加、DependencyRepository新規） | Implementer | ✅ DONE | `lib/features/timeline/data/` |
+| I2-03 | ゴールテンプレートデータ定義（出産テンプレート） | Implementer | ✅ DONE | `lib/features/timeline/data/goal_template_data.dart` |
+| I2-04 | Logic層実装（DependencyProvider、GoalTemplateProvider、CascadeMoveProvider） | Implementer | ✅ DONE | `lib/features/timeline/logic/` |
+| I2-05 | 制約チェッカー拡張（C-03: 依存オフセット違反） | Implementer | ✅ DONE | `lib/features/timeline/logic/constraint_checker_provider.dart` |
+| I2-06 | UI実装（ゴール設定ダイアログ、テンプレート選択） | Implementer | ✅ DONE | `lib/features/timeline/presentation/` |
+| I2-07 | UI実装（依存関係線の描画、ドラッグ&ドロップ） | Implementer | ✅ DONE | `lib/features/timeline/presentation/widgets/` |
 | I2-08 | QA検証 | QA | ⬜ TODO | `docs/qa_report_v2.md` |
 
 ## 状態の定義
