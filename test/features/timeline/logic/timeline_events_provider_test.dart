@@ -245,5 +245,50 @@ void main() {
       expect(states.last.value, equals(updatedEvents));
       verify(() => mockRepository.updateEvent(any())).called(1);
     });
+
+    test('moveEvent成功: 期間イベントのendDateも同時に更新されること', () async {
+      const targetEvent = LifeEvent(
+        id: 'event-move-2',
+        date: '2025-04',
+        endDate: '2026-04',
+        title: '期間イベント',
+        description: '',
+        category: EventCategory.childcareLeave,
+      );
+      const updatedEvent = LifeEvent(
+        id: 'event-move-2',
+        date: '2025-07',
+        endDate: '2026-07',
+        title: '期間イベント',
+        description: '',
+        category: EventCategory.childcareLeave,
+      );
+      final initialEvents = [targetEvent];
+      final updatedEvents = [updatedEvent];
+
+      when(
+        () => mockRepository.fetchEvents(),
+      ).thenAnswer((_) async => initialEvents);
+      when(() => mockRepository.updateEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      when(
+        () => mockRepository.fetchEvents(),
+      ).thenAnswer((_) async => updatedEvents);
+
+      final states = <AsyncValue<List<LifeEvent>>>[];
+      container.listen(timelineEventsProvider, (previous, next) {
+        states.add(next);
+      });
+
+      await container
+          .read(timelineEventsProvider.notifier)
+          .moveEvent('event-move-2', '2025-07', newEndDate: '2026-07');
+
+      expect(states.last.value, equals(updatedEvents));
+      verify(() => mockRepository.updateEvent(any())).called(1);
+    });
   });
 }

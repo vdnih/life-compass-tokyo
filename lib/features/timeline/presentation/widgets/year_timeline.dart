@@ -33,6 +33,9 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
   /// 現在ドラッグ中のイベントID
   String? _draggingEventId;
 
+  /// ドロップターゲットの座標変換用キー
+  final _dropTargetKey = GlobalKey();
+
   static const double yearWidth = 80.0;
   static const double axisHeight = 60.0;
   static const double rowHeight = 160.0;
@@ -405,10 +408,15 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       width: totalWidth,
       height: rowHeight * 2,
       child: DragTarget<String>(
+        key: _dropTargetKey,
         onWillAcceptWithDetails: (details) => true,
         onAcceptWithDetails: (details) {
           final eventId = details.data;
-          final dropX = details.offset.dx;
+          final renderBox =
+              _dropTargetKey.currentContext!.findRenderObject()
+                  as RenderBox;
+          final localOffset = renderBox.globalToLocal(details.offset);
+          final dropX = localOffset.dx;
           final yearIndex = ((dropX - 20.0) / yearWidth).floor();
           if (yearIndex < 0 || yearIndex >= totalYears) return;
 
@@ -450,7 +458,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     for (final change in changes) {
       await ref
           .read(timelineEventsProvider.notifier)
-          .moveEvent(change.eventId, change.newDate);
+          .moveEvent(change.eventId, change.newDate, newEndDate: change.newEndDate);
     }
 
     if (mounted) {
