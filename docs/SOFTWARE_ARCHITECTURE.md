@@ -1,7 +1,7 @@
 # ソフトウェアアーキテクチャ設計書
 
-**Version**: 4.1
-**Last Updated**: 2026-03-10
+**Version**: 5.0
+**Last Updated**: 2026-03-26
 **Owner**: Architect Agent
 
 ## 1. 概要
@@ -70,20 +70,31 @@ lib/
 └── features/
     ├── timeline/
     │   ├── data/
-    │   │   └── event_repository.dart   # Repository（MVP: InMemory実装）
+    │   │   ├── event_repository.dart          # Repository（MVP: InMemory実装）→ Phase 2で updateEvent追加
+    │   │   ├── dependency_repository.dart     # ★Phase 2: 依存関係リポジトリ（InMemory実装）
+    │   │   └── goal_template_data.dart        # ★Phase 2: テンプレート定義データ（ハードコード）
     │   ├── domain/
-    │   │   ├── life_event.dart         # データモデル + EventCategory enum
-    │   │   └── constraint_result.dart  # @freezed 制約チェック結果モデル
+    │   │   ├── life_event.dart                # データモデル + EventCategory enum → Phase 2で id/goalId/isGoal追加
+    │   │   ├── constraint_result.dart         # 制約チェック結果モデル
+    │   │   ├── event_dependency.dart          # ★Phase 2: イベント依存関係モデル
+    │   │   └── goal_template.dart             # ★Phase 2: ゴールテンプレートモデル
     │   ├── logic/
-    │   │   ├── timeline_events_provider.dart     # @riverpod 状態管理
-    │   │   └── constraint_checker_provider.dart  # @riverpod 制約チェックロジック
+    │   │   ├── timeline_events_provider.dart        # @riverpod 状態管理 → Phase 2で moveEvent追加
+    │   │   ├── constraint_checker_provider.dart     # @riverpod 制約チェックロジック → Phase 2で C-03追加
+    │   │   ├── dependency_provider.dart             # ★Phase 2: 依存関係CRUD + 循環検出
+    │   │   ├── goal_template_provider.dart          # ★Phase 2: テンプレート適用ロジック
+    │   │   └── cascade_move_provider.dart           # ★Phase 2: カスケード移動ロジック
     │   └── presentation/
-    │       ├── timeline_screen.dart    # メイン画面
+    │       ├── timeline_screen.dart                 # メイン画面 → Phase 2で D&D対応
+    │       ├── goal_setup_dialog.dart               # ★Phase 2: ゴール設定UI
     │       └── widgets/
-    │           ├── timeline_view.dart  # タイムライン描画
-    │           ├── event_card.dart     # イベントカード
-    │           ├── add_event_dialog.dart # イベント追加ダイアログ
-    │           └── constraint_warning.dart # 制約警告表示ウィジェット
+    │           ├── timeline_view.dart               # タイムライン描画
+    │           ├── event_card.dart                  # イベントカード
+    │           ├── add_event_dialog.dart            # イベント追加ダイアログ
+    │           ├── constraint_warning.dart          # 制約警告表示ウィジェット
+    │           ├── dependency_connector.dart        # ★Phase 2: 依存関係線の描画（CustomPainter）
+    │           ├── draggable_event_card.dart        # ★Phase 2: ドラッグ可能なイベントカード
+    │           └── goal_template_selector.dart      # ★Phase 2: テンプレート選択UI
     └── profile/
         ├── data/
         │   └── profile_repository.dart
@@ -98,12 +109,23 @@ test/
 └── features/
     ├── timeline/
     │   ├── data/
-    │   │   └── event_repository_test.dart
+    │   │   ├── event_repository_test.dart
+    │   │   └── dependency_repository_test.dart      # ★Phase 2
+    │   ├── domain/
+    │   │   ├── event_dependency_test.dart            # ★Phase 2
+    │   │   └── goal_template_test.dart               # ★Phase 2
     │   ├── logic/
     │   │   ├── timeline_events_provider_test.dart
-    │   │   └── constraint_checker_provider_test.dart
+    │   │   ├── constraint_checker_provider_test.dart
+    │   │   ├── dependency_provider_test.dart         # ★Phase 2
+    │   │   ├── goal_template_provider_test.dart      # ★Phase 2
+    │   │   └── cascade_move_provider_test.dart       # ★Phase 2
     │   └── presentation/
-    │       └── constraint_warning_test.dart
+    │       ├── constraint_warning_test.dart
+    │       ├── goal_setup_dialog_test.dart           # ★Phase 2
+    │       └── widgets/
+    │           ├── dependency_connector_test.dart    # ★Phase 2
+    │           └── draggable_event_card_test.dart    # ★Phase 2
     └── profile/
 ```
 
@@ -163,6 +185,40 @@ graph LR
     Results -->|ref.watch| UI[Presentation Layer]
 ```
 
+### 6.4. ゴールテンプレート適用シーケンス（Phase 2）
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as GoalSetupDialog
+    participant Template as GoalTemplateProvider
+    participant Logic as TimelineEventsProvider
+    participant Dep as DependencyProvider
+    participant Data as EventRepository
+
+    User->>UI: ゴール選択（出産）+ 目標日設定
+    UI->>Template: applyTemplate(childbirth, 2028-06)
+    Template->>Template: テンプレートからイベント群を生成
+    Template->>Logic: addEvents(generatedEvents)
+    Logic->>Data: saveAll(events)
+    Template->>Dep: addDependencies(generatedDependencies)
+    Dep-->>UI: 完了通知
+    UI-->>User: タイムラインに関連イベント群が表示
+```
+
+### 6.5. カスケード移動データフロー（Phase 2）
+
+```mermaid
+graph LR
+    Drag[ユーザーD&D] -->|moveEvent| Cascade[CascadeMoveProvider]
+    Cascade -->|依存グラフ探索| Dep[DependencyProvider]
+    Dep -->|関連イベント一覧| Cascade
+    Cascade -->|トポロジカルソート| Sort[移動順序決定]
+    Sort -->|一括更新| Logic[TimelineEventsProvider]
+    Logic -->|ref.watch| Checker[ConstraintChecker]
+    Checker -->|制約違反?| UI[警告表示]
+```
+
 ## 7. 主要モデル定義（参考）
 
 ### 7.1. EventCategory enum（実装済み）
@@ -212,20 +268,26 @@ v4.0 では `WorkSubCategory` と `PrivateSubCategory` の2つの独立した en
 // life_event.dart
 @immutable
 class LifeEvent {
+  final String id;             // ★Phase 2で追加: UUID
   final String date;           // yyyy-MM
   final String? endDate;       // yyyy-MM
   final String title;
   final String description;
   final EventCategory category;
   final EventStatus status;
+  final String? goalId;        // ★Phase 2で追加: どのゴールから派生したか
+  final bool isGoal;           // ★Phase 2で追加: このイベント自体がゴールか
 
   const LifeEvent({
+    required this.id,
     required this.date,
     this.endDate,
     required this.title,
     required this.description,
     required this.category,
     this.status = EventStatus.recorded,
+    this.goalId,
+    this.isGoal = false,
   });
 
   // 導出プロパティ
@@ -239,13 +301,14 @@ class LifeEvent {
 }
 ```
 
-**v4.0 からの変更点**:
-- `EventType type` フィールドを削除。仕事/プライベートの判定は `category.isWork` で行う。
-- `WorkSubCategory? workSubCategory` / `PrivateSubCategory? privateSubCategory` を削除し、`EventCategory category` 単一フィールドに統合。
-- `@freezed` から `@immutable` + 手動実装に変更（既存実装を維持）。
-- `String id` を削除し、`date`（yyyy-MM形式）をキー相当として使用。
-- `String? detail` を `String description` に変更。
-- `EventStatus status` フィールドを追加（recorded / planned / goal / considering）。
+**v5.0 からの変更点**:
+- `String id` フィールドを復活。依存関係（F-20）でイベントを一意に識別するためにUUIDが必須。`uuid` パッケージを使用して生成する。
+- `String? goalId` フィールドを追加。ゴールテンプレート（F-21）から生成されたイベントが、どのゴールに属するかを識別する。
+- `bool isGoal` フィールドを追加。ゴールイベント自体を識別し、UI上でのハイライト表示に使用する。
+
+**v4.1 での経緯**:
+- v4.1 では `id` を削除し `date` をキー相当としていたが、依存関係の導入により一意識別子が必須となったため復活させた。
+- 既存フィールド（date, endDate, title, description, category, status）は変更なし。
 
 ### 7.3. ConstraintResult モデル
 
@@ -302,6 +365,126 @@ List<ConstraintResult> _checkAllConstraints(List<LifeEvent> events) {
 }
 ```
 
+### 7.5. EventDependency モデル（Phase 2で新規追加）
+
+```dart
+// event_dependency.dart
+
+/// イベント依存関係の種類
+enum DependencyType {
+  prerequisite('前提'),    // AがBの前提条件
+  consequence('結果'),     // AによりBが発生
+  deadline('期限'),        // AはBのN月前が期限
+  companion('連動');       // AとBは常に一定間隔
+
+  const DependencyType(this.label);
+  final String label;
+}
+
+/// イベント間の依存関係
+@immutable
+class EventDependency {
+  final String id;
+  final String sourceEventId;   // 依存元イベントID
+  final String targetEventId;   // 依存先イベントID
+  final DependencyType type;
+  final int offsetMonths;       // ソースからターゲットへの月数オフセット
+  final bool isAutoGenerated;   // テンプレートから自動生成されたか
+
+  // copyWith, ==, hashCode を手動実装
+}
+```
+
+### 7.6. GoalTemplate モデル（Phase 2で新規追加）
+
+```dart
+// goal_template.dart
+
+/// ゴールテンプレート定義
+@immutable
+class GoalTemplate {
+  final String id;
+  final String name;                    // "出産", "転職" etc
+  final String description;
+  final EventCategory goalCategory;
+  final List<TemplateEvent> relatedEvents;
+}
+
+/// テンプレート内のイベント定義
+@immutable
+class TemplateEvent {
+  final String titleTemplate;
+  final EventCategory category;
+  final int offsetMonthsFromGoal;       // ゴールからの相対月数（負=前、正=後）
+  final int? durationMonths;
+  final DependencyType dependencyType;
+}
+```
+
+**設計判断 - ゴールテンプレートをアプリ内ハードコードとする理由**:
+- テンプレートはすべてのユーザーで共通の静的データであり、Firestoreに保存する利点がない。
+- アプリ更新時にテンプレートの追加・修正が可能。
+- テンプレートから生成されたイベントと依存関係のみが永続化対象。
+
+### 7.7. DependencyProvider（Phase 2で新規追加）
+
+```dart
+// dependency_provider.dart（設計概要）
+
+/// 依存関係のCRUD管理 + 循環依存検出を行うProvider。
+class DependencyNotifier extends AsyncNotifier<List<EventDependency>> {
+  Future<void> addDependency(EventDependency dep);
+  Future<void> removeDependency(String dependencyId);
+  Future<void> removeDependenciesForEvent(String eventId);
+  List<EventDependency> getDependenciesForEvent(String eventId);
+  bool wouldCreateCycle(String sourceEventId, String targetEventId);
+}
+```
+
+### 7.8. CascadeMoveProvider（Phase 2で新規追加）
+
+```dart
+// cascade_move_provider.dart（設計概要）
+
+/// イベント移動時の連動計算を行う純粋関数Provider。
+/// トポロジカルソートで依存順序を決定し、オフセットを維持しながら連鎖移動を計算する。
+List<EventDateChange> computeCascadeUpdates({
+  required String movedEventId,
+  required String newDate,
+  required List<LifeEvent> allEvents,
+  required List<EventDependency> allDependencies,
+});
+
+class EventDateChange {
+  final String eventId;
+  final String oldDate;
+  final String newDate;
+  final String? oldEndDate;
+  final String? newEndDate;
+}
+```
+
+### 7.9. GoalTemplateProvider（Phase 2で新規追加）
+
+```dart
+// goal_template_provider.dart（設計概要）
+
+/// ゴールテンプレート選択 → イベント群一括生成を行うProvider。
+class GoalTemplateNotifier extends Notifier<List<GoalTemplate>> {
+  /// テンプレートを適用し、イベント群と依存関係を一括生成する。
+  Future<GoalExpansionResult> applyTemplate({
+    required String templateId,
+    required String goalDate,
+    required String goalTitle,
+  });
+}
+
+class GoalExpansionResult {
+  final List<LifeEvent> generatedEvents;
+  final List<EventDependency> generatedDependencies;
+}
+```
+
 **設計判断 - ConstraintCheckerをProviderとして実装する理由**:
 - Riverpodの `ref.watch` により、イベント一覧が変更されると自動的に制約チェックが再実行される。手動でのチェック呼び出しが不要になり、常に最新の制約状態がUIに反映される。
 - 純粋関数（入力: イベント一覧 → 出力: 制約結果リスト）として実装するため、テストが容易。モックやスタブなしで入出力のみをテストできる。
@@ -315,3 +498,4 @@ List<ConstraintResult> _checkAllConstraints(List<LifeEvent> events) {
 | 3.0 | - | Claude Code体制に合わせて再構成。ディレクトリ構造を具体化。モデル定義を追加。 |
 | 4.0 | 2026-03-09 | 女性キャリア特化機能対応: EventSubCategory enum（WorkSubCategory / PrivateSubCategory）を追加。LifeEventモデルのiconTypeをsubCategoryに置換。ConstraintResultモデルとConstraintCheckerProviderを新設。ディレクトリ構造にconstraint関連ファイル（domain/constraint_result.dart, logic/constraint_checker_provider.dart, presentation/widgets/constraint_warning.dart）を追加。データフロー図に制約チェックの流れを追加（6.2, 6.3）。テスト構造にconstraint関連テストを追加。 |
 | 4.1 | 2026-03-10 | Issue-001 対応: 実装との乖離を解消。WorkSubCategory / PrivateSubCategory の2 enum方式を、実装に合わせて単一 EventCategory enum 拡張方式に変更。LifeEventモデルを実装の実態（@immutable手動実装、date: String, description, category, status フィールド構成）に合わせて更新。ディレクトリ構造から未使用の event_sub_category.dart を削除、テスト構造から event_sub_category_test.dart を削除。 |
+| 5.0 | 2026-03-26 | 目標逆算機能対応: EventDependency/GoalTemplate モデル新設（7.5〜7.6）。DependencyProvider/GoalTemplateProvider/CascadeMoveProvider を追加（7.7〜7.9）。LifeEvent に id/goalId/isGoal フィールド追加（7.2）。ディレクトリ構造に新規ファイル群を追加（セクション5）。ゴールテンプレート適用・カスケード移動のデータフロー図を追加（6.4〜6.5）。 |
