@@ -1,13 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/constraint_result.dart';
+import '../domain/event_dependency.dart';
 import '../domain/life_event.dart';
+import 'dependency_provider.dart';
 import 'timeline_events_provider.dart';
 
-/// イベント一覧に対して全制約チェックを実行し、結果リストを返す純粋関数
-List<ConstraintResult> checkAllConstraints(List<LifeEvent> events) {
+/// イベント一覧と依存関係に対して全制約チェックを実行し、結果リストを返す純粋関数
+List<ConstraintResult> checkAllConstraints(
+  List<LifeEvent> events, [
+  List<EventDependency> dependencies = const [],
+]) {
   final results = <ConstraintResult>[];
   results.addAll(_checkC01(events));
   results.addAll(_checkC02(events));
+  results.addAll(_checkC03(events, dependencies));
   return results;
 }
 
@@ -95,12 +101,74 @@ List<ConstraintResult> _checkC02(List<LifeEvent> events) {
   return results;
 }
 
+/// C-03: 依存関係のオフセット期間が確保されていない場合 → Warning
+///
+/// prerequisite / consequence / deadline タイプの依存関係について、
+/// source イベントの日付 + offsetMonths が target イベントの日付と一致しない場合に警告する。
+List<ConstraintResult> _checkC03(
+  List<LifeEvent> events,
+  List<EventDependency> dependencies,
+) {
+  final results = <ConstraintResult>[];
+
+  // チェック対象の依存タイプ
+  const checkedTypes = {
+    DependencyType.prerequisite,
+    DependencyType.consequence,
+    DependencyType.deadline,
+  };
+
+  // イベントIDをキーとするマップ
+  final eventMap = {for (final e in events) e.id: e};
+
+  for (final dep in dependencies) {
+    if (!checkedTypes.contains(dep.type)) continue;
+
+    final source = eventMap[dep.sourceEventId];
+    final target = eventMap[dep.targetEventId];
+
+    if (source == null || target == null) continue;
+
+    // source の日付に offsetMonths を加算した期待日付
+    final sourceParts = source.date.split('-');
+    int year = int.parse(sourceParts[0]);
+    int month = int.parse(sourceParts[1]) + dep.offsetMonths;
+    while (month > 12) {
+      year++;
+      month -= 12;
+    }
+    while (month < 1) {
+      year--;
+      month += 12;
+    }
+    final expectedDate = '$year-${month.toString().padLeft(2, '0')}';
+
+    if (expectedDate != target.date) {
+      results.add(ConstraintResult(
+        ruleId: 'C-03',
+        targetEventTitle: target.title,
+        relatedEventTitle: source.title,
+        severity: ConstraintSeverity.warning,
+        message:
+            '${source.title}と${target.title}の間に必要な期間（${dep.offsetMonths}ヶ月）が確保されていません',
+      ));
+    }
+  }
+
+  return results;
+}
+
 /// タイムラインイベントの制約チェック結果を提供するProvider
 final constraintCheckerProvider = Provider<List<ConstraintResult>>((ref) {
   final eventsAsync = ref.watch(timelineEventsProvider);
+  final depsAsync = ref.watch(dependencyProvider);
   return eventsAsync.when(
     loading: () => [],
     error: (_, __) => [],
-    data: (events) => checkAllConstraints(events),
+    data: (events) => depsAsync.when(
+      loading: () => checkAllConstraints(events),
+      error: (_, __) => checkAllConstraints(events),
+      data: (deps) => checkAllConstraints(events, deps),
+    ),
   );
 });
