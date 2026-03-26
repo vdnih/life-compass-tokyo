@@ -17,12 +17,22 @@
 | F-10 | ライフイベント制約の可視化 | 🟢 RELEASED | `lib/features/timeline/domain/constraint_result.dart`, `logic/constraint_checker_provider.dart`, `presentation/widgets/constraint_warning.dart` | `test/features/timeline/domain/constraint_result_test.dart`, `test/features/timeline/logic/constraint_checker_provider_test.dart`, `test/features/timeline/presentation/widgets/constraint_warning_test.dart` | C-01, C-02 ルール実装済み |
 | F-MVP-DATA | データ永続化（ローカル） | 🟢 RELEASED | `lib/features/timeline/data/event_repository.dart` | - | InMemory実装 |
 
-## Phase 2
+## Phase 2（目標逆算機能）
+
+| Feature ID | 機能名 | 状態 | 実装ファイル | テストファイル | 備考 |
+|---|---|---|---|---|---|
+| F-06 | イベント編集 | ⚪ PLANNED | - | - | 新規画面。F-02のrepositoryにupdate()追加が必要 |
+| F-20 | イベント依存関係 | ⚪ PLANNED | `domain/event_dependency.dart`, `data/dependency_repository.dart`, `logic/dependency_provider.dart` | `domain/event_dependency_test.dart`, `data/dependency_repository_test.dart`, `logic/dependency_provider_test.dart` | 4種の依存タイプ、循環検出 |
+| F-21 | ゴールテンプレート | ⚪ PLANNED | `domain/goal_template.dart`, `data/goal_template_data.dart`, `logic/goal_template_provider.dart` | `domain/goal_template_test.dart`, `logic/goal_template_provider_test.dart` | MVP: 出産テンプレートのみ |
+| F-22 | ドラッグ&ドロップ移動 | ⚪ PLANNED | `logic/cascade_move_provider.dart`, `presentation/widgets/draggable_event_card.dart` | `logic/cascade_move_provider_test.dart`, `presentation/widgets/draggable_event_card_test.dart` | 長押しで開始、カスケード移動 |
+| F-23 | 依存関係の可視化 | ⚪ PLANNED | `presentation/widgets/dependency_connector.dart` | `presentation/widgets/dependency_connector_test.dart` | CustomPainterで線描画 |
+
+## Phase 3（将来構想）
 
 | Feature ID | 機能名 | 状態 | 実装ファイル | テストファイル | 備考 |
 |---|---|---|---|---|---|
 | F-04 | カテゴリ拡充（ユーザー定義） | ⚪ PLANNED | - | - | - |
 | F-05 | 将来計画モード | ⚪ PLANNED | - | - | - |
-| F-06 | イベント編集 | ⚪ PLANNED | - | - | 新規画面。F-02のrepositoryにupdate()追加が必要 |
 | F-11 | キャリアブランク可視化 | ⚪ PLANNED | - | - | - |
 | F-12 | 制約チェッカー（高度版） | ⚪ PLANNED | - | - | F-10の拡張 |
+| F-24 | 逆算タイムライン表示 | ⚪ PLANNED | - | - | ゴールから現在に向かって逆順表示 |

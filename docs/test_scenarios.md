@@ -194,8 +194,100 @@ TESTING_POLICY v2.0 の目安（70% / 25% / 5%）にほぼ合致している。
 
 ---
 
+---
+
+## 6. Phase 2: 目標逆算機能テスト
+
+### 参照ドキュメント
+- `docs/PRD.md` (Version 4.0)
+- `docs/SOFTWARE_ARCHITECTURE.md` (Version 5.0)
+
+### 6.1. EventDependency モデルテスト
+
+| ID | テスト層 | テスト対象 | シナリオ名 | 前提条件 | 操作/入力 | 期待結果 | 優先度 |
+|---|---|---|---|---|---|---|---|
+| TS-DEP-001 | Data | EventDependency | 依存関係モデルが正しく生成されること | なし | `EventDependency(type: DependencyType.prerequisite, offsetMonths: -12, ...)` を生成 | 全フィールドが正しく設定される | P0 |
+| TS-DEP-002 | Data | EventDependency | 全4種のDependencyTypeが定義されていること | なし | `DependencyType.values` を確認 | prerequisite, consequence, deadline, companion の4値 | P0 |
+| TS-DEP-003 | Data | EventDependency | copyWithで依存関係を変更できること | prerequisiteの依存関係が存在 | `dep.copyWith(type: DependencyType.deadline)` を実行 | typeが変更され、他フィールドは維持 | P1 |
+
+### 6.2. DependencyRepository テスト
+
+| ID | テスト層 | テスト対象 | シナリオ名 | 前提条件 | 操作/入力 | 期待結果 | 優先度 |
+|---|---|---|---|---|---|---|---|
+| TS-DEP-010 | Data | DependencyRepository | 依存関係の保存・取得ができること | Repositoryが空 | `saveDependency(dep)` → `fetchDependencies()` | 保存した依存関係が含まれる | P0 |
+| TS-DEP-011 | Data | DependencyRepository | 依存関係の削除ができること | 1件の依存関係が保存済み | `deleteDependency(dep)` → `fetchDependencies()` | リストが空 | P0 |
+| TS-DEP-012 | Data | DependencyRepository | イベントIDで関連する依存関係を取得できること | 複数の依存関係が保存済み | `fetchDependenciesForEvent(eventId)` | 指定イベントに関連する依存関係のみ返される | P0 |
+
+### 6.3. DependencyProvider テスト
+
+| ID | テスト層 | テスト対象 | シナリオ名 | 前提条件 | 操作/入力 | 期待結果 | 優先度 |
+|---|---|---|---|---|---|---|---|
+| TS-DEP-020 | Logic | DependencyProvider | 依存関係の追加が成功すること | 初期データ0件 | `addDependency(dep)` | 依存関係がリストに追加される | P0 |
+| TS-DEP-021 | Logic | DependencyProvider | 循環依存が検出されること | A→Bの依存関係が存在 | `wouldCreateCycle('B', 'A')` | trueが返される | P0 |
+| TS-DEP-022 | Logic | DependencyProvider | 間接的な循環依存が検出されること | A→B、B→Cの依存関係が存在 | `wouldCreateCycle('C', 'A')` | trueが返される | P0 |
+| TS-DEP-023 | Logic | DependencyProvider | 循環でない依存関係が許可されること | A→Bの依存関係が存在 | `wouldCreateCycle('A', 'C')` | falseが返される | P1 |
+| TS-DEP-024 | Logic | DependencyProvider | イベント削除時に関連依存関係も削除されること | A→B、A→Cの依存関係が存在 | `removeDependenciesForEvent('A')` | A関連の依存関係がすべて削除される | P0 |
+
+### 6.4. GoalTemplate テスト
+
+| ID | テスト層 | テスト対象 | シナリオ名 | 前提条件 | 操作/入力 | 期待結果 | 優先度 |
+|---|---|---|---|---|---|---|---|
+| TS-TMPL-001 | Data | GoalTemplate | 出産テンプレートが正しく定義されていること | なし | テンプレートレジストリから出産テンプレートを取得 | 7件の関連イベントが定義されている | P0 |
+| TS-TMPL-002 | Logic | GoalTemplateProvider | 出産テンプレート適用で正しいイベント群が生成されること | なし | `applyTemplate(childbirth, '2028-06')` | 妊活(-12m)、転職リミット(-12m)、旅行リミット(-4m)、産休(-2m)、出産(0m)、育休(0~+12m)、復職(+12m) が生成 | P0 |
+| TS-TMPL-003 | Logic | GoalTemplateProvider | テンプレート生成イベントの日付が正しく逆算されること | なし | `applyTemplate(childbirth, '2028-06')` | 妊活=2027-06、転職リミット=2027-06、旅行リミット=2028-02、産休=2028-04 | P0 |
+| TS-TMPL-004 | Logic | GoalTemplateProvider | テンプレート生成時に依存関係も正しく生成されること | なし | `applyTemplate(childbirth, '2028-06')` | 生成イベント間の依存関係が正しいタイプとオフセットで生成される | P0 |
+| TS-TMPL-005 | Logic | GoalTemplateProvider | 年を跨ぐオフセット計算が正しいこと | なし | `applyTemplate(childbirth, '2028-01')` | 妊活=2027-01（12ヶ月前）が正しく計算される | P1 |
+
+### 6.5. CascadeMoveProvider テスト
+
+| ID | テスト層 | テスト対象 | シナリオ名 | 前提条件 | 操作/入力 | 期待結果 | 優先度 |
+|---|---|---|---|---|---|---|---|
+| TS-MOVE-001 | Logic | CascadeMoveProvider | 単一依存イベントが連動移動すること | A→B（offset: +6m）が存在 | Aを3ヶ月後に移動 | Bも3ヶ月後に移動する | P0 |
+| TS-MOVE-002 | Logic | CascadeMoveProvider | チェーン依存（A→B→C）で全て連動移動すること | A→B（+6m）、B→C（+3m）が存在 | Aを2ヶ月後に移動 | B, Cもそれぞれ2ヶ月後に移動する | P0 |
+| TS-MOVE-003 | Logic | CascadeMoveProvider | 依存関係のないイベントは移動しないこと | A→B（+6m）、C（独立）が存在 | Aを3ヶ月後に移動 | Bは移動するがCは移動しない | P0 |
+| TS-MOVE-004 | Logic | CascadeMoveProvider | 移動後に制約チェックが再実行されること | A→B（+6m）が存在、C-01該当条件 | Aを移動してC-01条件を満たす位置に配置 | C-01の警告が生成される | P0 |
+| TS-MOVE-005 | Logic | CascadeMoveProvider | 逆方向移動（過去へ）でも連動すること | A→B（+6m）が存在 | Aを3ヶ月前に移動 | Bも3ヶ月前に移動する | P1 |
+| TS-MOVE-006 | Logic | CascadeMoveProvider | 0ヶ月移動では何も変わらないこと | A→B（+6m）が存在 | Aを同じ日付に移動 | 空の変更リストが返される | P1 |
+
+### 6.6. ConstraintChecker C-03 テスト
+
+| ID | テスト層 | テスト対象 | シナリオ名 | 前提条件 | 操作/入力 | 期待結果 | 優先度 |
+|---|---|---|---|---|---|---|---|
+| TS-C03-001 | Logic | ConstraintChecker | C-03: 依存オフセット違反を検出すること | A→B（offset: -12m）が存在、実際の間隔が6ヶ月 | 制約チェック実行 | ruleId='C-03', severity=warning | P0 |
+| TS-C03-002 | Logic | ConstraintChecker | C-03: オフセットが満たされている場合は警告なし | A→B（offset: -12m）が存在、実際の間隔が12ヶ月以上 | 制約チェック実行 | C-03の結果が含まれない | P0 |
+| TS-C03-003 | Logic | ConstraintChecker | C-03: 前提イベントが結果イベントの後にある場合を検出 | A(prerequisite)→B、AがBより後 | 制約チェック実行 | ruleId='C-03', severity=warning | P0 |
+
+### 6.7. Presentation層テスト（Phase 2）
+
+| ID | テスト層 | テスト対象 | シナリオ名 | 前提条件 | 操作/入力 | 期待結果 | 優先度 |
+|---|---|---|---|---|---|---|---|
+| TS-P2-001 | Presentation | GoalSetupDialog | テンプレート一覧が表示されること | ダイアログを開く | - | 出産テンプレートが選択肢として表示される | P0 |
+| TS-P2-002 | Presentation | GoalSetupDialog | ゴール日設定後にプレビューが表示されること | テンプレート選択済み | ゴール日を2028-06に設定 | 7件の関連イベントがプレビュー表示される | P0 |
+| TS-P2-003 | Presentation | GoalSetupDialog | 適用ボタンでイベントがタイムラインに追加されること | プレビュー表示済み | 適用ボタンタップ | ダイアログが閉じ、タイムラインに関連イベント群が表示される | P0 |
+| TS-P2-004 | Presentation | DependencyConnector | 依存関係線が正しく描画されること | 依存関係を持つイベント2件をStub | 画面を表示 | 2つのイベント間にコネクタ線が表示される | P1 |
+| TS-P2-005 | Presentation | DraggableEventCard | 長押しでドラッグが開始されること | イベントカードを表示 | 長押し操作 | ドラッグフィードバックが表示される | P1 |
+| TS-P2-006 | Presentation | DraggableEventCard | ドロップでイベント日付が更新されること | ドラッグ中 | 新しい位置にドロップ | イベントの日付が更新され、連動イベントも移動する | P1 |
+
+---
+
+## 7. テストシナリオ サマリ（Phase 1 + Phase 2）
+
+| テスト層 | P0 | P1 | P2 | 合計 |
+|---|---|---|---|---|
+| Data層（Phase 1） | 7 | 5 | 0 | 12 |
+| Logic層（Phase 1） | 11 | 8 | 0 | 19 |
+| Presentation層（Phase 1） | 6 | 4 | 2 | 12 |
+| 統合テスト（Phase 1） | 1 | 3 | 0 | 4 |
+| Data層（Phase 2） | 5 | 2 | 0 | 7 |
+| Logic層（Phase 2） | 14 | 4 | 0 | 18 |
+| Presentation層（Phase 2） | 3 | 3 | 0 | 6 |
+| **合計** | **47** | **29** | **2** | **78** |
+
+---
+
 ## 変更履歴
 
 | バージョン | 日付 | 変更内容 |
 |---|---|---|
 | 1.0 | 2026-03-09 | 初版作成。SOFTWARE_ARCHITECTURE v4.0 の女性キャリア特化機能（サブカテゴリ、制約チェック）に対応するテストシナリオを設計。既存テスト4ファイルとの重複を排除。 |
+| 2.0 | 2026-03-26 | Phase 2（目標逆算機能）のテストシナリオを追加。EventDependency、DependencyProvider、GoalTemplate、CascadeMoveProvider、C-03制約、ゴール設定UI、D&Dのテストを設計。Phase 2で31シナリオ追加（P0: 22件、P1: 9件）。 |
