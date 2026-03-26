@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
 import '../domain/life_event.dart';
 import 'widgets/constraint_warning.dart';
+
+/// UUID生成ユーティリティ
+const _uuid = Uuid();
 
 class AddEventDialog extends ConsumerStatefulWidget {
   final DateTime? initialDate;
@@ -373,6 +377,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                     return const SizedBox.shrink();
                   }
                   final previewEvent = LifeEvent(
+                    id: 'preview',
                     date:
                         '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
                     title: _titleController.text.isEmpty
@@ -415,6 +420,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                     '${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}';
               }
               final newEvent = LifeEvent(
+                id: _uuid.v4(),
                 date:
                     '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
                 endDate: endDateStr,

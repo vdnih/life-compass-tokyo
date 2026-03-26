@@ -10,6 +10,7 @@ LifeEvent _event({
   required EventCategory category,
 }) {
   return LifeEvent(
+    id: 'test-${date.replaceAll('-', '')}-${category.name}',
     date: date,
     title: title,
     description: '',

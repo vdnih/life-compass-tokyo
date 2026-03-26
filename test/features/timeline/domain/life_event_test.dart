@@ -59,7 +59,8 @@ void main() {
 
   group('LifeEvent の機能一覧（仕様）', () {
     test('date文字列 ("yyyy-MM") から正しい DateTime を取得できること', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: 'テスト詳細',
@@ -71,7 +72,8 @@ void main() {
     });
 
     test('endDate文字列 ("yyyy-MM") から正しい DateTime を取得できること', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         endDate: '2025-12',
         title: 'テスト',
@@ -85,7 +87,8 @@ void main() {
     });
 
     test('endDate が未指定の場合は null を返すこと', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: 'テスト詳細',
@@ -96,7 +99,8 @@ void main() {
     });
 
     test('endDate が設定されている場合、hasDuration は true を返すこと', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         endDate: '2024-03',
         title: 'テスト',
@@ -108,7 +112,8 @@ void main() {
     });
 
     test('endDate が未指定の場合、hasDuration は false を返すこと', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
@@ -119,13 +124,15 @@ void main() {
     });
 
     test('isWork は category.isWork を返すこと', () {
-      final workEvent = const LifeEvent(
+      const workEvent = LifeEvent(
+        id: 'test-id-work',
         date: '2023-08',
         title: '入社',
         description: '',
         category: EventCategory.joining,
       );
-      final privateEvent = const LifeEvent(
+      const privateEvent = LifeEvent(
+        id: 'test-id-private',
         date: '2023-08',
         title: '結婚',
         description: '',
@@ -137,7 +144,8 @@ void main() {
     });
 
     test('デフォルトのステータスは EventStatus.recorded であること', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: '',
@@ -148,7 +156,8 @@ void main() {
     });
 
     test('将来計画イベントの isFuturePlan が true を返すこと', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2028-04',
         title: '起業',
         description: '',
@@ -160,7 +169,8 @@ void main() {
     });
 
     test('copyWith メソッドで一部のプロパティを変更した新しいインスタンスを生成できること', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         title: '元のタイトル',
         description: '元の詳細',
@@ -180,7 +190,8 @@ void main() {
     });
 
     test('copyWith メソッドで status を変更できること', () {
-      final event = const LifeEvent(
+      const event = LifeEvent(
+        id: 'test-id',
         date: '2028-04',
         title: '起業',
         description: '',
@@ -193,13 +204,15 @@ void main() {
     });
 
     test('同じプロパティを持つ2つのインスタンスは等しいこと', () {
-      final event1 = const LifeEvent(
+      const event1 = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
         category: EventCategory.joining,
       );
-      final event2 = const LifeEvent(
+      const event2 = LifeEvent(
+        id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
@@ -207,6 +220,84 @@ void main() {
       );
 
       expect(event1, equals(event2));
+    });
+
+    test('デフォルトの isGoal は false であること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        category: EventCategory.joining,
+      );
+
+      expect(event.isGoal, isFalse);
+    });
+
+    test('isGoal を true に設定できること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2028-06',
+        title: 'ゴールイベント',
+        description: '',
+        category: EventCategory.childbirth,
+        isGoal: true,
+      );
+
+      expect(event.isGoal, isTrue);
+    });
+
+    test('goalId を設定できること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2028-06',
+        title: '関連イベント',
+        description: '',
+        category: EventCategory.jobChange,
+        goalId: 'goal-123',
+      );
+
+      expect(event.goalId, 'goal-123');
+    });
+
+    test('デフォルトの goalId は null であること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        category: EventCategory.joining,
+      );
+
+      expect(event.goalId, isNull);
+    });
+
+    test('copyWith メソッドで isGoal を変更できること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2028-06',
+        title: '目標',
+        description: '',
+        category: EventCategory.childbirth,
+      );
+
+      final updated = event.copyWith(isGoal: true);
+
+      expect(updated.isGoal, isTrue);
+    });
+
+    test('copyWith メソッドで goalId を変更できること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2028-06',
+        title: '関連イベント',
+        description: '',
+        category: EventCategory.jobChange,
+      );
+
+      final updated = event.copyWith(goalId: 'goal-456');
+
+      expect(updated.goalId, 'goal-456');
     });
   });
 }

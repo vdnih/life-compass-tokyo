@@ -32,6 +32,7 @@ void main() {
     test('初期状態: EventRepositoryからイベント一覧を取得し、AsyncDataとして状態を保持すること', () async {
       final mockEvents = [
         const LifeEvent(
+          id: 'test-id-1',
           date: '2020-01',
           title: 'Test 1',
           description: '',
@@ -53,6 +54,7 @@ void main() {
     test('追加成功: 新しいイベントを追加した際、AsyncLoadingを経て新しい一覧のAsyncDataに遷移すること', () async {
       final initialEvents = [
         const LifeEvent(
+          id: 'test-id-1',
           date: '2020-01',
           title: 'Test 1',
           description: '',
@@ -60,6 +62,7 @@ void main() {
         ),
       ];
       const newEvent = LifeEvent(
+        id: 'test-id-2',
         date: '2021-01',
         title: 'Test 2',
         description: '',
@@ -96,6 +99,7 @@ void main() {
 
     test('削除成功: 既存のイベントを削除した際、AsyncLoadingを経て新しい一覧のAsyncDataに遷移すること', () async {
       const targetEvent = LifeEvent(
+        id: 'test-id-1',
         date: '2020-01',
         title: 'Test 1',
         description: '',
@@ -131,6 +135,7 @@ void main() {
 
     test('削除エラー: EventRepositoryの削除処理が例外を投げた場合、状態がAsyncErrorに遷移すること', () async {
       const targetEvent = LifeEvent(
+        id: 'test-id-1',
         date: '2020-01',
         title: 'Test 1',
         description: '',
@@ -163,6 +168,7 @@ void main() {
     test('エラー発生時: EventRepositoryの処理が例外を投げた場合、状態がAsyncErrorに遷移すること', () async {
       final initialEvents = [
         const LifeEvent(
+          id: 'test-id-1',
           date: '2020-01',
           title: 'Test 1',
           description: '',
@@ -170,6 +176,7 @@ void main() {
         ),
       ];
       const newEvent = LifeEvent(
+        id: 'test-id-error',
         date: '2021-01',
         title: 'Error Event',
         description: '',
@@ -194,6 +201,49 @@ void main() {
 
       expect(states.any((s) => s is AsyncError), isTrue);
       verify(() => mockRepository.saveEvent(newEvent)).called(1);
+    });
+
+    test('moveEvent成功: 指定したIDのイベントの日付が更新されること', () async {
+      const targetEvent = LifeEvent(
+        id: 'event-move-1',
+        date: '2025-01',
+        title: '移動するイベント',
+        description: '',
+        category: EventCategory.jobChange,
+      );
+      const updatedEvent = LifeEvent(
+        id: 'event-move-1',
+        date: '2025-06',
+        title: '移動するイベント',
+        description: '',
+        category: EventCategory.jobChange,
+      );
+      final initialEvents = [targetEvent];
+      final updatedEvents = [updatedEvent];
+
+      when(
+        () => mockRepository.fetchEvents(),
+      ).thenAnswer((_) async => initialEvents);
+      when(() => mockRepository.updateEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      when(
+        () => mockRepository.fetchEvents(),
+      ).thenAnswer((_) async => updatedEvents);
+
+      final states = <AsyncValue<List<LifeEvent>>>[];
+      container.listen(timelineEventsProvider, (previous, next) {
+        states.add(next);
+      });
+
+      await container
+          .read(timelineEventsProvider.notifier)
+          .moveEvent('event-move-1', '2025-06');
+
+      expect(states.last.value, equals(updatedEvents));
+      verify(() => mockRepository.updateEvent(any())).called(1);
     });
   });
 }

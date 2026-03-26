@@ -12,6 +12,7 @@ class _StubEventsNotifier extends TimelineEventsNotifier {
   @override
   Future<List<LifeEvent>> build() async => const [
     LifeEvent(
+      id: 'stub-event-1',
       date: '2020-01',
       title: 'テストイベント',
       description: '',
