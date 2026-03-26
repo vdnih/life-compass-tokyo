@@ -10,7 +10,7 @@
 
 | Feature ID | 機能名 | 状態 | 実装ファイル | テストファイル | 備考 |
 |---|---|---|---|---|---|
-| F-01 | タイムライン表示 | 🟢 RELEASED | `lib/features/timeline/presentation/timeline_screen.dart`, `widgets/year_month_timeline.dart`, `widgets/year_timeline.dart` | `test/features/timeline/presentation/timeline_screen_test.dart` | 制約警告アイコン表示対応済み |
+| F-01 | タイムライン表示 | 🟢 RELEASED | `lib/features/timeline/presentation/timeline_screen.dart`, `widgets/year_month_timeline.dart`, `widgets/year_timeline.dart` | `test/features/timeline/presentation/timeline_screen_test.dart` | 制約警告アイコン表示、依存線描画、D&D対応済み。目標設定ボタン追加（I2-06） |
 | F-02 | イベント管理 | 🟢 RELEASED | `lib/features/timeline/data/event_repository.dart`, `logic/timeline_events_provider.dart`, `presentation/add_event_dialog.dart` | `test/features/timeline/logic/timeline_events_provider_test.dart`, `test/features/timeline/presentation/widgets/add_event_dialog_test.dart` | updateEvent/moveEvent追加済み（I2-01） |
 | F-02-SUB | イベントサブカテゴリ | 🟢 RELEASED | `lib/features/timeline/domain/life_event.dart`（EventCategory enum）, `presentation/widgets/event_style.dart` | `test/features/timeline/domain/life_event_test.dart` | maternityLeave追加。既存EventCategoryを拡張 |
 | F-03 | プロフィール設定 | 🟢 RELEASED | `lib/features/user_profile/user_profile.dart`, `profile_settings_dialog.dart` | - | - |
@@ -23,9 +23,9 @@
 |---|---|---|---|---|---|
 | F-06 | イベント編集 | ⚪ PLANNED | - | - | 新規画面。F-02のrepositoryにupdate()追加が必要 |
 | F-20 | イベント依存関係 | 🟢 RELEASED | `lib/features/timeline/domain/event_dependency.dart`, `lib/features/timeline/data/dependency_repository.dart`, `lib/features/timeline/logic/dependency_provider.dart` | `test/features/timeline/domain/event_dependency_test.dart`, `test/features/timeline/data/dependency_repository_test.dart`, `test/features/timeline/logic/dependency_provider_test.dart` | ドメインモデル・repository・provider実装済み（I2-01, I2-02, I2-04）。循環検出BFS実装済み |
-| F-21 | ゴールテンプレート | 🟢 RELEASED | `lib/features/timeline/domain/goal_template.dart`, `lib/features/timeline/data/goal_template_data.dart`, `lib/features/timeline/logic/goal_template_provider.dart` | `test/features/timeline/domain/goal_template_test.dart`, `test/features/timeline/logic/goal_template_provider_test.dart` | 出産テンプレート実装済み（I2-03, I2-04）。7件のイベント自動生成 |
-| F-22 | ドラッグ&ドロップ移動 | 🟡 IN_PROGRESS | `lib/features/timeline/logic/cascade_move_provider.dart`, `presentation/widgets/draggable_event_card.dart`（未実装） | `test/features/timeline/logic/cascade_move_provider_test.dart`, `presentation/widgets/draggable_event_card_test.dart`（未実装） | カスケード移動ロジック実装済み（I2-04）。UI（DraggableEventCard）は後続タスク |
-| F-23 | 依存関係の可視化 | ⚪ PLANNED | `presentation/widgets/dependency_connector.dart` | `presentation/widgets/dependency_connector_test.dart` | CustomPainterで線描画 |
+| F-21 | ゴールテンプレート | 🟢 RELEASED | `lib/features/timeline/domain/goal_template.dart`, `lib/features/timeline/data/goal_template_data.dart`, `lib/features/timeline/logic/goal_template_provider.dart`, `lib/features/timeline/presentation/goal_setup_dialog.dart` | `test/features/timeline/domain/goal_template_test.dart`, `test/features/timeline/logic/goal_template_provider_test.dart`, `test/features/timeline/presentation/goal_setup_dialog_test.dart` | 出産テンプレート実装済み（I2-03, I2-04, I2-06）。7件のイベント自動生成。ゴール設定ダイアログUI実装済み |
+| F-22 | ドラッグ&ドロップ移動 | 🟢 RELEASED | `lib/features/timeline/logic/cascade_move_provider.dart`, `lib/features/timeline/presentation/widgets/year_month_timeline.dart`, `lib/features/timeline/presentation/widgets/year_timeline.dart`, `lib/features/timeline/presentation/widgets/event_card.dart` | `test/features/timeline/logic/cascade_move_provider_test.dart` | LongPressDraggable + DragTarget + カスケード移動ロジック実装済み（I2-04, I2-07） |
+| F-23 | 依存関係の可視化 | 🟢 RELEASED | `lib/features/timeline/presentation/widgets/dependency_connector.dart` | `test/features/timeline/presentation/widgets/dependency_connector_test.dart` | CustomPainterで依存タイプ別線描画（実線/点線/矢印）実装済み（I2-07） |
 
 ## Phase 3（将来構想）
 

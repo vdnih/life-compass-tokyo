@@ -47,8 +47,8 @@ void main() {
               child: DependencyConnector(
                 dependencies: const [dep],
                 eventPositions: const {
-                  'event-1': Offset(100, 0),
-                  'event-2': Offset(300, 0),
+                  'event-1': 100.0,
+                  'event-2': 300.0,
                 },
                 eventLanes: const {'event-1': true, 'event-2': true},
                 totalHeight: 400,
@@ -104,8 +104,8 @@ void main() {
       final painter = DependencyLinePainter(
         dependencies: const [dep],
         eventPositions: const {
-          'event-1': Offset(100, 0),
-          'event-2': Offset(300, 0),
+          'event-1': 100.0,
+          'event-2': 300.0,
         },
         eventLanes: const {'event-1': true, 'event-2': true},
         axisHeight: 60,

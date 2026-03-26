@@ -1,0 +1,134 @@
+import 'package:flutter/material.dart';
+import '../../domain/constraint_result.dart';
+import '../../domain/life_event.dart';
+import 'event_style.dart';
+
+/// タイムライン上に表示するイベントカード
+///
+/// ドラッグフィードバックやオーバーレイ表示にも再利用される。
+class EventCard extends StatelessWidget {
+  /// 表示するイベント
+  final LifeEvent event;
+
+  /// このイベントに関連する制約違反
+  final List<ConstraintResult> eventConstraints;
+
+  /// ドラッグ中の半透明表示フラグ
+  final bool isDimmed;
+
+  const EventCard({
+    super.key,
+    required this.event,
+    this.eventConstraints = const [],
+    this.isDimmed = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = eventColor(event);
+    final opacity = isDimmed ? 0.3 : eventOpacity(event);
+    final hasWarning = eventConstraints.isNotEmpty;
+
+    return Opacity(
+      opacity: opacity,
+      child: SizedBox(
+        width: 120,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 50,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 3,
+                        child: Container(color: color),
+                      ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            event.title,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: color,
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasWarning)
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF8C42),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.warning_rounded,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            if (event.isFuturePlan)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 1,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  event.status.label,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            Icon(
+              categoryIcon(event.category),
+              color: color.withValues(alpha: 0.7),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
