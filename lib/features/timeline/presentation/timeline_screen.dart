@@ -8,6 +8,7 @@ import '../logic/constraint_checker_provider.dart';
 import 'widgets/year_month_timeline.dart';
 import 'widgets/year_timeline.dart';
 import 'add_event_dialog.dart';
+import 'goal_setup_dialog.dart';
 
 enum TimelineViewMode { yearMonth, year }
 
@@ -76,6 +77,20 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                 });
               },
               showSelectedIcon: false,
+            ),
+          ),
+          // 目標設定ボタン
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: IconButton(
+              tooltip: '目標設定',
+              icon: const Icon(Icons.flag_outlined, color: Colors.white),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => const GoalSetupDialog(),
+                );
+              },
             ),
           ),
           Padding(

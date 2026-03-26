@@ -6,6 +6,25 @@
 
 ---
 
+## 2026-03-26 - [実装完了] Phase 4 UI層実装（I2-06, I2-07）完了
+
+- **判断内容**: 目標逆算機能のUI層を全て実装完了。ゴール設定ダイアログ（GoalSetupDialog）、依存関係コネクタ（DependencyConnector）、ドラッグ&ドロップ対応（LongPressDraggable + DragTarget）、EventCardウィジェット抽出を実施。
+- **理由**: Phase 4実装タスクI2-06（UI - ゴール設定ダイアログ）とI2-07（UI - 依存線 & D&D）の実装を完了するため。
+- **影響範囲**:
+  - **新規ファイル**:
+    - `lib/features/timeline/presentation/goal_setup_dialog.dart` - テンプレート選択、日付ピッカー、プレビュー、適用
+    - `lib/features/timeline/presentation/widgets/dependency_connector.dart` - CustomPainterで依存タイプ別線描画
+    - `lib/features/timeline/presentation/widgets/event_card.dart` - イベントカードをウィジェットとして抽出
+    - `test/features/timeline/presentation/goal_setup_dialog_test.dart` - ダイアログ表示・選択・適用テスト10件
+    - `test/features/timeline/presentation/widgets/dependency_connector_test.dart` - コネクタ描画・shouldRepaintテスト6件
+  - **変更ファイル**:
+    - `lib/features/timeline/presentation/timeline_screen.dart` - 目標設定ボタン追加、GoalSetupDialogインポート
+    - `lib/features/timeline/presentation/widgets/year_month_timeline.dart` - LongPressDraggable, DragTarget, DependencyConnector統合
+    - `lib/features/timeline/presentation/widgets/year_timeline.dart` - 同上
+  - **feature_registry.md**: F-21, F-22, F-23を🟢 RELEASEDに更新
+
+---
+
 ## 2026-03-26 - [設計変更] コアコンセプト変更と目標逆算機能の設計
 
 - **判断内容**: アプリのコアコンセプトを「わたしの人生を、一本のタイムラインに。」から「目標から逆算して、わたしの人生をデザインする。」に変更。目標逆算機能群（F-20〜F-24）をPhase 2として設計した。
