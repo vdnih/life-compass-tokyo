@@ -33,6 +33,9 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   /// 現在ドラッグ中のイベントID
   String? _draggingEventId;
 
+  /// ドロップターゲットの座標変換用キー
+  final _dropTargetKey = GlobalKey();
+
   static const double monthWidth = 60.0;
   static const double axisHeight = 60.0;
   static const double rowHeight = 160.0;
@@ -434,10 +437,15 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
       width: totalWidth,
       height: rowHeight * 2,
       child: DragTarget<String>(
+        key: _dropTargetKey,
         onWillAcceptWithDetails: (details) => true,
         onAcceptWithDetails: (details) {
           final eventId = details.data;
-          final dropX = details.offset.dx;
+          final renderBox =
+              _dropTargetKey.currentContext!.findRenderObject()
+                  as RenderBox;
+          final localOffset = renderBox.globalToLocal(details.offset);
+          final dropX = localOffset.dx;
           final monthIndex = ((dropX - 20.0) / monthWidth).floor();
           if (monthIndex < 0 || monthIndex >= totalMonths) return;
 
@@ -484,7 +492,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     for (final change in changes) {
       await ref
           .read(timelineEventsProvider.notifier)
-          .moveEvent(change.eventId, change.newDate);
+          .moveEvent(change.eventId, change.newDate, newEndDate: change.newEndDate);
     }
 
     if (mounted) {

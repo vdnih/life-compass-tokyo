@@ -45,14 +45,16 @@ class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
   }
 
   /// 指定したIDのイベントの日付を更新する（D&D移動に使用）
-  Future<void> moveEvent(String eventId, String newDate) async {
+  Future<void> moveEvent(String eventId, String newDate, {String? newEndDate}) async {
     final previousState = state;
     state = const AsyncLoading();
     try {
       final repository = ref.read(eventRepositoryProvider);
       final events = await repository.fetchEvents();
       final target = events.firstWhere((e) => e.id == eventId);
-      final updated = target.copyWith(date: newDate);
+      final updated = newEndDate != null
+          ? target.copyWith(date: newDate, endDate: newEndDate)
+          : target.copyWith(date: newDate);
       await repository.updateEvent(updated);
       final updatedEvents = await repository.fetchEvents();
       state = AsyncData(updatedEvents);
