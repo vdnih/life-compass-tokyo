@@ -94,9 +94,11 @@
 
 ```
 docs/
+├── PRODUCT_VISION.md           # Mission・Vision・Values（プロダクトの憲法）
 ├── PRD.md                      # ビジョン・ターゲット・フェーズ別機能一覧（スリム版）
 ├── SPEC.md                     # ビジネスルール仕様（カテゴリ定義・制約ルール・テンプレート定義）
 ├── adr/                        # Architecture Decision Records（なぜその設計にしたか）
+├── pdr/                        # Product Decision Records（なぜこの機能・優先順位か）
 ├── FIREBASE_ARCHITECTURE.md    # Firebaseインフラ・Firestoreスキーマ設計
 ├── SOFTWARE_ARCHITECTURE.md    # ソフトウェアアーキテクチャ設計（レイヤー構成・Riverpod規約）
 ├── TESTING_POLICY.md           # テスト方針
@@ -108,7 +110,9 @@ docs/
 
 | 「何を知りたいか」 | 参照先 |
 |---|---|
-| なぜその設計か | `docs/adr/` |
+| なぜこのプロダクトか（MVV） | `docs/PRODUCT_VISION.md` |
+| なぜこの機能・優先順位か | `docs/pdr/` |
+| なぜその技術設計か | `docs/adr/` |
 | 何がビジネスルールか | `docs/SPEC.md` |
 | 何の機能があるか（概要） | `docs/PRD.md` |
 | 実装の詳細・仕様 | コード（ソース・テスト）を正とする |
