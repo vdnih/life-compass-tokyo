@@ -63,6 +63,32 @@ class DependencyNotifier extends AsyncNotifier<List<EventDependency>> {
     }
   }
 
+  /// 依存関係の offsetMonths を更新する（連動期間変更に使用）
+  ///
+  /// [dependencyId] 更新対象の依存関係ID
+  /// [newOffsetMonths] 新しい offsetMonths 値
+  Future<void> updateDependencyOffset(
+    String dependencyId,
+    int newOffsetMonths,
+  ) async {
+    final previousState = state;
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(dependencyRepositoryProvider);
+      final deps = previousState.valueOrNull ?? [];
+      final target = deps.firstWhere((d) => d.id == dependencyId);
+      final updated = target.copyWith(offsetMonths: newOffsetMonths);
+      await repo.updateDependency(updated);
+      final newDeps = await repo.fetchDependencies();
+      state = AsyncData(newDeps);
+    } catch (e, stack) {
+      state = AsyncError(e, stack);
+      if (previousState.hasValue) {
+        state = previousState;
+      }
+    }
+  }
+
   /// [sourceEventId] から [targetEventId] への依存関係を追加すると循環が生じるか検出する
   ///
   /// BFS で [targetEventId] を起点に既存の依存グラフを探索し、

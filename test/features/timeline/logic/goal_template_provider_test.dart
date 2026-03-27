@@ -176,6 +176,52 @@ void main() {
       expect(result.generatedDependencies, isNotEmpty);
     });
 
+    group('依存関係のoffsetMonthsの符号', () {
+      test('妊活開始(T-12) -> 出産(T) の offsetMonths が +12 であること', () async {
+        final container = createContainer();
+
+        final result = await container
+            .read(goalTemplateProvider.notifier)
+            .applyTemplate(
+              templateId: 'tmpl-childbirth',
+              goalDate: '2028-06',
+              goalTitle: '出産',
+            );
+
+        final goalEvent = result.generatedEvents.firstWhere((e) => e.isGoal);
+        final katsudoEvent =
+            result.generatedEvents.firstWhere((e) => e.title == '妊活開始');
+        final dep = result.generatedDependencies
+            .firstWhere((d) => d.sourceEventId == katsudoEvent.id);
+
+        expect(dep.targetEventId, equals(goalEvent.id));
+        // 妊活開始(T-12) -> 出産(T): offsetMonths = targetDate - sourceDate = +12
+        expect(dep.offsetMonths, equals(12));
+      });
+
+      test('復職(T+12) -> 出産(T) の offsetMonths が -12 であること', () async {
+        final container = createContainer();
+
+        final result = await container
+            .read(goalTemplateProvider.notifier)
+            .applyTemplate(
+              templateId: 'tmpl-childbirth',
+              goalDate: '2028-06',
+              goalTitle: '出産',
+            );
+
+        final goalEvent = result.generatedEvents.firstWhere((e) => e.isGoal);
+        final returnEvent =
+            result.generatedEvents.firstWhere((e) => e.title == '復職');
+        final dep = result.generatedDependencies
+            .firstWhere((d) => d.sourceEventId == returnEvent.id);
+
+        expect(dep.targetEventId, equals(goalEvent.id));
+        // 復職(T+12) -> 出産(T): offsetMonths = targetDate - sourceDate = -12
+        expect(dep.offsetMonths, equals(-12));
+      });
+    });
+
     test('年境界: ゴール日が1月でゴール-2ヶ月の場合に前年11月になること (2028-01 -> 2027-11)', () async {
       final container = createContainer();
 

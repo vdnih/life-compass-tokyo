@@ -86,10 +86,10 @@ List<EventDateChange> computeCascadeUpdates({
     if (visited.contains(current)) continue;
     visited.add(current);
 
-    // current を source とする依存関係のターゲットを次のキューに追加
+    // current を source または target とする依存関係の反対側を次のキューに追加
     final nextIds = allDependencies
-        .where((d) => d.sourceEventId == current)
-        .map((d) => d.targetEventId)
+        .where((d) => d.sourceEventId == current || d.targetEventId == current)
+        .map((d) => d.sourceEventId == current ? d.targetEventId : d.sourceEventId)
         .where((id) => !visited.contains(id));
 
     queue.addAll(nextIds);

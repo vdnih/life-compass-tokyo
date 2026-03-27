@@ -7,7 +7,13 @@ import 'package:my_career_app/features/timeline/logic/dependency_provider.dart';
 
 class MockDependencyRepository extends Mock implements DependencyRepository {}
 
+class FakeEventDependency extends Fake implements EventDependency {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(FakeEventDependency());
+  });
+
   group('DependencyNotifier', () {
     late MockDependencyRepository mockRepository;
 
@@ -133,6 +139,54 @@ void main() {
 
         verify(() => mockRepository.deleteDependenciesForEvent('event-a'))
             .called(1);
+      });
+    });
+
+    group('updateDependencyOffset', () {
+      test('offsetMonthsが更新されること', () async {
+        const dep = EventDependency(
+          id: 'dep-1',
+          sourceEventId: 'event-a',
+          targetEventId: 'event-b',
+          offsetMonths: 3,
+        );
+        final updated = dep.copyWith(offsetMonths: 6);
+
+        final container = createContainer(initialDeps: [dep]);
+        when(() => mockRepository.updateDependency(updated))
+            .thenAnswer((_) async {});
+        when(() => mockRepository.fetchDependencies())
+            .thenAnswer((_) async => [updated]);
+
+        await container.read(dependencyProvider.future);
+        await container
+            .read(dependencyProvider.notifier)
+            .updateDependencyOffset('dep-1', 6);
+
+        final result = await container.read(dependencyProvider.future);
+        expect(result.first.offsetMonths, equals(6));
+      });
+
+      test('updateDependencyが呼ばれること', () async {
+        const dep = EventDependency(
+          id: 'dep-1',
+          sourceEventId: 'event-a',
+          targetEventId: 'event-b',
+          offsetMonths: 3,
+        );
+
+        final container = createContainer(initialDeps: [dep]);
+        when(() => mockRepository.updateDependency(any()))
+            .thenAnswer((_) async {});
+        when(() => mockRepository.fetchDependencies())
+            .thenAnswer((_) async => [dep.copyWith(offsetMonths: 9)]);
+
+        await container.read(dependencyProvider.future);
+        await container
+            .read(dependencyProvider.notifier)
+            .updateDependencyOffset('dep-1', 9);
+
+        verify(() => mockRepository.updateDependency(any())).called(1);
       });
     });
 
