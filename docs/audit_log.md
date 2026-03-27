@@ -169,4 +169,19 @@
 
 ---
 
+## 2026-03-26 - [実装] タイムライン UI 改善 5機能
+
+- **判断内容**: 以下の5機能を実装した
+  1. 同タイミングのイベントを縦積み表示（スタック）— 同日同レーンのイベントをインデックス順に縦に並べ、行高を動的に計算
+  2. イベントの編集・削除 — `EditEventDialog` 新規作成、`updateEvent()` を Provider に追加、詳細ダイアログに「編集」「削除（確認付き）」ボタン追加
+  3. イベント間の関連付け・解除 UI — 詳細ダイアログの「関連を追加」でリンクモードに入り、別イベントをタップして依存種別を選択; 詳細ダイアログで既存関連を「解除」可能
+  4. カスケード連動移動 — 既存機能を維持しつつドラッグ drop 後にまとめて移動
+  5. ドラッグ中ゴーストカード — `DragTarget.onMove` で連動対象イベントの移動先にリアルタイムでゴーストカードを表示
+- **理由**: ユーザー要求に基づく UX 改善
+- **影響範囲**:
+  - `lib/features/timeline/logic/timeline_events_provider.dart` — updateEvent() 追加
+  - `lib/features/timeline/presentation/edit_event_dialog.dart` — 新規作成
+  - `lib/features/timeline/presentation/widgets/year_month_timeline.dart` — 全面改修
+  - `lib/features/timeline/presentation/widgets/year_timeline.dart` — 全面改修
+
 <!-- ここより上に新しいエントリを追記する -->
