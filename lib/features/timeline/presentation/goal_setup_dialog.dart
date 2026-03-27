@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/goal_template_data.dart';
-import '../domain/event_dependency.dart';
 import '../domain/goal_template.dart';
 import '../domain/life_event.dart';
 import '../logic/goal_template_provider.dart';
@@ -52,7 +51,6 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
         category: te.category,
         date: date,
         isGoal: false,
-        dependencyType: te.dependencyType,
         offsetMonths: te.offsetMonthsFromGoal,
       ));
     }
@@ -329,7 +327,6 @@ class _PreviewEvent {
   final EventCategory category;
   final String date;
   final bool isGoal;
-  final DependencyType? dependencyType;
   final int offsetMonths;
 
   const _PreviewEvent({
@@ -337,7 +334,6 @@ class _PreviewEvent {
     required this.category,
     required this.date,
     required this.isGoal,
-    this.dependencyType,
     this.offsetMonths = 0,
   });
 }
@@ -427,16 +423,16 @@ class _PreviewEventTile extends StatelessWidget {
                       dateStr,
                       style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                     ),
-                    if (event.dependencyType != null) ...[
+                    if (!event.isGoal) ...[
                       const SizedBox(width: 8),
                       Icon(
-                        _dependencyIcon(event.dependencyType!),
+                        Icons.link,
                         size: 11,
                         color: Colors.grey[400],
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        event.dependencyType!.label,
+                        '関連',
                         style:
                             TextStyle(fontSize: 10, color: Colors.grey[400]),
                       ),
@@ -456,10 +452,4 @@ class _PreviewEventTile extends StatelessWidget {
     return '${parts[0]}年${int.parse(parts[1])}月';
   }
 
-  IconData _dependencyIcon(DependencyType type) => switch (type) {
-        DependencyType.prerequisite => Icons.arrow_back,
-        DependencyType.consequence => Icons.arrow_forward,
-        DependencyType.deadline => Icons.timer_outlined,
-        DependencyType.companion => Icons.link,
-      };
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'event_dependency.dart';
 import 'life_event.dart';
 
 /// ゴールテンプレート定義
@@ -46,14 +45,10 @@ class TemplateEvent {
   /// イベントの期間（月数）。null の場合は期間なし
   final int? durationMonths;
 
-  /// ゴールとの依存関係の種類
-  final DependencyType dependencyType;
-
   const TemplateEvent({
     required this.titleTemplate,
     required this.category,
     required this.offsetMonthsFromGoal,
     this.durationMonths,
-    required this.dependencyType,
   });
 }

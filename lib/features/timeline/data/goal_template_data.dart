@@ -1,4 +1,3 @@
-import '../domain/event_dependency.dart';
 import '../domain/goal_template.dart';
 import '../domain/life_event.dart';
 
@@ -27,21 +26,18 @@ class GoalTemplateRegistry {
         titleTemplate: '妊活開始',
         category: EventCategory.marriage,
         offsetMonthsFromGoal: -12,
-        dependencyType: DependencyType.prerequisite,
       ),
       // #2 転職リミット: T - 12ヶ月
       const TemplateEvent(
         titleTemplate: '転職リミット',
         category: EventCategory.jobChange,
         offsetMonthsFromGoal: -12,
-        dependencyType: DependencyType.deadline,
       ),
       // #3 海外旅行リミット: T - 4ヶ月
       const TemplateEvent(
         titleTemplate: '海外旅行リミット',
         category: EventCategory.travel,
         offsetMonthsFromGoal: -4,
-        dependencyType: DependencyType.deadline,
       ),
       // #4 産休開始: T - 2ヶ月 〜 T
       const TemplateEvent(
@@ -49,7 +45,6 @@ class GoalTemplateRegistry {
         category: EventCategory.maternityLeave,
         offsetMonthsFromGoal: -2,
         durationMonths: 2,
-        dependencyType: DependencyType.consequence,
       ),
       // #5 育休: T 〜 T + 12ヶ月
       const TemplateEvent(
@@ -57,14 +52,12 @@ class GoalTemplateRegistry {
         category: EventCategory.childcareLeave,
         offsetMonthsFromGoal: 0,
         durationMonths: 12,
-        dependencyType: DependencyType.consequence,
       ),
       // #6 復職: T + 12ヶ月
       const TemplateEvent(
         titleTemplate: '復職',
         category: EventCategory.returnToWork,
         offsetMonthsFromGoal: 12,
-        dependencyType: DependencyType.consequence,
       ),
     ],
   );

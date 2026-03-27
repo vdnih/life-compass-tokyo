@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:my_career_app/features/timeline/domain/event_dependency.dart';
 import 'package:my_career_app/features/timeline/domain/goal_template.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 
@@ -32,7 +31,6 @@ void main() {
             titleTemplate: '転職活動開始',
             category: EventCategory.jobChange,
             offsetMonthsFromGoal: -6,
-            dependencyType: DependencyType.prerequisite,
           ),
         ],
       );
@@ -48,7 +46,6 @@ void main() {
         titleTemplate: '転職活動開始',
         category: EventCategory.jobChange,
         offsetMonthsFromGoal: -6,
-        dependencyType: DependencyType.prerequisite,
       );
 
       expect(event.offsetMonthsFromGoal, -6);
@@ -60,7 +57,6 @@ void main() {
         titleTemplate: '育休開始',
         category: EventCategory.childcareLeave,
         offsetMonthsFromGoal: 1,
-        dependencyType: DependencyType.consequence,
       );
 
       expect(event.offsetMonthsFromGoal, 1);
@@ -73,7 +69,6 @@ void main() {
         category: EventCategory.maternityLeave,
         offsetMonthsFromGoal: -2,
         durationMonths: 8,
-        dependencyType: DependencyType.deadline,
       );
 
       expect(event.durationMonths, 8);
@@ -84,7 +79,6 @@ void main() {
         titleTemplate: '転職活動',
         category: EventCategory.jobChange,
         offsetMonthsFromGoal: -3,
-        dependencyType: DependencyType.prerequisite,
       );
 
       expect(event.durationMonths, isNull);
@@ -95,28 +89,9 @@ void main() {
         titleTemplate: '出産',
         category: EventCategory.childbirth,
         offsetMonthsFromGoal: 0,
-        dependencyType: DependencyType.companion,
       );
 
       expect(event.offsetMonthsFromGoal, 0);
-    });
-
-    test('各 DependencyType を TemplateEvent に設定できること', () {
-      const prerequisiteEvent = TemplateEvent(
-        titleTemplate: '準備',
-        category: EventCategory.certification,
-        offsetMonthsFromGoal: -12,
-        dependencyType: DependencyType.prerequisite,
-      );
-      const consequenceEvent = TemplateEvent(
-        titleTemplate: '結果',
-        category: EventCategory.returnToWork,
-        offsetMonthsFromGoal: 12,
-        dependencyType: DependencyType.consequence,
-      );
-
-      expect(prerequisiteEvent.dependencyType, DependencyType.prerequisite);
-      expect(consequenceEvent.dependencyType, DependencyType.consequence);
     });
   });
 }

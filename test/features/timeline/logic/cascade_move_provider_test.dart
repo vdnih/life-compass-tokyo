@@ -24,7 +24,6 @@ EventDependency _dep({
     id: id,
     sourceEventId: sourceId,
     targetEventId: targetId,
-    type: DependencyType.consequence,
     offsetMonths: offsetMonths,
   );
 }

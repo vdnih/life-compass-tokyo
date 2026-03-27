@@ -34,7 +34,6 @@ void main() {
         id: 'dep-1',
         sourceEventId: 'event-1',
         targetEventId: 'event-2',
-        type: DependencyType.prerequisite,
         offsetMonths: 3,
       );
 
@@ -97,7 +96,6 @@ void main() {
         id: 'dep-1',
         sourceEventId: 'event-1',
         targetEventId: 'event-2',
-        type: DependencyType.prerequisite,
         offsetMonths: 3,
       );
 
@@ -146,7 +144,6 @@ void main() {
         id: 'dep-1',
         sourceEventId: 'event-1',
         targetEventId: 'event-2',
-        type: DependencyType.prerequisite,
         offsetMonths: 3,
       );
       final painter2 = DependencyLinePainter(
