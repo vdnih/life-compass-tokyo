@@ -16,7 +16,6 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
 
@@ -31,14 +30,12 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
         const dep2 = EventDependency(
           id: 'dep-2',
           sourceEventId: 'event-b',
           targetEventId: 'event-c',
-          type: DependencyType.consequence,
           offsetMonths: 0,
         );
 
@@ -62,7 +59,6 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
 
@@ -87,21 +83,18 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
         const dep2 = EventDependency(
           id: 'dep-2',
           sourceEventId: 'event-b',
           targetEventId: 'event-c',
-          type: DependencyType.consequence,
           offsetMonths: 0,
         );
         const dep3 = EventDependency(
           id: 'dep-3',
           sourceEventId: 'event-x',
           targetEventId: 'event-y',
-          type: DependencyType.deadline,
           offsetMonths: 6,
         );
 
@@ -130,21 +123,18 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
         const dep2 = EventDependency(
           id: 'dep-2',
           sourceEventId: 'event-b',
           targetEventId: 'event-c',
-          type: DependencyType.consequence,
           offsetMonths: 0,
         );
         const dep3 = EventDependency(
           id: 'dep-3',
           sourceEventId: 'event-x',
           targetEventId: 'event-y',
-          type: DependencyType.deadline,
           offsetMonths: 6,
         );
 

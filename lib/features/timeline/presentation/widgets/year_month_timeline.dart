@@ -768,9 +768,6 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
       return;
     }
 
-    final type = await _showDependencyTypePicker(context);
-    if (type == null || !mounted) return;
-
     final sourceEvent = allEvents
         .cast<LifeEvent?>()
         .firstWhere((e) => e!.id == _linkingEventId, orElse: () => null);
@@ -786,7 +783,6 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
       id: _uuid.v4(),
       sourceEventId: _linkingEventId!,
       targetEventId: targetEvent.id,
-      type: type,
       offsetMonths: offsetMonths,
     );
 
@@ -800,45 +796,6 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    }
-  }
-
-  Future<DependencyType?> _showDependencyTypePicker(
-      BuildContext context) {
-    return showDialog<DependencyType>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('関連の種類を選択'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: DependencyType.values.map((type) {
-            return ListTile(
-              title: Text(type.label),
-              subtitle: Text(_depTypeDesc(type)),
-              onTap: () => Navigator.pop(ctx, type),
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('キャンセル'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _depTypeDesc(DependencyType type) {
-    switch (type) {
-      case DependencyType.prerequisite:
-        return '選択中のイベントが先に必要';
-      case DependencyType.consequence:
-        return '選択中のイベントから発生する';
-      case DependencyType.deadline:
-        return '選択中のイベントが期限となる';
-      case DependencyType.companion:
-        return '常に一緒に移動する';
     }
   }
 
@@ -1090,7 +1047,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                 Text(otherTitle,
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(dep.type.label,
+                Text('関連',
                     style: TextStyle(
                         fontSize: 11,
                         color: AppTheme.primary.withValues(alpha: 0.6))),

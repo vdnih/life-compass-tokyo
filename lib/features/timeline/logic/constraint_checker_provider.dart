@@ -103,26 +103,18 @@ List<ConstraintResult> _checkC02(List<LifeEvent> events) {
 
 /// C-03: 依存関係のオフセット期間が確保されていない場合 → Warning
 ///
-/// prerequisite / consequence / deadline タイプの依存関係について、
-/// source イベントの日付 + offsetMonths が target イベントの日付と一致しない場合に警告する。
+/// すべての依存関係について、source イベントの日付 + offsetMonths が
+/// target イベントの日付と一致しない場合に警告する。
 List<ConstraintResult> _checkC03(
   List<LifeEvent> events,
   List<EventDependency> dependencies,
 ) {
   final results = <ConstraintResult>[];
 
-  // チェック対象の依存タイプ
-  const checkedTypes = {
-    DependencyType.prerequisite,
-    DependencyType.consequence,
-    DependencyType.deadline,
-  };
-
   // イベントIDをキーとするマップ
   final eventMap = {for (final e in events) e.id: e};
 
   for (final dep in dependencies) {
-    if (!checkedTypes.contains(dep.type)) continue;
 
     final source = eventMap[dep.sourceEventId];
     final target = eventMap[dep.targetEventId];

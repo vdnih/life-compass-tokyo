@@ -62,10 +62,7 @@ class DependencyConnector extends StatelessWidget {
 
 /// 依存関係の線を描画する [CustomPainter]
 ///
-/// 依存タイプに応じて線スタイルを変える:
-/// - prerequisite / consequence: 実線 + 矢印
-/// - deadline: 点線 + 矢印
-/// - companion: 実線（矢印なし）
+/// 関連イベント間を実線＋矢印で描画する。
 class DependencyLinePainter extends CustomPainter {
   /// 描画対象の依存関係一覧
   final List<EventDependency> dependencies;
@@ -112,7 +109,7 @@ class DependencyLinePainter extends CustomPainter {
       final start = Offset(sourceX, sourceY);
       final end = Offset(targetX, targetY);
 
-      _drawLine(canvas, start, end, dep.type);
+      _drawLine(canvas, start, end);
     }
   }
 
@@ -123,12 +120,7 @@ class DependencyLinePainter extends CustomPainter {
     return rowTop + 24.0 + 25.0;
   }
 
-  void _drawLine(
-    Canvas canvas,
-    Offset start,
-    Offset end,
-    DependencyType type,
-  ) {
+  void _drawLine(Canvas canvas, Offset start, Offset end) {
     final color = Colors.grey.shade400;
     final paint = Paint()
       ..color = color
@@ -136,55 +128,11 @@ class DependencyLinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final path = Path();
-
-    switch (type) {
-      case DependencyType.deadline:
-        _drawDashedLine(canvas, start, end, paint);
-        _drawArrow(canvas, start, end, color);
-      case DependencyType.prerequisite:
-      case DependencyType.consequence:
-        path.moveTo(start.dx, start.dy);
-        path.lineTo(end.dx, end.dy);
-        canvas.drawPath(path, paint);
-        _drawArrow(canvas, start, end, color);
-      case DependencyType.companion:
-        path.moveTo(start.dx, start.dy);
-        path.lineTo(end.dx, end.dy);
-        canvas.drawPath(path, paint);
-        // companion は矢印なし
-    }
-  }
-
-  /// 点線を描画する
-  void _drawDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
-    const dashLength = 6.0;
-    const gapLength = 4.0;
-
-    final dx = end.dx - start.dx;
-    final dy = end.dy - start.dy;
-    final distance = math.sqrt(dx * dx + dy * dy);
-    final unitX = dx / distance;
-    final unitY = dy / distance;
-
-    double drawn = 0;
-    bool drawing = true;
-
-    while (drawn < distance) {
-      final segmentLength = drawing ? dashLength : gapLength;
-      final segmentEnd = math.min(drawn + segmentLength, distance);
-
-      if (drawing) {
-        canvas.drawLine(
-          Offset(start.dx + unitX * drawn, start.dy + unitY * drawn),
-          Offset(start.dx + unitX * segmentEnd, start.dy + unitY * segmentEnd),
-          paint,
-        );
-      }
-
-      drawn = segmentEnd;
-      drawing = !drawing;
-    }
+    final path = Path()
+      ..moveTo(start.dx, start.dy)
+      ..lineTo(end.dx, end.dy);
+    canvas.drawPath(path, paint);
+    _drawArrow(canvas, start, end, color);
   }
 
   /// 矢印の先端を描画する

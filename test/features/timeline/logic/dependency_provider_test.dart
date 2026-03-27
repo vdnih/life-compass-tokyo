@@ -34,7 +34,6 @@ void main() {
         id: 'dep-1',
         sourceEventId: 'event-a',
         targetEventId: 'event-b',
-        type: DependencyType.prerequisite,
         offsetMonths: 3,
       );
       final container = createContainer(initialDeps: [dep]);
@@ -50,18 +49,18 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
 
+        // createContainerを先に呼ぶことでbuild()のfetchは[]を返す
+        final container = createContainer();
         when(() => mockRepository.saveDependency(dep))
             .thenAnswer((_) async {});
+        // 2回目のfetchDependencies（addDependency後）は[dep]を返す
         when(() => mockRepository.fetchDependencies())
             .thenAnswer((_) async => [dep]);
 
-        final container = createContainer();
         await container.read(dependencyProvider.future);
-
         await container.read(dependencyProvider.notifier).addDependency(dep);
 
         final result = await container.read(dependencyProvider.future);
@@ -73,18 +72,16 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
 
+        final container = createContainer();
         when(() => mockRepository.saveDependency(dep))
             .thenAnswer((_) async {});
         when(() => mockRepository.fetchDependencies())
             .thenAnswer((_) async => [dep]);
 
-        final container = createContainer();
         await container.read(dependencyProvider.future);
-
         await container.read(dependencyProvider.notifier).addDependency(dep);
 
         verify(() => mockRepository.saveDependency(dep)).called(1);
@@ -97,16 +94,17 @@ void main() {
           id: 'dep-1',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 3,
         );
 
+        // createContainer(initialDeps: [dep])でbuild()のfetchは[dep]を返す
+        final container = createContainer(initialDeps: [dep]);
         when(() => mockRepository.deleteDependency('dep-1'))
             .thenAnswer((_) async {});
+        // 2回目のfetchDependencies（deleteDependency後）は[]を返す
         when(() => mockRepository.fetchDependencies())
             .thenAnswer((_) async => []);
 
-        final container = createContainer(initialDeps: [dep]);
         await container.read(dependencyProvider.future);
 
         await container
@@ -144,7 +142,6 @@ void main() {
           id: 'dep-ab',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 1,
         );
 
@@ -163,14 +160,12 @@ void main() {
           id: 'dep-ab',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 1,
         );
         const depBC = EventDependency(
           id: 'dep-bc',
           sourceEventId: 'event-b',
           targetEventId: 'event-c',
-          type: DependencyType.prerequisite,
           offsetMonths: 1,
         );
 
@@ -189,7 +184,6 @@ void main() {
           id: 'dep-ab',
           sourceEventId: 'event-a',
           targetEventId: 'event-b',
-          type: DependencyType.prerequisite,
           offsetMonths: 1,
         );
 
