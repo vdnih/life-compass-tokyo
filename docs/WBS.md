@@ -1,6 +1,6 @@
 # WBS（Work Breakdown Structure）
 
-**Last Updated**: 2026-03-26
+**Last Updated**: 2026-03-27
 **Owner**: メインエージェント（Project Manager）
 
 ## Phase 1: 設計（Architect主導）
@@ -48,6 +48,16 @@
 | I2-06 | UI実装（ゴール設定ダイアログ、テンプレート選択） | Implementer | ✅ DONE | `lib/features/timeline/presentation/` |
 | I2-07 | UI実装（依存関係線の描画、ドラッグ&ドロップ） | Implementer | ✅ DONE | `lib/features/timeline/presentation/widgets/` |
 | I2-08 | QA検証 | QA | ⬜ TODO | `docs/qa_report_v2.md` |
+
+## Phase 5: 実装v3（UI改善 - Implementer主導）
+
+| ID | タスク | 担当Agent | 状態 | 成果物 |
+|---|---|---|---|---|
+| I3-01 | イベント編集・削除 UI（EditEventDialog、updateEvent、詳細ダイアログ拡張） | Implementer | ✅ DONE | `lib/features/timeline/presentation/edit_event_dialog.dart`, `logic/timeline_events_provider.dart` |
+| I3-02 | 同タイミングイベントの縦積み表示（スタック計算、行高動的拡張） | Implementer | ✅ DONE | `lib/features/timeline/presentation/widgets/year_month_timeline.dart`, `widgets/year_timeline.dart` |
+| I3-03 | ドラッグ中カスケードプレビュー（DragTarget.onMove でゴーストカード表示） | Implementer | ✅ DONE | `lib/features/timeline/presentation/widgets/year_month_timeline.dart`, `widgets/year_timeline.dart` |
+| I3-04 | 依存関係の手動管理 UI（リンクモード・依存種別選択・解除ボタン） | Implementer | ✅ DONE | `lib/features/timeline/presentation/widgets/year_month_timeline.dart`, `widgets/year_timeline.dart` |
+| I3-05 | QA検証 | QA | ⬜ TODO | `docs/qa_report_v3.md` |
 
 ## 状態の定義
 
