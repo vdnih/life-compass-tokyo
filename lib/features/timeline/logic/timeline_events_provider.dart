@@ -44,6 +44,23 @@ class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
     }
   }
 
+  /// 既存のイベントを更新する（編集に使用）
+  Future<void> updateEvent(LifeEvent event) async {
+    final previousState = state;
+    state = const AsyncLoading();
+    try {
+      final repository = ref.read(eventRepositoryProvider);
+      await repository.updateEvent(event);
+      final events = await repository.fetchEvents();
+      state = AsyncData(events);
+    } catch (e, stack) {
+      state = AsyncError(e, stack);
+      if (previousState.hasValue) {
+        state = previousState;
+      }
+    }
+  }
+
   /// 指定したIDのイベントの日付を更新する（D&D移動に使用）
   Future<void> moveEvent(String eventId, String newDate, {String? newEndDate}) async {
     final previousState = state;

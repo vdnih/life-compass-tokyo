@@ -1,20 +1,25 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
+import '../../domain/event_dependency.dart';
 import '../../domain/life_event.dart';
 import '../../logic/cascade_move_provider.dart';
 import '../../logic/dependency_provider.dart';
 import '../../logic/timeline_events_provider.dart';
 import '../add_event_dialog.dart';
+import '../edit_event_dialog.dart';
 import 'dependency_connector.dart';
 import 'event_card.dart';
 import 'event_style.dart';
 
+const _uuid = Uuid();
+
 /// 年ビューのタイムラインウィジェット
-///
-/// 年単位でイベントを配置し、依存関係線とドラッグ&ドロップに対応する。
 class YearTimeline extends ConsumerStatefulWidget {
   final List<LifeEvent> events;
   final List<ConstraintResult> constraints;
@@ -30,31 +35,66 @@ class YearTimeline extends ConsumerStatefulWidget {
 }
 
 class _YearTimelineState extends ConsumerState<YearTimeline> {
-  /// 現在ドラッグ中のイベントID
   String? _draggingEventId;
+  String? _linkingEventId;
+  List<EventDateChange> _cascadePreviewChanges = [];
 
-  /// ドロップターゲットの座標変換用キー
   final _dropTargetKey = GlobalKey();
 
   static const double yearWidth = 80.0;
   static const double axisHeight = 60.0;
-  static const double rowHeight = 160.0;
   static const double sidebarWidth = 40.0;
+  static const double _cardHeight = 84.0;
+  static const double _topPadding = 24.0;
+  static const double _minRowHeight = 160.0;
+
+  double _rowHeight = _minRowHeight;
+
+  // ---- stacking helpers ----
+
+  Map<String, int> _computeStackIndices(
+      List<LifeEvent> events, int startYear) {
+    final groups = <String, List<String>>{};
+    for (final e in events) {
+      final offset = e.dateTime.year - startYear;
+      final key = '${offset}_${e.isWork}';
+      groups.putIfAbsent(key, () => []).add(e.id);
+    }
+    final indices = <String, int>{};
+    for (final group in groups.values) {
+      for (int i = 0; i < group.length; i++) {
+        indices[group[i]] = i;
+      }
+    }
+    return indices;
+  }
+
+  double _computeRowHeight(List<LifeEvent> events, int startYear) {
+    if (events.isEmpty) return _minRowHeight;
+    final counts = <String, int>{};
+    for (final e in events) {
+      final offset = e.dateTime.year - startYear;
+      final key = '${offset}_${e.isWork}';
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    final maxStack = counts.values.reduce(max);
+    return max(_minRowHeight, _topPadding + maxStack * _cardHeight);
+  }
+
+  // ---- build ----
 
   @override
   Widget build(BuildContext context) {
     final events = widget.events;
 
+    Widget mainContent;
     if (events.isEmpty) {
-      return Center(
+      mainContent = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.timeline,
-              size: 64,
-              color: AppTheme.primary.withValues(alpha: 0.25),
-            ),
+            Icon(Icons.timeline,
+                size: 64, color: AppTheme.primary.withValues(alpha: 0.25)),
             const SizedBox(height: 16),
             Text(
               'まだイベントがありません',
@@ -75,129 +115,156 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
           ],
         ),
       );
-    }
+    } else {
+      final profile = ref.watch(userProfileNotifierProvider);
+      final dependenciesAsync = ref.watch(dependencyProvider);
 
-    final profile = ref.watch(userProfileNotifierProvider);
-    final dependenciesAsync = ref.watch(dependencyProvider);
+      final sortedEvents = List<LifeEvent>.from(events)
+        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
-    final sortedEvents = List<LifeEvent>.from(events)
-      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
-    final firstYear = sortedEvents.first.dateTime.year;
-    int lastYear = sortedEvents.last.dateTime.year;
-    for (var e in events) {
-      if (e.hasDuration && e.endDateTime!.year > lastYear) {
-        lastYear = e.endDateTime!.year;
+      final firstYear = sortedEvents.first.dateTime.year;
+      int lastYear = sortedEvents.last.dateTime.year;
+      for (var e in events) {
+        if (e.hasDuration && e.endDateTime!.year > lastYear) {
+          lastYear = e.endDateTime!.year;
+        }
       }
-    }
 
-    final startYear = firstYear - 2;
-    final endYear = lastYear + 3;
-    final totalYears = endYear - startYear;
+      final startYear = firstYear - 2;
+      final endYear = lastYear + 3;
+      final totalYears = endYear - startYear;
 
-    final now = DateTime.now();
-    final nowOffset = now.year - startYear;
-    final nowXPos = 20.0 + (nowOffset * yearWidth);
+      _rowHeight = _computeRowHeight(events, startYear);
+      final stackIndices = _computeStackIndices(events, startYear);
 
-    // イベント位置マップ（依存コネクタ用）
-    final eventPositions = <String, double>{};
-    final eventLanes = <String, bool>{};
-    for (final event in events) {
-      final yearOffset = event.dateTime.year - startYear;
-      eventPositions[event.id] = 20.0 + (yearOffset * yearWidth);
-      eventLanes[event.id] = event.isWork;
-    }
+      final now = DateTime.now();
+      final nowOffset = now.year - startYear;
+      final nowXPos = 20.0 + (nowOffset * yearWidth);
 
-    final totalWidth = totalYears * yearWidth + 100;
-    final totalHeight = axisHeight + rowHeight * 2;
+      final eventPositions = <String, double>{};
+      final eventLanes = <String, bool>{};
+      for (final event in events) {
+        final yearOffset = event.dateTime.year - startYear;
+        eventPositions[event.id] = 20.0 + (yearOffset * yearWidth);
+        eventLanes[event.id] = event.isWork;
+      }
 
-    return SingleChildScrollView(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 左側の固定レーンラベル
-          Padding(
-            padding: const EdgeInsets.only(top: 40),
-            child: SizedBox(
-              width: sidebarWidth,
-              height: totalHeight,
-              child: _buildLaneLabels(),
+      final totalWidth = totalYears * yearWidth + 100;
+      final totalHeight = axisHeight + _rowHeight * 2;
+
+      mainContent = SingleChildScrollView(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 40),
+              child: SizedBox(
+                width: sidebarWidth,
+                height: totalHeight,
+                child: _buildLaneLabels(),
+              ),
             ),
-          ),
-          // 横スクロール可能なタイムライン本体
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding:
-                  const EdgeInsets.only(top: 40, bottom: 40, right: 40),
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTapUp: (details) => _handleTap(
-                  details,
-                  startYear,
-                  totalYears,
-                  context,
-                ),
-                child: SizedBox(
-                  width: totalWidth,
-                  height: totalHeight,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // 境界線
-                      _buildGridLines(totalHeight),
-                      // 現在位置マーカー
-                      _buildNowMarker(nowXPos, totalHeight),
-                      // 年目盛り
-                      ..._buildYearTicks(
-                        totalYears,
-                        startYear,
-                        profile,
-                        axisHeight,
-                      ),
-                      // 期間イベントの矢印
-                      ..._buildDurationArrows(events, startYear),
-                      // 依存関係コネクタオーバーレイ
-                      dependenciesAsync.when(
-                        data: (deps) => DependencyConnector(
-                          dependencies: deps,
-                          eventPositions: eventPositions,
-                          eventLanes: eventLanes,
-                          totalHeight: totalHeight,
-                          totalWidth: totalWidth,
-                          axisHeight: axisHeight,
-                          rowHeight: rowHeight,
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding:
+                    const EdgeInsets.only(top: 40, bottom: 40, right: 40),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTapUp: (details) => _handleTap(
+                    details,
+                    startYear,
+                    totalYears,
+                    context,
+                  ),
+                  child: SizedBox(
+                    width: totalWidth,
+                    height: totalHeight,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _buildGridLines(totalHeight),
+                        _buildNowMarker(nowXPos, totalHeight),
+                        ..._buildYearTicks(
+                            totalYears, startYear, profile, axisHeight),
+                        ..._buildDurationArrows(
+                            events, startYear, stackIndices),
+                        dependenciesAsync.when(
+                          data: (deps) => DependencyConnector(
+                            dependencies: deps,
+                            eventPositions: eventPositions,
+                            eventLanes: eventLanes,
+                            totalHeight: totalHeight,
+                            totalWidth: totalWidth,
+                            axisHeight: axisHeight,
+                            rowHeight: _rowHeight,
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
                         ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
-                      ),
-                      // ドロップターゲット
-                      _buildDropTarget(
-                        totalWidth,
-                        totalHeight,
-                        startYear,
-                        totalYears,
-                        events,
-                      ),
-                      // イベントカード（長押しドラッグ対応）
-                      ..._buildEventCards(events, startYear, context),
-                    ],
+                        _buildDropTarget(
+                          totalWidth,
+                          totalHeight,
+                          startYear,
+                          totalYears,
+                          events,
+                        ),
+                        ..._buildEventCards(
+                            events, startYear, stackIndices, context),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        if (_linkingEventId != null) _buildLinkModeBanner(),
+        Expanded(child: mainContent),
+      ],
+    );
+  }
+
+  // ---- link mode banner ----
+
+  Widget _buildLinkModeBanner() {
+    return Material(
+      color: AppTheme.primary.withValues(alpha: 0.9),
+      child: InkWell(
+        onTap: () => setState(() => _linkingEventId = null),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: const [
+              Icon(Icons.link, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '別のイベントをタップして関連づけてください（タップでキャンセル）',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ),
+              Icon(Icons.close, color: Colors.white, size: 18),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+
+  // ---- lane labels ----
 
   Widget _buildLaneLabels() {
     return Column(
       children: [
         const SizedBox(height: axisHeight),
         Container(
-          height: rowHeight,
+          height: _rowHeight,
           width: double.infinity,
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -218,7 +285,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
           ),
         ),
         Container(
-          height: rowHeight,
+          height: _rowHeight,
           width: double.infinity,
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -249,7 +316,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     return Stack(
       children: [
         Positioned(
-          top: axisHeight + rowHeight,
+          top: axisHeight + _rowHeight,
           left: 0,
           right: 0,
           child: Container(height: 1, color: Colors.grey.shade200),
@@ -353,15 +420,20 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     });
   }
 
-  List<Widget> _buildDurationArrows(List<LifeEvent> events, int startYear) {
+  List<Widget> _buildDurationArrows(
+    List<LifeEvent> events,
+    int startYear,
+    Map<String, int> stackIndices,
+  ) {
     return events.where((e) => e.hasDuration).map((event) {
       final startOffset = event.dateTime.year - startYear;
       final endOffset = event.endDateTime!.year - startYear;
       final startXPos = 20.0 + (startOffset * yearWidth);
       final endXPos = 20.0 + (endOffset * yearWidth);
-      final rowTop =
-          event.isWork ? axisHeight : axisHeight + rowHeight;
-      final baseTop = rowTop + 24.0 + 50.0 + 6.0 + 12.0;
+      final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
+      final stackIdx = stackIndices[event.id] ?? 0;
+      final baseTop =
+          rowTop + _topPadding + stackIdx * _cardHeight + 50.0 + 4.0;
       final color = eventColor(event);
       final opacity = eventOpacity(event);
 
@@ -382,11 +454,8 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                   ),
                 ),
               ),
-              Icon(
-                Icons.arrow_right,
-                color: color.withValues(alpha: 0.6),
-                size: 16,
-              ),
+              Icon(Icons.arrow_right,
+                  color: color.withValues(alpha: 0.6), size: 16),
             ],
           ),
         ),
@@ -394,7 +463,6 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     }).toList();
   }
 
-  /// ドロップターゲット全体（タイムライン領域をカバーする透明レイヤー）
   Widget _buildDropTarget(
     double totalWidth,
     double totalHeight,
@@ -406,30 +474,52 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       top: axisHeight,
       left: 0,
       width: totalWidth,
-      height: rowHeight * 2,
+      height: _rowHeight * 2,
       child: DragTarget<String>(
         key: _dropTargetKey,
-        onWillAcceptWithDetails: (details) => true,
-        onAcceptWithDetails: (details) {
-          final eventId = details.data;
+        onWillAcceptWithDetails: (_) => true,
+        onMove: (details) {
+          if (_draggingEventId == null) return;
           final renderBox =
-              _dropTargetKey.currentContext!.findRenderObject()
-                  as RenderBox;
+              _dropTargetKey.currentContext?.findRenderObject() as RenderBox?;
+          if (renderBox == null) return;
           final localOffset = renderBox.globalToLocal(details.offset);
-          final dropX = localOffset.dx;
-          final yearIndex = ((dropX - 20.0) / yearWidth).floor();
+          final yearIndex =
+              ((localOffset.dx - 20.0) / yearWidth).floor();
           if (yearIndex < 0 || yearIndex >= totalYears) return;
 
           final newYear = startYear + yearIndex;
           final newDateStr = '$newYear-01';
 
+          final deps = ref.read(dependencyProvider).valueOrNull ?? [];
+          final changes = computeCascadeUpdates(
+            movedEventId: _draggingEventId!,
+            newDate: newDateStr,
+            allEvents: events,
+            allDependencies: deps,
+          );
+          if (mounted) setState(() => _cascadePreviewChanges = changes);
+        },
+        onLeave: (_) {
+          if (mounted) setState(() => _cascadePreviewChanges = []);
+        },
+        onAcceptWithDetails: (details) {
+          final eventId = details.data;
+          final renderBox =
+              _dropTargetKey.currentContext!.findRenderObject() as RenderBox;
+          final localOffset = renderBox.globalToLocal(details.offset);
+          final yearIndex =
+              ((localOffset.dx - 20.0) / yearWidth).floor();
+          if (yearIndex < 0 || yearIndex >= totalYears) return;
+
+          final newYear = startYear + yearIndex;
+          final newDateStr = '$newYear-01';
           _applyCascadeMove(eventId, newDateStr, events);
         },
-        builder: (context, candidateData, rejectedData) {
+        builder: (context, candidateData, _) {
           if (candidateData.isNotEmpty) {
             return Container(
-              color: AppTheme.primary.withValues(alpha: 0.05),
-            );
+                color: AppTheme.primary.withValues(alpha: 0.05));
           }
           return const SizedBox.shrink();
         },
@@ -437,15 +527,12 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     );
   }
 
-  /// カスケード移動を計算・適用する
   Future<void> _applyCascadeMove(
     String eventId,
     String newDateStr,
     List<LifeEvent> events,
   ) async {
-    final depsAsync = ref.read(dependencyProvider);
-    final deps = depsAsync.valueOrNull ?? [];
-
+    final deps = ref.read(dependencyProvider).valueOrNull ?? [];
     final changes = computeCascadeUpdates(
       movedEventId: eventId,
       newDate: newDateStr,
@@ -453,53 +540,94 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       allDependencies: deps,
     );
 
-    if (changes.isEmpty) return;
+    if (changes.isEmpty) {
+      setState(() {
+        _draggingEventId = null;
+        _cascadePreviewChanges = [];
+      });
+      return;
+    }
 
     for (final change in changes) {
       await ref
           .read(timelineEventsProvider.notifier)
-          .moveEvent(change.eventId, change.newDate, newEndDate: change.newEndDate);
+          .moveEvent(change.eventId, change.newDate,
+              newEndDate: change.newEndDate);
     }
 
     if (mounted) {
       final movedCount = changes.length;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            movedCount > 1
-                ? '$movedCount件のイベントを連動して移動しました'
-                : 'イベントを移動しました',
-          ),
+          content: Text(movedCount > 1
+              ? '$movedCount件のイベントを連動して移動しました'
+              : 'イベントを移動しました'),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      setState(() {
+        _draggingEventId = null;
+        _cascadePreviewChanges = [];
+      });
     }
-
-    setState(() => _draggingEventId = null);
   }
 
   List<Widget> _buildEventCards(
     List<LifeEvent> events,
     int startYear,
+    Map<String, int> stackIndices,
     BuildContext context,
   ) {
-    return events.map((event) {
+    final result = <Widget>[];
+
+    // Cascade preview ghost cards
+    if (_draggingEventId != null) {
+      for (final change in _cascadePreviewChanges) {
+        if (change.eventId == _draggingEventId) continue;
+        final event = events
+            .cast<LifeEvent?>()
+            .firstWhere((e) => e!.id == change.eventId, orElse: () => null);
+        if (event == null) continue;
+
+        final parts = change.newDate.split('-');
+        final previewYear = int.parse(parts[0]);
+        final previewOffset = previewYear - startYear;
+        final previewX = 20.0 + (previewOffset * yearWidth);
+        final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
+
+        result.add(Positioned(
+          left: previewX - 60,
+          top: rowTop + _topPadding,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0.55,
+              child: EventCard(event: event, eventConstraints: const []),
+            ),
+          ),
+        ));
+      }
+    }
+
+    // Regular event cards
+    for (final event in events) {
       final yearOffset = event.dateTime.year - startYear;
       final xPos = 20.0 + (yearOffset * yearWidth);
-      final rowTop =
-          event.isWork ? axisHeight : axisHeight + rowHeight;
-      const topPadding = 24.0;
+      final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
+      final stackIdx = stackIndices[event.id] ?? 0;
+      final topPos = rowTop + _topPadding + stackIdx * _cardHeight;
 
       final eventConstraints = widget.constraints
           .where((c) => c.targetEventTitle == event.title)
           .toList();
 
       final isDragging = _draggingEventId == event.id;
+      final isInCascade = _draggingEventId != null &&
+          _cascadePreviewChanges.any((c) => c.eventId == event.id);
 
-      return Positioned(
+      result.add(Positioned(
         left: xPos - 60,
-        top: rowTop + topPadding,
+        top: topPos,
         child: LongPressDraggable<String>(
           data: event.id,
           delay: const Duration(milliseconds: 400),
@@ -507,19 +635,23 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
             setState(() => _draggingEventId = event.id);
           },
           onDraggableCanceled: (_, __) {
-            setState(() => _draggingEventId = null);
+            setState(() {
+              _draggingEventId = null;
+              _cascadePreviewChanges = [];
+            });
           },
           onDragEnd: (_) {
-            setState(() => _draggingEventId = null);
+            setState(() {
+              _draggingEventId = null;
+              _cascadePreviewChanges = [];
+            });
           },
           feedback: Material(
             color: Colors.transparent,
             child: Transform.scale(
               scale: 1.05,
               child: EventCard(
-                event: event,
-                eventConstraints: eventConstraints,
-              ),
+                  event: event, eventConstraints: eventConstraints),
             ),
           ),
           childWhenDragging: EventCard(
@@ -528,17 +660,24 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
             isDimmed: true,
           ),
           child: GestureDetector(
-            onTap: () =>
-                _showEventDetails(context, event, eventConstraints),
+            onTap: () {
+              if (_linkingEventId != null) {
+                _handleLinkTap(event, events);
+              } else {
+                _showEventDetails(context, event, eventConstraints, events);
+              }
+            },
             child: EventCard(
               event: event,
               eventConstraints: eventConstraints,
-              isDimmed: isDragging,
+              isDimmed: isDragging || (isInCascade && !isDragging),
             ),
           ),
         ),
-      );
-    }).toList();
+      ));
+    }
+
+    return result;
   }
 
   void _handleTap(
@@ -547,35 +686,139 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     int totalYears,
     BuildContext context,
   ) {
+    if (_linkingEventId != null) {
+      setState(() => _linkingEventId = null);
+      return;
+    }
+
     final tapX = details.localPosition.dx;
     final tapY = details.localPosition.dy;
 
-    if (tapY < axisHeight || tapY >= axisHeight + rowHeight * 2) return;
+    if (tapY < axisHeight || tapY >= axisHeight + _rowHeight * 2) return;
 
     final yearIndex = ((tapX - 20.0) / yearWidth).floor();
     if (yearIndex < 0 || yearIndex >= totalYears) return;
 
     final tappedDate = DateTime(startYear + yearIndex, 1);
-    final isWork = tapY < axisHeight + rowHeight;
+    final isWork = tapY < axisHeight + _rowHeight;
 
     showDialog(
       context: context,
-      builder: (context) => AddEventDialog(
-        initialDate: tappedDate,
-        initialIsWork: isWork,
+      builder: (context) =>
+          AddEventDialog(initialDate: tappedDate, initialIsWork: isWork),
+    );
+  }
+
+  // ---- link mode ----
+
+  Future<void> _handleLinkTap(
+      LifeEvent targetEvent, List<LifeEvent> allEvents) async {
+    if (targetEvent.id == _linkingEventId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('同じイベントには関連づけできません'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final notifier = ref.read(dependencyProvider.notifier);
+    if (notifier.wouldCreateCycle(_linkingEventId!, targetEvent.id)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('循環した関連は設定できません'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final type = await _showDependencyTypePicker(context);
+    if (type == null || !mounted) return;
+
+    final sourceEvent = allEvents
+        .cast<LifeEvent?>()
+        .firstWhere((e) => e!.id == _linkingEventId, orElse: () => null);
+    if (sourceEvent == null) return;
+
+    final srcParts = sourceEvent.date.split('-');
+    final tgtParts = targetEvent.date.split('-');
+    final offsetMonths =
+        (int.parse(tgtParts[0]) * 12 + int.parse(tgtParts[1])) -
+            (int.parse(srcParts[0]) * 12 + int.parse(srcParts[1]));
+
+    final dep = EventDependency(
+      id: _uuid.v4(),
+      sourceEventId: _linkingEventId!,
+      targetEventId: targetEvent.id,
+      type: type,
+      offsetMonths: offsetMonths,
+    );
+
+    await ref.read(dependencyProvider.notifier).addDependency(dep);
+
+    if (mounted) {
+      setState(() => _linkingEventId = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('関連を追加しました'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<DependencyType?> _showDependencyTypePicker(BuildContext context) {
+    return showDialog<DependencyType>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('関連の種類を選択'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: DependencyType.values.map((type) {
+            return ListTile(
+              title: Text(type.label),
+              subtitle: Text(_depTypeDesc(type)),
+              onTap: () => Navigator.pop(ctx, type),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+        ],
       ),
     );
   }
+
+  String _depTypeDesc(DependencyType type) {
+    switch (type) {
+      case DependencyType.prerequisite:
+        return '選択中のイベントが先に必要';
+      case DependencyType.consequence:
+        return '選択中のイベントから発生する';
+      case DependencyType.deadline:
+        return '選択中のイベントが期限となる';
+      case DependencyType.companion:
+        return '常に一緒に移動する';
+    }
+  }
+
+  // ---- event details dialog ----
 
   void _showEventDetails(
     BuildContext context,
     LifeEvent event,
     List<ConstraintResult> eventConstraints,
+    List<LifeEvent> allEvents,
   ) {
     final color = eventColor(event);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: Row(
           children: [
             Container(
@@ -585,182 +828,284 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(categoryIcon(event.category), color: color, size: 20),
+              child:
+                  Icon(categoryIcon(event.category), color: color, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 event.title,
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w700),
               ),
             ),
           ],
         ),
-        content: _EventDetailContent(
-          event: event,
-          eventConstraints: eventConstraints,
-          color: color,
+        content: Consumer(
+          builder: (ctx, ref, _) {
+            final deps = ref.watch(dependencyProvider).valueOrNull ?? [];
+            final relatedDeps = deps
+                .where((d) =>
+                    d.sourceEventId == event.id ||
+                    d.targetEventId == event.id)
+                .toList();
+
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_month_outlined,
+                          size: 14,
+                          color: AppTheme.primary.withValues(alpha: 0.6)),
+                      const SizedBox(width: 4),
+                      Text(
+                        event.hasDuration
+                            ? '${event.date} 〜 ${event.endDate}'
+                            : event.date,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (event.isFuturePlan) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            event.status.label,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: color,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                            color: color, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(event.category.label,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: color,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  if (event.description.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(event.description,
+                        style: const TextStyle(fontSize: 13, height: 1.5)),
+                  ],
+                  if (eventConstraints.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ...eventConstraints
+                        .map((c) => _buildConstraintTile(c, color)),
+                  ],
+                  if (relatedDeps.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8, top: 4),
+                      child: Text(
+                        '関連イベント',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ),
+                    ...relatedDeps.map((dep) => _buildDependencyTile(
+                        dialogCtx, ref, dep, event.id, allEvents)),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              setState(() => _linkingEventId = event.id);
+            },
+            child: const Text('関連を追加'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              _confirmAndDelete(context, event);
+            },
+            child: const Text('削除'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              showDialog(
+                context: context,
+                builder: (_) => EditEventDialog(event: event),
+              );
+            },
+            child: const Text('編集'),
+          ),
           FilledButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('閉じる'),
           ),
         ],
       ),
     );
   }
-}
 
-/// イベント詳細ダイアログのコンテンツ部分
-class _EventDetailContent extends StatelessWidget {
-  final LifeEvent event;
-  final List<ConstraintResult> eventConstraints;
-  final Color color;
+  Widget _buildConstraintTile(ConstraintResult c, Color color) {
+    final isWarning = c.severity == ConstraintSeverity.warning;
+    final bgColor =
+        isWarning ? const Color(0xFFFFF3E0) : const Color(0xFFEDE7F6);
+    final borderColor = isWarning
+        ? const Color(0xFFFFB74D)
+        : AppTheme.primary.withValues(alpha: 0.4);
+    final iconColor =
+        isWarning ? const Color(0xFFE65100) : AppTheme.primary;
 
-  const _EventDetailContent({
-    required this.event,
-    required this.eventConstraints,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+          color: bgColor, borderRadius: BorderRadius.circular(12)),
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.calendar_month_outlined,
-                size: 14,
-                color: AppTheme.primary.withValues(alpha: 0.6),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                event.hasDuration
-                    ? '${event.date} 〜 ${event.endDate}'
-                    : event.date,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
-                  fontSize: 13,
+          Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              child: Container(color: borderColor)),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                Icon(
+                  isWarning
+                      ? Icons.warning_amber_rounded
+                      : Icons.info_outline,
+                  color: iconColor,
+                  size: 18,
                 ),
-              ),
-              if (event.isFuturePlan) ...[
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    event.status.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: color,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                Expanded(
+                  child: Text(c.message,
+                      style: const TextStyle(fontSize: 12, height: 1.4)),
                 ),
               ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                event.category.label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          if (event.description.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              event.description,
-              style: const TextStyle(fontSize: 13, height: 1.5),
             ),
-          ],
-          if (eventConstraints.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            ...eventConstraints.map((c) {
-              final isWarning =
-                  c.severity == ConstraintSeverity.warning;
-              final bgColor = isWarning
-                  ? const Color(0xFFFFF3E0)
-                  : const Color(0xFFEDE7F6);
-              final borderColor = isWarning
-                  ? const Color(0xFFFFB74D)
-                  : AppTheme.primary.withValues(alpha: 0.4);
-              final iconColor = isWarning
-                  ? const Color(0xFFE65100)
-                  : AppTheme.primary;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 3,
-                      child: Container(color: borderColor),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isWarning
-                                ? Icons.warning_amber_rounded
-                                : Icons.info_outline,
-                            color: iconColor,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              c.message,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDependencyTile(
+    BuildContext dialogCtx,
+    WidgetRef ref,
+    EventDependency dep,
+    String currentEventId,
+    List<LifeEvent> allEvents,
+  ) {
+    final otherEventId = dep.sourceEventId == currentEventId
+        ? dep.targetEventId
+        : dep.sourceEventId;
+    final otherEvent = allEvents
+        .cast<LifeEvent?>()
+        .firstWhere((e) => e!.id == otherEventId, orElse: () => null);
+    final otherTitle = otherEvent?.title ?? '(不明なイベント)';
+    final isSource = dep.sourceEventId == currentEventId;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(
+            isSource ? Icons.arrow_forward : Icons.arrow_back,
+            size: 14,
+            color: AppTheme.primary.withValues(alpha: 0.6),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(otherTitle,
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600)),
+                Text(dep.type.label,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.primary.withValues(alpha: 0.6))),
+              ],
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+              minimumSize: Size.zero,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            ),
+            onPressed: () async {
+              await ref
+                  .read(dependencyProvider.notifier)
+                  .removeDependency(dep.id);
+            },
+            child: const Text('解除', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmAndDelete(BuildContext context, LifeEvent event) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('イベントを削除'),
+        content: Text(
+            '"${event.title}" を削除しますか？\n関連する依存関係も削除されます。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref
+                  .read(dependencyProvider.notifier)
+                  .removeDependenciesForEvent(event.id);
+              await ref
+                  .read(timelineEventsProvider.notifier)
+                  .deleteEvent(event);
+            },
+            child: const Text('削除'),
+          ),
         ],
       ),
     );
