@@ -154,5 +154,34 @@ void main() {
         expect(result, isEmpty);
       });
     });
+
+    group('updateDependency', () {
+      test('offsetMonthsを変更して更新するとfetchで新しい値が取得できること', () async {
+        const original = EventDependency(
+          id: 'dep-1',
+          sourceEventId: 'event-a',
+          targetEventId: 'event-b',
+          offsetMonths: 3,
+        );
+        final updated = original.copyWith(offsetMonths: 6);
+
+        await repository.saveDependency(original);
+        await repository.updateDependency(updated);
+        final result = await repository.fetchDependencies();
+
+        expect(result.length, equals(1));
+        expect(result.first.offsetMonths, equals(6));
+      });
+
+      test('存在しないIDで更新しても例外を投げないこと', () async {
+        const dep = EventDependency(
+          id: 'non-existent',
+          sourceEventId: 'event-a',
+          targetEventId: 'event-b',
+          offsetMonths: 3,
+        );
+        await expectLater(repository.updateDependency(dep), completes);
+      });
+    });
   });
 }

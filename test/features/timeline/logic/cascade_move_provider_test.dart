@@ -194,4 +194,91 @@ void main() {
       expect(bChange.newDate, equals('2026-02'));
     });
   });
+
+  group('双方向BFS - スターグラフ', () {
+    test('hub(出産)を動かすと全てのspoke(妊活開始・転職リミット)が連動すること', () {
+      final events = [
+        _event(id: 'birth', date: '2027-04'),
+        _event(id: 'katsudo', date: '2026-04'),
+        _event(id: 'tensyoku', date: '2026-04'),
+      ];
+      final dependencies = [
+        _dep(id: 'd1', sourceId: 'katsudo', targetId: 'birth'),
+        _dep(id: 'd2', sourceId: 'tensyoku', targetId: 'birth'),
+      ];
+
+      final changes = computeCascadeUpdates(
+        movedEventId: 'birth',
+        newDate: '2027-07',
+        allEvents: events,
+        allDependencies: dependencies,
+      );
+
+      expect(changes.length, equals(3));
+      expect(
+        changes.firstWhere((c) => c.eventId == 'birth').newDate,
+        equals('2027-07'),
+      );
+      expect(
+        changes.firstWhere((c) => c.eventId == 'katsudo').newDate,
+        equals('2026-07'),
+      );
+      expect(
+        changes.firstWhere((c) => c.eventId == 'tensyoku').newDate,
+        equals('2026-07'),
+      );
+    });
+
+    test('spoke(妊活開始)を動かすと同グループの全イベントが連動すること', () {
+      final events = [
+        _event(id: 'birth', date: '2027-04'),
+        _event(id: 'katsudo', date: '2026-04'),
+        _event(id: 'tensyoku', date: '2026-04'),
+      ];
+      final dependencies = [
+        _dep(id: 'd1', sourceId: 'katsudo', targetId: 'birth'),
+        _dep(id: 'd2', sourceId: 'tensyoku', targetId: 'birth'),
+      ];
+
+      final changes = computeCascadeUpdates(
+        movedEventId: 'katsudo',
+        newDate: '2026-07',
+        allEvents: events,
+        allDependencies: dependencies,
+      );
+
+      expect(changes.length, equals(3));
+      expect(
+        changes.firstWhere((c) => c.eventId == 'birth').newDate,
+        equals('2027-07'),
+      );
+      expect(
+        changes.firstWhere((c) => c.eventId == 'tensyoku').newDate,
+        equals('2026-07'),
+      );
+    });
+
+    test('非連結クラスタのイベントは連動しないこと', () {
+      final events = [
+        _event(id: 'a', date: '2025-01'),
+        _event(id: 'b', date: '2025-04'),
+        _event(id: 'x', date: '2025-06'),
+        _event(id: 'y', date: '2025-09'),
+      ];
+      final dependencies = [
+        _dep(id: 'dep-ab', sourceId: 'a', targetId: 'b'),
+        _dep(id: 'dep-xy', sourceId: 'x', targetId: 'y'),
+      ];
+
+      final changes = computeCascadeUpdates(
+        movedEventId: 'a',
+        newDate: '2025-04',
+        allEvents: events,
+        allDependencies: dependencies,
+      );
+
+      expect(changes.any((c) => c.eventId == 'x'), isFalse);
+      expect(changes.any((c) => c.eventId == 'y'), isFalse);
+    });
+  });
 }

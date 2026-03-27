@@ -1056,6 +1056,17 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           ),
           TextButton(
             style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            ),
+            onPressed: () {
+              _showEditOffsetDialog(dialogCtx, ref, dep, allEvents);
+            },
+            child: const Text('編集', style: TextStyle(fontSize: 12)),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
               foregroundColor: Colors.red,
               minimumSize: Size.zero,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1070,6 +1081,207 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
         ],
       ),
     );
+  }
+
+  /// 連動期間（offsetMonths）を編集するダイアログを表示する
+  ///
+  /// sourceイベントの日付を変更し、targetイベントは固定する。
+  void _showEditOffsetDialog(
+    BuildContext parentCtx,
+    WidgetRef ref,
+    EventDependency dep,
+    List<LifeEvent> allEvents,
+  ) {
+    final sourceEvent = allEvents
+        .cast<LifeEvent?>()
+        .firstWhere((e) => e!.id == dep.sourceEventId, orElse: () => null);
+    final targetEvent = allEvents
+        .cast<LifeEvent?>()
+        .firstWhere((e) => e!.id == dep.targetEventId, orElse: () => null);
+
+    if (sourceEvent == null || targetEvent == null) return;
+
+    var currentOffset = dep.offsetMonths;
+
+    showDialog(
+      context: parentCtx,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final absOffset = currentOffset.abs();
+          final directionLabel =
+              currentOffset >= 0 ? '$absOffset ヶ月後' : '$absOffset ヶ月前';
+
+          return AlertDialog(
+            title: const Text(
+              '連動期間を変更',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                        fontSize: 13, color: Colors.black87, height: 1.5),
+                    children: [
+                      TextSpan(
+                        text: '「${sourceEvent.title}」',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const TextSpan(text: ' を移動します\n（'),
+                      TextSpan(
+                        text: '「${targetEvent.title}」',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const TextSpan(text: ' は固定）'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '「${targetEvent.title}」から何ヶ月？',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () =>
+                          setDialogState(() => currentOffset--),
+                      icon: const Icon(Icons.remove_circle_outline),
+                      color: AppTheme.primary,
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          directionLabel,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () =>
+                          setDialogState(() => currentOffset++),
+                      icon: const Icon(Icons.add_circle_outline),
+                      color: AppTheme.primary,
+                    ),
+                  ],
+                ),
+                Slider(
+                  value: currentOffset.toDouble().clamp(-36.0, 36.0),
+                  min: -36,
+                  max: 36,
+                  divisions: 72,
+                  label: directionLabel,
+                  activeColor: AppTheme.primary,
+                  onChanged: (v) =>
+                      setDialogState(() => currentOffset = v.round()),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: AppTheme.primary.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '「${sourceEvent.title}」のみが移動し、\n他の連動イベントは動きません。',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.primary.withValues(alpha: 0.7),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('キャンセル'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _applyOffsetChange(
+                    ref,
+                    dep,
+                    currentOffset,
+                    sourceEvent,
+                    targetEvent,
+                  );
+                },
+                child: const Text('確定'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// offsetMonths の変更を適用する: sourceイベントのみ移動（カスケードなし）
+  ///
+  /// newSourceDate = targetDate - newOffsetMonths
+  Future<void> _applyOffsetChange(
+    WidgetRef ref,
+    EventDependency dep,
+    int newOffsetMonths,
+    LifeEvent sourceEvent,
+    LifeEvent targetEvent,
+  ) async {
+    // targetDate を月数で表現
+    final tgtParts = targetEvent.date.split('-');
+    final targetTotalMonths =
+        int.parse(tgtParts[0]) * 12 + int.parse(tgtParts[1]);
+
+    // newSourceDate = targetDate - newOffsetMonths
+    // (offsetMonths = targetDate - sourceDate の定義より)
+    final newSourceTotalMonths = targetTotalMonths - newOffsetMonths;
+    final rawYear = newSourceTotalMonths ~/ 12;
+    final rawMonth = newSourceTotalMonths % 12;
+
+    // month == 0 のケース（12月として前年に繰り上げ）
+    final newYear = rawMonth == 0 ? rawYear - 1 : rawYear;
+    final newMonth = rawMonth == 0 ? 12 : rawMonth;
+    final newSourceDate = '$newYear-${newMonth.toString().padLeft(2, '0')}';
+
+    // sourceイベントのみ移動（カスケードなし）
+    await ref
+        .read(timelineEventsProvider.notifier)
+        .moveEvent(sourceEvent.id, newSourceDate);
+
+    // 依存関係の offsetMonths も更新
+    await ref
+        .read(dependencyProvider.notifier)
+        .updateDependencyOffset(dep.id, newOffsetMonths);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '「${sourceEvent.title}」を $newSourceDate に移動しました（連動なし）'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _confirmAndDelete(BuildContext context, LifeEvent event) {

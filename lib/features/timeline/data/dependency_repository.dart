@@ -17,6 +17,9 @@ abstract class DependencyRepository {
 
   /// 指定イベントに関連する依存関係を取得する（sourceEventId または targetEventId が一致）
   Future<List<EventDependency>> fetchDependenciesForEvent(String eventId);
+
+  /// 依存関係を更新する（offsetMonths変更に使用）
+  Future<void> updateDependency(EventDependency dependency);
 }
 
 /// インメモリ実装の [DependencyRepository]（MVP用）
@@ -50,6 +53,14 @@ class InMemoryDependencyRepository implements DependencyRepository {
     return _dependencies
         .where((d) => d.sourceEventId == eventId || d.targetEventId == eventId)
         .toList();
+  }
+
+  @override
+  Future<void> updateDependency(EventDependency dependency) async {
+    final index = _dependencies.indexWhere((d) => d.id == dependency.id);
+    if (index != -1) {
+      _dependencies[index] = dependency;
+    }
   }
 }
 
