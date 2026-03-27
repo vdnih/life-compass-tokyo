@@ -125,18 +125,15 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           showDialog(
             context: context,
             builder: (context) => const AddEventDialog(),
           );
         },
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'イベントを追加',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        tooltip: 'イベントを追加',
+        child: const Icon(Icons.add),
       ),
     );
   }
