@@ -1109,7 +1109,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
         builder: (ctx, setDialogState) {
           final absOffset = currentOffset.abs();
           final directionLabel =
-              currentOffset >= 0 ? '$absOffset ヶ月後' : '$absOffset ヶ月前';
+              currentOffset >= 0 ? '$absOffset ヶ月前' : '$absOffset ヶ月後';
 
           return AlertDialog(
             title: const Text(
