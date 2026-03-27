@@ -80,8 +80,8 @@
 
 各エージェントが**触ってはいけないファイル**を以下に定義する。
 
-- **Architect**: `lib/` 配下、`test/` 配下のコード全般（実装コードに触らない）
-- **Implementer**: `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/SOFTWARE_ARCHITECTURE.md`（設計ドキュメントを書き換えない）
+- **Architect**: `lib/` 配下、`test/` 配下のコード全般（実装コードに触らない）。技術選択時はADRを作成すること
+- **Implementer**: `docs/PRD.md`, `docs/SPEC.md`, `docs/FIREBASE_ARCHITECTURE.md`, `docs/SOFTWARE_ARCHITECTURE.md`, `docs/adr/`（設計ドキュメントを書き換えない）
 - **QA**: `lib/` 配下のプロダクトコード（テストコードのみ触る。プロダクトコードの修正はImplementerに依頼）
 
 ### 5.3. エージェント呼び出しの原則
@@ -94,14 +94,25 @@
 
 ```
 docs/
-├── PRD.md                      # プロダクト要件定義
-├── ARCHITECTURE.md             # インフラアーキテクチャ設計
-├── SOFTWARE_ARCHITECTURE.md    # ソフトウェアアーキテクチャ設計
+├── PRD.md                      # ビジョン・ターゲット・フェーズ別機能一覧（スリム版）
+├── SPEC.md                     # ビジネスルール仕様（カテゴリ定義・制約ルール・テンプレート定義）
+├── adr/                        # Architecture Decision Records（なぜその設計にしたか）
+├── FIREBASE_ARCHITECTURE.md    # Firebaseインフラ・Firestoreスキーマ設計
+├── SOFTWARE_ARCHITECTURE.md    # ソフトウェアアーキテクチャ設計（レイヤー構成・Riverpod規約）
 ├── TESTING_POLICY.md           # テスト方針
-├── WBS.md                      # タスク分解・進捗管理
-├── feature_registry.md         # 機能と実装の対応表
+├── feature_registry.md         # 機能IDとコード/テストパスの対応表
 └── audit_log.md                # 監査ログ（全行動の記録）
 ```
+
+### ドキュメントと情報源の対応
+
+| 「何を知りたいか」 | 参照先 |
+|---|---|
+| なぜその設計か | `docs/adr/` |
+| 何がビジネスルールか | `docs/SPEC.md` |
+| 何の機能があるか（概要） | `docs/PRD.md` |
+| 実装の詳細・仕様 | コード（ソース・テスト）を正とする |
+| どう使うか | （将来）`docs/USER_MANUAL.md` |
 
 ## 7. ディレクトリ構造（実装時の規約）
 
