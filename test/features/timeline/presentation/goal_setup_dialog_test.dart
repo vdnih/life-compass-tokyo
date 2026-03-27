@@ -12,7 +12,16 @@ class MockEventRepository extends Mock implements EventRepository {}
 
 class MockDependencyRepository extends Mock implements DependencyRepository {}
 
+class _FakeLifeEvent extends Fake implements LifeEvent {}
+
+class _FakeEventDependency extends Fake implements EventDependency {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(_FakeLifeEvent());
+    registerFallbackValue(_FakeEventDependency());
+  });
+
   late MockEventRepository mockEventRepo;
   late MockDependencyRepository mockDependencyRepo;
 
