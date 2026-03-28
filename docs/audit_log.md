@@ -6,6 +6,14 @@
 
 ---
 
+## 2026-03-28 - [デプロイ] F-07 Firebase Hosting + Firestore Rules デプロイ完了
+
+- **判断内容**: `firebase deploy --only firestore:rules,hosting` を実行。Firestore DB の初期化（`firestore.googleapis.com` 有効化）と Rules・Hosting の両方のデプロイが成功した。
+- **理由**: F-07 Firebase統合実装の本番リリース
+- **影響範囲**: `https://my-career-app-559fd.web.app`（本番環境）
+
+---
+
 ## 2026-03-28 - [アーキテクチャ判断] F-07 Firebase統合・データ永続化 実装完了
 
 - **判断内容**: Firebase Authentication + Cloud Firestore を統合し、ユーザーデータの永続化を実現した。以下の設計判断を行った。
