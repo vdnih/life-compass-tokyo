@@ -25,7 +25,7 @@ graph LR
 
 ### 3.1. Firebase Authentication
 - **目的**: ユーザー認証管理（Phase 3で実装）
-- **プロバイダ**: メール / パスワード
+- **プロバイダ**: Google Sign-In のみ（メール/パスワード認証は不使用）
 - **連携**: uid をDB・Storageのセキュリティキーとして使用
 
 ### 3.2. Cloud Firestore
