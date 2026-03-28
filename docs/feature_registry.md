@@ -14,13 +14,14 @@
 | F-02 | イベント管理 | 🟢 RELEASED | `lib/features/timeline/data/event_repository.dart`, `logic/timeline_events_provider.dart`, `presentation/add_event_dialog.dart` | `test/features/timeline/logic/timeline_events_provider_test.dart`, `test/features/timeline/presentation/widgets/add_event_dialog_test.dart` | - |
 | F-02-SUB | イベントサブカテゴリ | 🟢 RELEASED | `lib/features/timeline/domain/life_event.dart`（EventCategory enum）, `presentation/widgets/event_style.dart` | `test/features/timeline/domain/life_event_test.dart` | maternityLeave追加。既存EventCategoryを拡張 |
 | F-03 | プロフィール設定 | 🟢 RELEASED | `lib/features/user_profile/user_profile.dart`, `profile_settings_dialog.dart` | - | - |
-| F-10 | ライフイベント制約の可視化 | 🟢 RELEASED | `lib/features/timeline/domain/constraint_result.dart`, `logic/constraint_checker_provider.dart`, `presentation/widgets/constraint_warning.dart` | `test/features/timeline/domain/constraint_result_test.dart`, `test/features/timeline/logic/constraint_checker_provider_test.dart`, `test/features/timeline/presentation/widgets/constraint_warning_test.dart` | C-01, C-02 ルール実装済み |
-| F-MVP-DATA | データ永続化（ローカル） | 🟢 RELEASED | `lib/features/timeline/data/event_repository.dart` | - | InMemory実装 |
+| F-10 | ライフイベント制約の可視化 | 🟢 RELEASED | `lib/features/timeline/domain/constraint_result.dart`, `logic/constraint_checker_provider.dart`, `presentation/widgets/constraint_warning.dart` | `test/features/timeline/domain/constraint_result_test.dart`, `test/features/timeline/logic/constraint_checker_provider_test.dart`, `test/features/timeline/presentation/widgets/constraint_warning_test.dart` | C-01, C-02, C-03 ルール実装済み（I2-05） |
+| F-MVP-DATA | データ永続化（ローカル） | 🟢 RELEASED | `lib/features/timeline/data/event_repository.dart` | - | InMemory実装（未認証フォールバックとして継続利用） |
 
 ## Phase 2
 
 | Feature ID | 機能名 | 状態 | 実装ファイル | テストファイル | 備考 |
 |---|---|---|---|---|---|
+| F-07 | Firebase 統合・データ永続化 | 🟢 RELEASED | `lib/features/auth/`, `lib/features/timeline/data/firestore_event_repository.dart`, `lib/features/timeline/data/firestore_dependency_repository.dart`, `lib/core/router/app_router.dart` | `test/features/auth/logic/auth_provider_test.dart`, `test/features/timeline/data/firestore_event_repository_test.dart`, `test/features/timeline/data/firestore_dependency_repository_test.dart` | Firebase Auth（メール/パスワード）+ Firestore 永続化。未認証でも閲覧可。書き込み時に認証モーダル表示。GoRouter統合 |
 | F-04 | カテゴリ拡充（ユーザー定義） | ⚪ PLANNED | - | - | - |
 | F-05 | 将来計画モード | ⚪ PLANNED | - | - | - |
 | F-06 | イベント編集 | ⚪ PLANNED | - | - | 新規画面。F-02のrepositoryにupdate()追加が必要 |

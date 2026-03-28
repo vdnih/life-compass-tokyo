@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/logic/auth_provider.dart';
+import '../../auth/presentation/auth_required_modal.dart';
 import '../../user_profile/user_profile.dart';
 import '../../user_profile/profile_settings_dialog.dart';
 import '../logic/timeline_events_provider.dart';
@@ -27,6 +29,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     final ageText = profile.age != null ? '${profile.age}歳' : '';
     final eventsAsync = ref.watch(timelineEventsProvider);
     final constraints = ref.watch(constraintCheckerProvider);
+    final userId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -78,6 +81,13 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               showSelectedIcon: false,
             ),
           ),
+          if (userId != null)
+            IconButton(
+              tooltip: 'ログアウト',
+              icon: const Icon(Icons.logout, color: Colors.white70),
+              onPressed: () =>
+                  ref.read(authProvider.notifier).signOut(),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: IconButton(
@@ -110,18 +120,20 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'イベントを追加',
         onPressed: () {
+          final userId = ref.read(currentUserIdProvider);
+          if (userId == null) {
+            showAuthRequiredModal(context);
+            return;
+          }
           showDialog(
             context: context,
             builder: (context) => const AddEventDialog(),
           );
         },
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'イベントを追加',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        child: const Icon(Icons.add),
       ),
     );
   }

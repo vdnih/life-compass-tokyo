@@ -42,56 +42,92 @@ enum EventStatus {
   bool get isFuturePlan => this != EventStatus.recorded;
 }
 
+/// ライフイベントを表すイミュータブルなデータモデル
 @immutable
 class LifeEvent {
+  /// イベントの一意識別子（UUID）
+  final String id;
+
+  /// イベント開始日（yyyy-MM 形式）
   final String date; // yyyy-MM
+
+  /// イベント終了日（yyyy-MM 形式、期間イベントの場合のみ）
   final String? endDate; // yyyy-MM
+
+  /// イベントタイトル
   final String title;
+
+  /// イベント詳細説明
   final String description;
+
+  /// イベントカテゴリ
   final EventCategory category;
+
+  /// イベントステータス
   final EventStatus status;
 
+  /// このイベントが属するゴールのID（ゴールテンプレートから生成された場合）
+  final String? goalId;
+
+  /// このイベント自体がゴールであるか
+  final bool isGoal;
+
   const LifeEvent({
+    this.id = '',
     required this.date,
     this.endDate,
     required this.title,
     required this.description,
     required this.category,
     this.status = EventStatus.recorded,
+    this.goalId,
+    this.isGoal = false,
   });
 
+  /// date フィールドを DateTime に変換する
   DateTime get dateTime {
     final parts = date.split('-');
     return DateTime(int.parse(parts[0]), int.parse(parts[1]));
   }
 
+  /// endDate フィールドを DateTime に変換する。endDate が null の場合は null を返す
   DateTime? get endDateTime {
     if (endDate == null) return null;
     final parts = endDate!.split('-');
     return DateTime(int.parse(parts[0]), int.parse(parts[1]));
   }
 
+  /// 期間が設定されているか
   bool get hasDuration => endDate != null;
 
+  /// 仕事系イベントか
   bool get isWork => category.isWork;
 
+  /// 将来計画イベントか
   bool get isFuturePlan => status.isFuturePlan;
 
+  /// 一部のプロパティを変更した新しい [LifeEvent] インスタンスを生成する
   LifeEvent copyWith({
+    String? id,
     String? date,
     String? endDate,
     String? title,
     String? description,
     EventCategory? category,
     EventStatus? status,
+    String? goalId,
+    bool? isGoal,
   }) {
     return LifeEvent(
+      id: id ?? this.id,
       date: date ?? this.date,
       endDate: endDate ?? this.endDate,
       title: title ?? this.title,
       description: description ?? this.description,
       category: category ?? this.category,
       status: status ?? this.status,
+      goalId: goalId ?? this.goalId,
+      isGoal: isGoal ?? this.isGoal,
     );
   }
 
@@ -99,21 +135,27 @@ class LifeEvent {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is LifeEvent &&
+        other.id == id &&
         other.date == date &&
         other.endDate == endDate &&
         other.title == title &&
         other.description == description &&
         other.category == category &&
-        other.status == status;
+        other.status == status &&
+        other.goalId == goalId &&
+        other.isGoal == isGoal;
   }
 
   @override
   int get hashCode {
-    return date.hashCode ^
+    return id.hashCode ^
+        date.hashCode ^
         endDate.hashCode ^
         title.hashCode ^
         description.hashCode ^
         category.hashCode ^
-        status.hashCode;
+        status.hashCode ^
+        goalId.hashCode ^
+        isGoal.hashCode;
   }
 }

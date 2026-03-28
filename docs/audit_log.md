@@ -6,6 +6,122 @@
 
 ---
 
+## 2026-03-28 - [アーキテクチャ判断] F-07 Firebase統合・データ永続化 実装完了
+
+- **判断内容**: Firebase Authentication + Cloud Firestore を統合し、ユーザーデータの永続化を実現した。以下の設計判断を行った。
+
+  1. **認証フロー: 未認証でも閲覧可能、書き込み時に認証要求**
+     - 未認証ユーザーは InMemory サンプルデータでタイムラインを閲覧できる
+     - イベント追加・編集・削除・D&D移動の操作時点で `showAuthRequiredModal` を表示
+     - GoRouter はリダイレクト強制なし（認証済みユーザーが `/login`/`/signup` に戻らない制御のみ）
+
+  2. **Firestore fetch-on-demand（リアルタイムストリームなし）**
+     - 既存の `AsyncNotifier` パターンを変更せず、Future ベースのフェッチを継続
+     - ライフプランアプリはリアルタイム協調編集を必要としないため
+     - Phase 4 でストリームに移行しやすいよう Repository インターフェースは変更なし
+
+  3. **リポジトリプロバイダーの認証連動切り替え**
+     - `currentUserIdProvider`（`authProvider.valueOrNull?.uid`）を監視
+     - uid が非 null → `FirestoreEventRepository`/`FirestoreDependencyRepository`
+     - uid が null → `InMemoryEventRepository`/`InMemoryDependencyRepository`（サンプルデータ表示）
+     - 認証状態変化時は Riverpod が自動的に下流プロバイダーを再計算
+
+  4. **AuthService インターフェース導入**
+     - `FirebaseAuth` を直接参照せず `AuthService` 抽象クラス経由でアクセス
+     - テストで `MockAuthService` に差し替え可能（Firebase 初期化不要）
+
+  5. **Firestore DependencyType フィールド省略**
+     - Dart の `EventDependency` モデルに `type` フィールドが未実装（ドメインモデルと Firestore スキーマの乖離）
+     - Firestore 書き込み・読み取りから `type` フィールドを除外
+     - 将来の追加時はモデル拡張と同時に Firestore スキーマも更新すること
+
+  6. **Firestore オフライン永続化を有効化**
+     - `Settings(persistenceEnabled: true, cacheSizeBytes: CACHE_SIZE_UNLIMITED)` をアプリ起動時に設定
+
+- **理由**: ページリロードでデータが消える問題を解決し、マルチデバイス対応の基盤を整える
+- **影響範囲**:
+  - 新規: `lib/features/auth/`, `lib/features/timeline/data/firestore_*.dart`, `lib/core/router/app_router.dart`, `firestore.rules`, `firestore.indexes.json`
+  - 変更: `lib/main.dart`, `lib/features/timeline/data/event_repository.dart`, `lib/features/timeline/data/dependency_repository.dart`, `lib/features/timeline/presentation/timeline_screen.dart`, `lib/features/timeline/presentation/widgets/year_month_timeline.dart`, `lib/features/timeline/presentation/widgets/year_timeline.dart`, `pubspec.yaml`, `firebase.json`
+  - テスト: 新規 3 ファイル（auth_provider_test, firestore_event_repository_test, firestore_dependency_repository_test）、既存 timeline_screen_test を更新（認証済みウィジェットと未認証ウィジェットを分離）
+
+---
+
+## 2026-03-27 - [ドキュメント新設] PRODUCT_VISION.md を作成
+
+- **判断内容**: `docs/PRODUCT_VISION.md` を新設。Mission・Vision・Values・ターゲットユーザーを定義
+- **理由**: プロダクトの「憲法」となるMVVが存在せず、PRD・PDR・ADRの判断軸が曖昧だった。既存ドキュメントから読み解ける範囲で仮説ベースの v0.1 として作成し、今後の利用・議論を通じて精緻化していく
+- **影響範囲**: `docs/PRODUCT_VISION.md`（新規）
+
+---
+
+## 2026-03-27 - [ドキュメント体系再編] ドキュメント構造をリファクタリング
+
+- **判断内容**:
+  - `docs/PRD.md` をスリム化。実装詳細・画面構成・制約ルール・テンプレート定義を削除し、ビジョン・フェーズ別機能一覧（概要のみ）に絞った（v4.0 → v5.0）
+  - `docs/SPEC.md` を新設。PRD.md から制約ルール（C-01〜C-03）、ゴールテンプレート定義（出産テンプレート）、イベントカテゴリ定義を移管
+  - `docs/adr/` ディレクトリを新設。ARCHITECTURE.md 内の設計判断ブロックを5本のADRとして切り出し
+    - ADR-001: category フィールド統合
+    - ADR-002: 制約チェック結果の非永続化
+    - ADR-003: 依存関係を別コレクションで永続化
+    - ADR-004: ゴールテンプレートのハードコード
+    - ADR-005: 制約チェックのクライアントサイド実行
+  - `docs/ARCHITECTURE.md` を `docs/FIREBASE_ARCHITECTURE.md` にリネーム。設計判断ブロックを削除しADRへの参照に置き換え
+  - `CLAUDE.md` のドキュメント体系定義を更新。Implementerの触れないファイルリストを更新
+- **理由**: PRD.mdが実装詳細・設計根拠・ビジネスルールが混在し、コードとの二重管理・不整合が発生しやすい状態だった。「何がルールか→SPEC.md」「なぜその設計か→ADR」「実装の詳細→コード」という明確な情報源の分離を図るため
+- **影響範囲**: `docs/PRD.md`, `docs/SPEC.md`（新規）, `docs/adr/`（新規）, `docs/FIREBASE_ARCHITECTURE.md`（新規）, `docs/ARCHITECTURE.md`（削除）, `CLAUDE.md`
+
+---
+
+## 2026-03-26 - [ドキュメント修正] WBS.md の不整合を解消
+
+- **判断内容**: Phase 4 タスク（I2-01〜I2-07）の状態を `⬜ TODO` → `✅ DONE` に修正
+- **理由**: 実装はコミット済み（38a7999, e0261f7, b60ed0f, b704401）だったが、WBS.md のみ更新漏れが発生していた。feature_registry.md・audit_log.md は正しく更新済みだった。
+- **影響範囲**: `docs/WBS.md` のみ（実装コードへの変更なし）
+
+---
+
+## 2026-03-26 - [実装完了] Phase 4 UI層実装（I2-06, I2-07）完了
+
+- **判断内容**: 目標逆算機能のUI層を全て実装完了。ゴール設定ダイアログ（GoalSetupDialog）、依存関係コネクタ（DependencyConnector）、ドラッグ&ドロップ対応（LongPressDraggable + DragTarget）、EventCardウィジェット抽出を実施。
+- **理由**: Phase 4実装タスクI2-06（UI - ゴール設定ダイアログ）とI2-07（UI - 依存線 & D&D）の実装を完了するため。
+- **影響範囲**:
+  - **新規ファイル**:
+    - `lib/features/timeline/presentation/goal_setup_dialog.dart` - テンプレート選択、日付ピッカー、プレビュー、適用
+    - `lib/features/timeline/presentation/widgets/dependency_connector.dart` - CustomPainterで依存タイプ別線描画
+    - `lib/features/timeline/presentation/widgets/event_card.dart` - イベントカードをウィジェットとして抽出
+    - `test/features/timeline/presentation/goal_setup_dialog_test.dart` - ダイアログ表示・選択・適用テスト10件
+    - `test/features/timeline/presentation/widgets/dependency_connector_test.dart` - コネクタ描画・shouldRepaintテスト6件
+  - **変更ファイル**:
+    - `lib/features/timeline/presentation/timeline_screen.dart` - 目標設定ボタン追加、GoalSetupDialogインポート
+    - `lib/features/timeline/presentation/widgets/year_month_timeline.dart` - LongPressDraggable, DragTarget, DependencyConnector統合
+    - `lib/features/timeline/presentation/widgets/year_timeline.dart` - 同上
+  - **feature_registry.md**: F-21, F-22, F-23を🟢 RELEASEDに更新
+
+---
+
+## 2026-03-26 - [設計変更] コアコンセプト変更と目標逆算機能の設計
+
+- **判断内容**: アプリのコアコンセプトを「わたしの人生を、一本のタイムラインに。」から「目標から逆算して、わたしの人生をデザインする。」に変更。目標逆算機能群（F-20〜F-24）をPhase 2として設計した。
+- **理由**: ユーザーから「目標から逆算して人生設計できるアプリ」というビジョンが提示された。ライフゴール（例: 出産）を設定すると、妊活・産休・育休・旅行リミット・転職リミットなどの時間的制約が自動的に逆算され、イベント間の依存関係で連動する仕組みが求められた。プロジェクトマネジメント的思想（ゴールからの逆算、マイルストーン設定、タスク依存関係）をライフプランニングに適用する。
+- **影響範囲**:
+  - `docs/PRD.md` v3.0 → v4.0: コンセプト変更、F-20〜F-24追加、出産テンプレート定義、C-03制約追加
+  - `docs/ARCHITECTURE.md` v3.1 → v4.0: eventsにid/goalId/isGoal追加、dependenciesコレクション新設
+  - `docs/SOFTWARE_ARCHITECTURE.md` v4.1 → v5.0: EventDependency/GoalTemplateモデル、新Provider群、LifeEventにid復活
+  - `docs/test_scenarios.md` v1.0 → v2.0: Phase 2用31テストシナリオ追加
+  - `docs/WBS.md`: Phase 3（設計v2）、Phase 4（実装v2）追加
+  - `docs/feature_registry.md`: F-20〜F-24追加、旧Phase 2機能をPhase 3に移動
+
+### 主要な設計判断の詳細
+
+1. **LifeEventにidフィールドを復活**: v4.1で削除されたidを復活。依存関係（F-20）でイベントを一意に識別するためにUUIDが必須。`uuid`パッケージを使用する。
+2. **依存関係の4タイプ設計（prerequisite/consequence/deadline/companion）**: ライフイベント間の多様な関係性を表現するために4種類に分類。出産テンプレートでは主にprerequisite、consequence、deadlineを使用する。
+3. **ゴールテンプレートのアプリ内ハードコード**: テンプレートは静的データであり、Firestore保存の利点がない。Phase 2 MVPでは「出産」テンプレートのみ。
+4. **カスケード移動のBFSアルゴリズム**: トポロジカルソートで依存順序を決定し、BFS探索で連鎖移動を計算。循環依存は事前に検出・拒否する設計。
+5. **ドラッグ&ドロップは長押し開始**: 横スクロールとの競合を回避するため、`LongPressDraggable`を採用。
+6. **旧Phase 2機能（F-04, F-05, F-11, F-12）をPhase 3に移動**: 目標逆算機能がPhase 2の中核となるため、優先度の低い既存計画機能をPhase 3に繰り延べ。
+
+---
+
 ## 2026-03-09 - [機能追加] タイムラインタップによるイベント追加機能を実装
 
 - **判断内容**: `YearMonthTimeline` と `YearTimeline` の空きエリアをタップすると、タップした年月・レーン（仕事/プライベート）を初期値にした `AddEventDialog` が開く機能を追加した。

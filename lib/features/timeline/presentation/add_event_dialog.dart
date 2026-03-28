@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
@@ -415,6 +416,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                     '${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}';
               }
               final newEvent = LifeEvent(
+                id: const Uuid().v4(),
                 date:
                     '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
                 endDate: endDateStr,

@@ -1,9 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../features/auth/logic/auth_provider.dart';
 import '../domain/life_event.dart';
+import 'firestore_event_repository.dart';
 
 abstract class EventRepository {
   Future<List<LifeEvent>> fetchEvents();
   Future<void> saveEvent(LifeEvent event);
+  Future<void> updateEvent(LifeEvent event);
   Future<void> deleteEvent(LifeEvent event);
 }
 
@@ -44,11 +48,27 @@ class InMemoryEventRepository implements EventRepository {
   }
 
   @override
+  Future<void> updateEvent(LifeEvent event) async {
+    final index = _events.indexWhere((e) => e.id == event.id);
+    if (index != -1) {
+      _events[index] = event;
+    }
+  }
+
+  @override
   Future<void> deleteEvent(LifeEvent event) async {
     _events.remove(event);
   }
 }
 
+/// [EventRepository] を提供するProvider
+///
+/// 認証済みの場合は [FirestoreEventRepository]、未認証の場合は [InMemoryEventRepository] を返す。
+/// [currentUserIdProvider] の変化で自動的に再評価される。
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId != null) {
+    return FirestoreEventRepository(userId);
+  }
   return InMemoryEventRepository();
 });

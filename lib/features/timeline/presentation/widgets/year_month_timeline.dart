@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/logic/auth_provider.dart';
+import '../../../auth/presentation/auth_required_modal.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/life_event.dart';
 import '../../domain/constraint_result.dart';
@@ -173,6 +175,11 @@ class YearMonthTimeline extends ConsumerWidget {
                   );
                   final isWork = tapY < axisHeight + rowHeight;
 
+                  final userId = ref.read(currentUserIdProvider);
+                  if (userId == null) {
+                    showAuthRequiredModal(context);
+                    return;
+                  }
                   showDialog(
                     context: context,
                     builder: (context) => AddEventDialog(
