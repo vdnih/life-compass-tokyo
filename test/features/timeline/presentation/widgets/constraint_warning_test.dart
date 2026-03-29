@@ -38,7 +38,7 @@ void main() {
         ruleId: 'C-02',
         targetEventTitle: '出産',
         severity: ConstraintSeverity.info,
-        message: '出産予定の1年前までに転職を完了しておくと、育休取得がスムーズです',
+        message: '転職から1年以上経過していると、育休取得の条件を満たしやすくなります',
       );
 
       await tester.pumpWidget(
@@ -50,7 +50,7 @@ void main() {
       );
 
       expect(
-        find.text('出産予定の1年前までに転職を完了しておくと、育休取得がスムーズです'),
+        find.text('転職から1年以上経過していると、育休取得の条件を満たしやすくなります'),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.info_outline), findsOneWidget);

@@ -27,15 +27,15 @@ class GoalTemplateRegistry {
         category: EventCategory.marriage,
         offsetMonthsFromGoal: -12,
       ),
-      // #2 転職リミット: T - 12ヶ月
+      // #2 転職タイミングの目安: T - 12ヶ月
       const TemplateEvent(
-        titleTemplate: '転職リミット',
+        titleTemplate: '転職タイミングの目安',
         category: EventCategory.jobChange,
         offsetMonthsFromGoal: -12,
       ),
-      // #3 海外旅行リミット: T - 4ヶ月
+      // #3 海外旅行の目安: T - 4ヶ月
       const TemplateEvent(
-        titleTemplate: '海外旅行リミット',
+        titleTemplate: '海外旅行の目安',
         category: EventCategory.travel,
         offsetMonthsFromGoal: -4,
       ),

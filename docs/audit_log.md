@@ -4,6 +4,12 @@
 > 人間（ユーザー）はこのログを読んでプロジェクトの進行状況を把握する。
 > 最新のエントリが上に来るように追記すること（降順）。
 
+## 2026-03-29 - [MVV更新] PRODUCT_VISION.md v0.2 適用とドキュメント整合
+
+- **判断内容**: MVV v0.2 をプロダクトオーナーから受領。PRODUCT_VISION.md を v0.1 → v0.2 に全面更新。PRD.md (v5.0→v5.1)、SPEC.md (v1.0→v1.1) の矛盾箇所9件を修正。コードおよびテスト4件も同期。
+- **理由**: 新Values（Compass, not a Mirror / Living Plan / First-class Citizen / Empowerment, not Direction）と既存記述の不整合を解消するため。特に「リミット」命名（転職リミット・海外旅行リミット）と指示口調メッセージ（「完了しておくと〜スムーズ」）が Empowerment, not Direction に直接違反していた。新MVVでは「制約をしなやかに受け入れ」「今を楽しめるように」という軸が加わり、ツール内の言葉がプレッシャーを生まないよう統一した。
+- **影響範囲**: `docs/PRODUCT_VISION.md`, `docs/PRD.md` (v5.1), `docs/SPEC.md` (v1.1), `lib/features/timeline/logic/constraint_checker_provider.dart`, `lib/features/timeline/data/goal_template_data.dart`, `test/features/timeline/logic/constraint_checker_provider_test.dart`, `test/features/timeline/logic/cascade_move_provider_test.dart`, `test/features/timeline/presentation/goal_setup_dialog_test.dart`, `test/features/timeline/presentation/widgets/constraint_warning_test.dart`
+
 ---
 
 ## 2026-03-29 - [Phase 3 実装] Google認証・Firestoreデータ永続化を実装
