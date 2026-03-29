@@ -1,8 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'features/timeline/presentation/timeline_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -18,10 +18,10 @@ class LifePlanApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'わたしのライフプラン',
       theme: AppTheme.lightTheme,
-      home: const TimelineScreen(),
+      routerConfig: appRouter,
     );
   }
 }

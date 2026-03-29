@@ -15,7 +15,7 @@
 | F-02-SUB | イベントサブカテゴリ | 🟢 RELEASED | `lib/features/timeline/domain/life_event.dart`（EventCategory enum）, `presentation/widgets/event_style.dart` | `test/features/timeline/domain/life_event_test.dart` | maternityLeave追加。既存EventCategoryを拡張 |
 | F-03 | プロフィール設定 | 🟢 RELEASED | `lib/features/user_profile/user_profile.dart`, `profile_settings_dialog.dart` | - | - |
 | F-10 | ライフイベント制約の可視化 | 🟢 RELEASED | `lib/features/timeline/domain/constraint_result.dart`, `logic/constraint_checker_provider.dart`, `presentation/widgets/constraint_warning.dart` | `test/features/timeline/domain/constraint_result_test.dart`, `test/features/timeline/logic/constraint_checker_provider_test.dart`, `test/features/timeline/presentation/widgets/constraint_warning_test.dart` | C-01, C-02, C-03 ルール実装済み（I2-05） |
-| F-MVP-DATA | データ永続化（ローカル） | 🟢 RELEASED | `lib/features/timeline/data/event_repository.dart` | - | InMemory実装 |
+| F-MVP-DATA | データ永続化（ローカル） | 🟢 RELEASED | `lib/features/timeline/data/event_repository.dart` | - | InMemory実装（ゲストモード用に継続使用） |
 
 ## Phase 2（目標逆算機能）
 
@@ -29,7 +29,15 @@
 | F-25 | イベント縦積み表示 | 🟢 RELEASED | `lib/features/timeline/presentation/widgets/year_month_timeline.dart`, `widgets/year_timeline.dart` | - | 同月同レーンの複数イベントを縦スタック表示。スタック数に応じて行高を動的計算（I3-02） |
 | F-26 | 依存関係の手動管理UI | 🟢 RELEASED | `lib/features/timeline/presentation/widgets/year_month_timeline.dart`, `widgets/year_timeline.dart` | - | リンクモードで2イベントを選択し依存種別を選んで関連付け。詳細ダイアログで既存関連の「解除」可能。循環依存ブロック（I3-04） |
 
-## Phase 3（将来構想）
+## Phase 3（認証・クラウド同期 ← 実装済み）
+
+| Feature ID | 機能名 | 状態 | 実装ファイル | テストファイル | 備考 |
+|---|---|---|---|---|---|
+| F-30 | Google認証（ゲストモード付き） | 🟢 RELEASED | `lib/features/auth/data/auth_repository.dart`, `web_auth_repository.dart`, `mobile_auth_repository.dart`, `logic/auth_provider.dart`, `presentation/sign_in_dialog.dart`, `presentation/signup_profile_dialog.dart` | - | Web: signInWithPopup / Mobile: google_sign_in。未認証でUI閲覧可能 |
+| F-31 | Firestoreデータ永続化 | 🟢 RELEASED | `lib/features/timeline/data/firestore_event_repository.dart`, `firestore_dependency_repository.dart`, `data/event_repository.dart`（auth連動切替） | - | 認証状態に応じてInMemory↔Firestoreを自動切替 |
+| F-32 | ユーザープロフィールのクラウド保存 | 🟢 RELEASED | `lib/features/user_profile/data/user_repository.dart`, `user_profile.dart`（AsyncNotifier化） | - | サインアップ時に名前・誕生日を収集しFirestoreに保存 |
+
+## Phase 4（将来構想）
 
 | Feature ID | 機能名 | 状態 | 実装ファイル | テストファイル | 備考 |
 |---|---|---|---|---|---|

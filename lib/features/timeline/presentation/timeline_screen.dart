@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/logic/auth_provider.dart';
+import '../../auth/presentation/sign_in_dialog.dart';
 import '../../user_profile/user_profile.dart';
 import '../../user_profile/profile_settings_dialog.dart';
 import '../logic/timeline_events_provider.dart';
@@ -22,12 +24,39 @@ class TimelineScreen extends ConsumerStatefulWidget {
 class _TimelineScreenState extends ConsumerState<TimelineScreen> {
   TimelineViewMode _viewMode = TimelineViewMode.yearMonth;
 
+  /// 書き込み操作に認証ガードをかけるヘルパー
+  ///
+  /// 未認証の場合は [SignInDialog] を表示し、認証済みの場合は [action] を実行する。
+  void _withAuth(VoidCallback action) {
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user == null) {
+      showDialog<void>(
+        context: context,
+        builder: (context) => const SignInDialog(),
+      );
+    } else {
+      action();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(userProfileNotifierProvider);
-    final ageText = profile.age != null ? '${profile.age}歳' : '';
+    final profileAsync = ref.watch(userProfileNotifierProvider);
     final eventsAsync = ref.watch(timelineEventsProvider);
     final constraints = ref.watch(constraintCheckerProvider);
+    final authAsync = ref.watch(authStateProvider);
+
+    final isLoggedIn = authAsync.valueOrNull != null;
+
+    // AppBar に表示するユーザー名テキストを構築
+    final displayName = profileAsync.maybeWhen(
+      data: (profile) => profile?.name ?? 'ゲスト',
+      orElse: () => 'ゲスト',
+    );
+    final ageText = profileAsync.maybeWhen(
+      data: (profile) => profile?.age != null ? '${profile!.age}歳' : '',
+      orElse: () => '',
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -45,7 +74,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               ),
             ),
             Text(
-              ageText.isNotEmpty ? '${profile.name}  $ageText' : profile.name,
+              ageText.isNotEmpty ? '$displayName  $ageText' : displayName,
               style: const TextStyle(
                 fontSize: 17,
                 color: Colors.white,
@@ -79,36 +108,63 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               showSelectedIcon: false,
             ),
           ),
-          // 目標設定ボタン
+          // 目標設定ボタン（認証ガード付き）
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: IconButton(
               tooltip: '目標設定',
               icon: const Icon(Icons.flag_outlined, color: Colors.white),
-              onPressed: () {
+              onPressed: () => _withAuth(() {
                 showDialog(
                   context: context,
                   builder: (context) => const GoalSetupDialog(),
                 );
-              },
+              }),
             ),
           ),
+          // プロフィール / サインインボタン
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: IconButton(
-              icon: const CircleAvatar(
+              icon: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.white24,
-                child: Icon(Icons.person_outline, color: Colors.white, size: 18),
+                child: isLoggedIn
+                    ? const Icon(Icons.person, color: Colors.white, size: 18)
+                    : const Icon(
+                        Icons.login_outlined,
+                        color: Colors.white,
+                        size: 18,
+                      ),
               ),
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => const ProfileSettingsDialog(),
-                );
+                if (isLoggedIn) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const ProfileSettingsDialog(),
+                  );
+                } else {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const SignInDialog(),
+                  );
+                }
               },
             ),
           ),
+          // サインアウトボタン（ログイン中のみ表示）
+          if (isLoggedIn)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                tooltip: 'サインアウト',
+                icon: const Icon(Icons.logout, color: Colors.white70, size: 20),
+                onPressed: () async {
+                  final authRepo = ref.read(authRepositoryProvider);
+                  await authRepo.signOut();
+                },
+              ),
+            ),
         ],
       ),
       body: eventsAsync.when(
@@ -126,12 +182,12 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () => _withAuth(() {
           showDialog(
             context: context,
             builder: (context) => const AddEventDialog(),
           );
-        },
+        }),
         tooltip: 'イベントを追加',
         child: const Icon(Icons.add),
       ),

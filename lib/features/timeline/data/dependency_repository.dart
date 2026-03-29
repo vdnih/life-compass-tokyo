@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../features/auth/logic/auth_provider.dart';
 import '../domain/event_dependency.dart';
+import 'firestore_dependency_repository.dart';
 
 /// 依存関係の永続化を担うリポジトリインターフェース
 abstract class DependencyRepository {
@@ -65,6 +67,14 @@ class InMemoryDependencyRepository implements DependencyRepository {
 }
 
 /// [DependencyRepository] を提供するProvider
+///
+/// 認証済みの場合は Firestore 実装、未認証（ゲストモード）の場合は
+/// インメモリ実装を返す。
 final dependencyRepositoryProvider = Provider<DependencyRepository>((ref) {
+  final userAsync = ref.watch(authStateProvider);
+  final user = userAsync.valueOrNull;
+  if (user != null) {
+    return FirestoreDependencyRepository(userId: user.uid);
+  }
   return InMemoryDependencyRepository();
 });

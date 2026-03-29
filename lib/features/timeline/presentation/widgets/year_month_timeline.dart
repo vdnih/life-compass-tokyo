@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/logic/auth_provider.dart';
+import '../../../auth/presentation/sign_in_dialog.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/event_dependency.dart';
@@ -120,7 +122,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
         ),
       );
     } else {
-      final profile = ref.watch(userProfileNotifierProvider);
+      final profile = ref.watch(userProfileNotifierProvider).valueOrNull;
       final dependenciesAsync = ref.watch(dependencyProvider);
 
       final sortedEvents = List<LifeEvent>.from(events)
@@ -378,14 +380,14 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   List<Widget> _buildMonthTicks(
     int totalMonths,
     DateTime startDate,
-    dynamic profile,
+    UserProfile? profile,
     double axisH,
   ) {
     return List.generate(totalMonths + 1, (index) {
       final currentDate = DateTime(startDate.year, startDate.month + index);
       final xPos = 20.0 + (index * monthWidth);
       final isJan = currentDate.month == 1;
-      final ageAtDate = profile.calculateAgeAt(currentDate);
+      final ageAtDate = profile?.calculateAgeAt(currentDate);
 
       return Positioned(
         left: xPos - 20,
@@ -736,6 +738,11 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     final tappedDate = DateTime(startDate.year, startDate.month + monthIndex);
     final isWork = tapY < axisHeight + _rowHeight;
 
+    if (ref.read(authStateProvider).valueOrNull == null) {
+      showDialog<void>(context: context, builder: (_) => const SignInDialog());
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) =>
@@ -943,17 +950,31 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(dialogCtx);
-              _confirmAndDelete(context, event);
+              if (ref.read(authStateProvider).valueOrNull == null) {
+                showDialog<void>(
+                  context: context,
+                  builder: (_) => const SignInDialog(),
+                );
+              } else {
+                _confirmAndDelete(context, event);
+              }
             },
             child: const Text('削除'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              showDialog(
-                context: context,
-                builder: (_) => EditEventDialog(event: event),
-              );
+              if (ref.read(authStateProvider).valueOrNull == null) {
+                showDialog<void>(
+                  context: context,
+                  builder: (_) => const SignInDialog(),
+                );
+              } else {
+                showDialog(
+                  context: context,
+                  builder: (_) => EditEventDialog(event: event),
+                );
+              }
             },
             child: const Text('編集'),
           ),

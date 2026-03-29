@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../features/auth/logic/auth_provider.dart';
 import '../domain/life_event.dart';
+import 'firestore_event_repository.dart';
 
 /// イベントの永続化を担うリポジトリインターフェース
 abstract class EventRepository {
@@ -72,6 +74,15 @@ class InMemoryEventRepository implements EventRepository {
 }
 
 /// [EventRepository] を提供するProvider
+///
+/// 認証済みの場合は Firestore 実装、未認証（ゲストモード）の場合は
+/// サンプルデータ入りのインメモリ実装を返す。
+/// authStateProvider の変更により自動的に再構築される。
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
+  final userAsync = ref.watch(authStateProvider);
+  final user = userAsync.valueOrNull;
+  if (user != null) {
+    return FirestoreEventRepository(userId: user.uid);
+  }
   return InMemoryEventRepository();
 });
