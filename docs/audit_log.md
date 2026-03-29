@@ -6,6 +6,38 @@
 
 ---
 
+## 2026-03-29 - [Phase 3 実装] Google認証・Firestoreデータ永続化を実装
+
+- **判断内容**:
+  - Firebase Authentication を「メール/パスワード」から「Googleログイン専用」に変更
+  - ゲストモード（未認証でのUI閲覧）を実装。書き込み操作のみ認証を要求
+  - Web と iOS/Android でサインイン実装を分離（`WebAuthRepository` / `MobileAuthRepository`）
+  - サインアップ時にユーザー名・誕生日を収集し `users/{userId}` ドキュメントに保存
+  - `EventRepository` / `DependencyRepository` に Firestore 実装を追加し、認証状態に応じて自動切替
+  - `UserProfileNotifier` を `Notifier<UserProfile>` → `AsyncNotifier<UserProfile?>` に変更
+  - GoRouter を導入し `MaterialApp` → `MaterialApp.router` に移行
+- **理由**:
+  - Google ログインのみにすることで実装をシンプルに保ちつつ、将来の拡張（メール等）に対応可能な抽象化を維持
+  - プラットフォーム抽象化（`AuthRepository` インターフェース）によりWeb/Mobile共通コードを最大化
+  - ゲストモードはUX向上のため：サインアップ前にアプリを試せるようにする
+- **影響範囲**:
+  - 新規: `lib/features/auth/` 配下 6 ファイル
+  - 新規: `lib/features/user_profile/data/user_repository.dart`
+  - 新規: `lib/features/timeline/data/firestore_event_repository.dart`
+  - 新規: `lib/features/timeline/data/firestore_dependency_repository.dart`
+  - 新規: `lib/core/router/app_router.dart`
+  - 更新: `lib/features/user_profile/user_profile.dart`（AsyncNotifier化）
+  - 更新: `lib/features/user_profile/profile_settings_dialog.dart`
+  - 更新: `lib/features/timeline/presentation/timeline_screen.dart`（認証ガード）
+  - 更新: `lib/features/timeline/presentation/widgets/year_month_timeline.dart`（認証ガード）
+  - 更新: `lib/features/timeline/presentation/widgets/year_timeline.dart`（認証ガード）
+  - 更新: `lib/features/timeline/domain/life_event.dart`（toJson/fromJson追加）
+  - 更新: `lib/features/timeline/domain/event_dependency.dart`（toJson/fromJson追加）
+  - 更新: `lib/main.dart`（GoRouter導入）
+  - 更新: `pubspec.yaml`（firebase_auth, cloud_firestore, google_sign_in追加）
+
+---
+
 ## 2026-03-27 - [ドキュメント新設] PRODUCT_VISION.md を作成
 
 - **判断内容**: `docs/PRODUCT_VISION.md` を新設。Mission・Vision・Values・ターゲットユーザーを定義

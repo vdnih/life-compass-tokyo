@@ -6,7 +6,9 @@ import '../domain/life_event.dart';
 class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
   @override
   Future<List<LifeEvent>> build() async {
-    final repository = ref.read(eventRepositoryProvider);
+    // ref.watch により authStateProvider 変化時（ログイン/ログアウト）に
+    // build() が自動再実行され、正しいリポジトリからイベントを取得し直す。
+    final repository = ref.watch(eventRepositoryProvider);
     return repository.fetchEvents();
   }
 

@@ -131,6 +131,42 @@ class LifeEvent {
     );
   }
 
+  /// Firestore 保存用に Map に変換する
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'date': date,
+      'endDate': endDate,
+      'title': title,
+      'description': description,
+      'category': category.name,
+      'status': status.name,
+      'goalId': goalId,
+      'isGoal': isGoal,
+    };
+  }
+
+  /// Firestore から取得した Map を [LifeEvent] に変換する
+  factory LifeEvent.fromJson(Map<String, dynamic> json) {
+    return LifeEvent(
+      id: json['id'] as String,
+      date: json['date'] as String,
+      endDate: json['endDate'] as String?,
+      title: json['title'] as String,
+      description: (json['description'] as String?) ?? '',
+      category: EventCategory.values.firstWhere(
+        (e) => e.name == json['category'],
+        orElse: () => EventCategory.joining,
+      ),
+      status: EventStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => EventStatus.recorded,
+      ),
+      goalId: json['goalId'] as String?,
+      isGoal: (json['isGoal'] as bool?) ?? false,
+    );
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

@@ -1,12 +1,17 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:my_career_app/features/auth/logic/auth_provider.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/logic/timeline_events_provider.dart';
 import 'package:my_career_app/features/timeline/presentation/timeline_screen.dart';
 import 'package:my_career_app/features/timeline/presentation/widgets/year_month_timeline.dart';
 import 'package:my_career_app/features/timeline/presentation/widgets/year_timeline.dart';
 import 'package:my_career_app/features/timeline/presentation/add_event_dialog.dart';
+
+class _MockUser extends Mock implements User {}
 
 class _StubEventsNotifier extends TimelineEventsNotifier {
   @override
@@ -21,14 +26,32 @@ class _StubEventsNotifier extends TimelineEventsNotifier {
   ];
 }
 
-Widget _buildTestWidget() {
+/// ゲストモード（未認証）のテストウィジェット
+Widget _buildGuestTestWidget() {
   return ProviderScope(
     overrides: [
       timelineEventsProvider.overrideWith(() => _StubEventsNotifier()),
+      authStateProvider.overrideWith((ref) => Stream<User?>.value(null)),
     ],
     child: const MaterialApp(home: TimelineScreen()),
   );
 }
+
+/// 認証済みユーザーのテストウィジェット（イベント追加など書き込み操作のテスト用）
+Widget _buildAuthenticatedTestWidget() {
+  final mockUser = _MockUser();
+  when(() => mockUser.uid).thenReturn('test-uid');
+  return ProviderScope(
+    overrides: [
+      timelineEventsProvider.overrideWith(() => _StubEventsNotifier()),
+      authStateProvider.overrideWith((ref) => Stream<User?>.value(mockUser)),
+    ],
+    child: const MaterialApp(home: TimelineScreen()),
+  );
+}
+
+// 後方互換のエイリアス（ビュー切替テストはゲストモードで十分）
+Widget _buildTestWidget() => _buildGuestTestWidget();
 
 // タップ座標の計算根拠:
 // - AppBar 高さ: 56px
@@ -77,7 +100,7 @@ void main() {
 
   group('タイムラインタップによるイベント追加（年月表示）', () {
     testWidgets('仕事レーンをタップするとAddEventDialogが開くこと', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(_buildAuthenticatedTestWidget());
       await tester.pumpAndSettle();
 
       // 仕事レーン中央付近 (screen y ≈ 230, x ≈ 400、イベントカードを避ける)
@@ -88,7 +111,7 @@ void main() {
     });
 
     testWidgets('仕事レーンをタップすると「仕事」が選択済みでダイアログが開くこと', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(_buildAuthenticatedTestWidget());
       await tester.pumpAndSettle();
 
       await tester.tapAt(const Offset(400, 230));
@@ -105,7 +128,7 @@ void main() {
     });
 
     testWidgets('プライベートレーンをタップするとAddEventDialogが開くこと', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(_buildAuthenticatedTestWidget());
       await tester.pumpAndSettle();
 
       // プライベートレーン中央付近 (screen y ≈ 380)
@@ -116,7 +139,7 @@ void main() {
     });
 
     testWidgets('プライベートレーンをタップすると「プライベート」が選択済みでダイアログが開くこと', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(_buildAuthenticatedTestWidget());
       await tester.pumpAndSettle();
 
       await tester.tapAt(const Offset(400, 380));
@@ -132,7 +155,7 @@ void main() {
     });
 
     testWidgets('軸エリア（年月ラベル部分）をタップしてもダイアログが開かないこと', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(_buildAuthenticatedTestWidget());
       await tester.pumpAndSettle();
 
       // 軸エリア (screen y ≈ 110、axisHeight 内)
@@ -141,11 +164,21 @@ void main() {
 
       expect(find.text('イベントを追加'), findsNothing);
     });
+
+    testWidgets('未認証でレーンをタップするとサインインダイアログが表示されること', (tester) async {
+      await tester.pumpWidget(_buildGuestTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(400, 230));
+      await tester.pumpAndSettle();
+
+      expect(find.text('サインインが必要です'), findsOneWidget);
+    });
   });
 
   group('タイムラインタップによるイベント追加（年表示）', () {
     testWidgets('年表示の仕事レーンをタップするとAddEventDialogが開くこと', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(_buildAuthenticatedTestWidget());
       await tester.pumpAndSettle();
 
       // 年表示に切り替え
@@ -160,7 +193,7 @@ void main() {
     });
 
     testWidgets('年表示のプライベートレーンをタップするとAddEventDialogが開くこと', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(_buildAuthenticatedTestWidget());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('年'));

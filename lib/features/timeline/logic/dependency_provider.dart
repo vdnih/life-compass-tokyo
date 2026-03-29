@@ -8,7 +8,8 @@ import '../domain/event_dependency.dart';
 class DependencyNotifier extends AsyncNotifier<List<EventDependency>> {
   @override
   Future<List<EventDependency>> build() async {
-    final repo = ref.read(dependencyRepositoryProvider);
+    // ref.watch によりauth変化時に自動再構築
+    final repo = ref.watch(dependencyRepositoryProvider);
     return repo.fetchDependencies();
   }
 

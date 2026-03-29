@@ -1,15 +1,20 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../auth/logic/auth_provider.dart';
+import 'data/user_repository.dart';
 
 part 'user_profile.g.dart';
 
+/// ユーザープロフィールを表すデータクラス
 class UserProfile {
   final String name;
   final DateTime? birthDate;
 
   UserProfile({required this.name, this.birthDate});
 
+  /// 現在日時での年齢
   int? get age => calculateAgeAt(DateTime.now());
 
+  /// 指定日時での年齢を計算する
   int? calculateAgeAt(DateTime date) {
     if (birthDate == null) return null;
     int age = date.year - birthDate!.year;
@@ -28,18 +33,49 @@ class UserProfile {
   }
 }
 
+/// ユーザープロフィールの状態を管理する Notifier
+///
+/// 認証状態を監視し、ログイン時は Firestore からプロフィールをロードする。
+/// 未認証の場合は null を返す（ゲストモード）。
 @riverpod
 class UserProfileNotifier extends _$UserProfileNotifier {
   @override
-  UserProfile build() {
-    return UserProfile(name: 'ユーザー');
+  Future<UserProfile?> build() async {
+    final user = await ref.watch(authStateProvider.future);
+    if (user == null) return null;
+
+    final repo = ref.read(userRepositoryProvider);
+    return repo.fetchProfile(user.uid);
   }
 
-  void updateName(String name) {
-    state = state.copyWith(name: name);
+  /// 既存ユーザーのプロフィールを更新し Firestore に保存する
+  Future<void> updateProfile({String? name, DateTime? birthDate}) async {
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user == null) return;
+
+    final current = state.valueOrNull;
+    final updated = UserProfile(
+      name: name ?? current?.name ?? '',
+      birthDate: birthDate ?? current?.birthDate,
+    );
+
+    state = AsyncData(updated);
+
+    final repo = ref.read(userRepositoryProvider);
+    await repo.saveProfile(user.uid, updated);
   }
 
-  void updateBirthDate(DateTime birthDate) {
-    state = state.copyWith(birthDate: birthDate);
+  /// 新規ユーザーのプロフィールを初期設定して Firestore に保存する
+  Future<void> setupNewUserProfile({
+    required String name,
+    DateTime? birthDate,
+  }) async {
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user == null) return;
+
+    final profile = UserProfile(name: name, birthDate: birthDate);
+    final repo = ref.read(userRepositoryProvider);
+    await repo.saveProfile(user.uid, profile);
+    state = AsyncData(profile);
   }
 }
