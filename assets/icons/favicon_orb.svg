@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <defs>
+    <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F5A623"/>
+      <stop offset="100%" stop-color="#1DBFA3"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="8" cy="8" r="8" fill="url(#orbGrad)"/>
+  <!-- Two S-curve shapes to suggest movement/paths -->
+  <path d="M3,5 Q5,3 8,5 Q11,7 13,5"
+        stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-opacity="0.9"/>
+  <path d="M3,9 Q5,7 8,9 Q11,11 13,9"
+        stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-opacity="0.7"/>
+  <!-- Center dot -->
+  <circle cx="8" cy="8" r="1.5" fill="white" fill-opacity="0.9"/>
+</svg>

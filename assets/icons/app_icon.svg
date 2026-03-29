@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Main diagonal gradient: amber top-left → teal bottom-right -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F5A623"/>
+      <stop offset="50%"  stop-color="#7EC8A4"/>
+      <stop offset="100%" stop-color="#1DBFA3"/>
+    </linearGradient>
+
+    <!-- Spoke gradient for individual arrows -->
+    <linearGradient id="spokeGradTL" x1="1" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#F5A623" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#F5A623" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="spokeGradBR" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%"   stop-color="#1DBFA3" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#1DBFA3" stop-opacity="0.5"/>
+    </linearGradient>
+
+    <!-- Clip to circle -->
+    <clipPath id="circleClip">
+      <circle cx="512" cy="512" r="478"/>
+    </clipPath>
+
+    <!-- Arrowhead marker - warm -->
+    <marker id="arrowWarm" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#F5A623" fill-opacity="0.9"/>
+    </marker>
+    <!-- Arrowhead marker - mid -->
+    <marker id="arrowMid" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#A8D5B5" fill-opacity="0.9"/>
+    </marker>
+    <!-- Arrowhead marker - cool -->
+    <marker id="arrowCool" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#1DBFA3" fill-opacity="0.9"/>
+    </marker>
+  </defs>
+
+  <!-- Background: off-white / cream -->
+  <rect width="1024" height="1024" fill="#FAFAF8"/>
+
+  <!-- Hanging loop at top -->
+  <circle cx="512" cy="52" r="36" fill="none" stroke="url(#bgGrad)" stroke-width="20"/>
+  <line x1="512" y1="88" x2="512" y2="38" stroke="url(#bgGrad)" stroke-width="0"/>
+
+  <!-- Outer border circle -->
+  <circle cx="512" cy="512" r="478" fill="none" stroke="url(#bgGrad)" stroke-width="22"/>
+
+  <!-- Inner decorative ring -->
+  <circle cx="512" cy="512" r="440" fill="none" stroke="url(#bgGrad)" stroke-width="3" stroke-opacity="0.3"/>
+
+  <g clip-path="url(#circleClip)">
+
+    <!-- WARM arrows (orange side, upper-left quadrant) -->
+    <!-- Arrow 1: up-left long -->
+    <line x1="512" y1="512" x2="230" y2="200"
+          stroke="#F5A623" stroke-width="22" stroke-linecap="round" stroke-opacity="0.85"
+          marker-end="url(#arrowWarm)"/>
+    <!-- Dot accent on this spoke -->
+    <circle cx="312" cy="280" r="18" fill="#F5A623" fill-opacity="0.4"/>
+
+    <!-- Arrow 2: left medium -->
+    <line x1="512" y1="512" x2="140" y2="430"
+          stroke="#F5A623" stroke-width="18" stroke-linecap="round" stroke-opacity="0.8"
+          marker-end="url(#arrowWarm)"/>
+
+    <!-- Arrow 3: up medium -->
+    <line x1="512" y1="512" x2="400" y2="115"
+          stroke="#F5A623" stroke-width="18" stroke-linecap="round" stroke-opacity="0.75"
+          marker-end="url(#arrowWarm)"/>
+
+    <!-- Arrow 4: up-left short -->
+    <line x1="512" y1="512" x2="310" y2="400"
+          stroke="#F5A623" stroke-width="14" stroke-linecap="round" stroke-opacity="0.6"
+          marker-end="url(#arrowWarm)"/>
+
+    <!-- Arrow 5: down-left -->
+    <line x1="512" y1="512" x2="200" y2="750"
+          stroke="#F0B840" stroke-width="16" stroke-linecap="round" stroke-opacity="0.7"
+          marker-end="url(#arrowWarm)"/>
+    <!-- Dot accent -->
+    <circle cx="290" cy="670" r="16" fill="#F5A623" fill-opacity="0.35"/>
+
+    <!-- MID / TRANSITIONAL arrows (center, lighter) -->
+    <!-- Arrow 6: right-up -->
+    <line x1="512" y1="512" x2="820" y2="220"
+          stroke="#A8D4B8" stroke-width="16" stroke-linecap="round" stroke-opacity="0.75"
+          marker-end="url(#arrowMid)"/>
+
+    <!-- Arrow 7: straight up (slightly right) -->
+    <line x1="512" y1="512" x2="560" y2="110"
+          stroke="#8FCFB5" stroke-width="16" stroke-linecap="round" stroke-opacity="0.7"
+          marker-end="url(#arrowMid)"/>
+
+    <!-- COOL arrows (teal side, lower-right quadrant) -->
+    <!-- Arrow 8: right long -->
+    <line x1="512" y1="512" x2="900" y2="512"
+          stroke="#1DBFA3" stroke-width="22" stroke-linecap="round" stroke-opacity="0.85"
+          marker-end="url(#arrowCool)"/>
+    <!-- Dot accent on right spoke -->
+    <circle cx="760" cy="512" r="20" fill="#1DBFA3" fill-opacity="0.3"/>
+
+    <!-- Arrow 9: down-right long -->
+    <line x1="512" y1="512" x2="820" y2="800"
+          stroke="#1DBFA3" stroke-width="20" stroke-linecap="round" stroke-opacity="0.85"
+          marker-end="url(#arrowCool)"/>
+    <!-- Dot accent -->
+    <circle cx="700" cy="690" r="16" fill="#1DBFA3" fill-opacity="0.35"/>
+
+    <!-- Arrow 10: down medium -->
+    <line x1="512" y1="512" x2="600" y2="880"
+          stroke="#1DBFA3" stroke-width="16" stroke-linecap="round" stroke-opacity="0.75"
+          marker-end="url(#arrowCool)"/>
+
+    <!-- Arrow 11: right-down short -->
+    <line x1="512" y1="512" x2="730" y2="660"
+          stroke="#35C9AF" stroke-width="14" stroke-linecap="round" stroke-opacity="0.65"
+          marker-end="url(#arrowCool)"/>
+
+    <!-- Arrow 12: down-left cool (dashed / lighter) -->
+    <line x1="512" y1="512" x2="340" y2="820"
+          stroke="#5ECFB5" stroke-width="13" stroke-linecap="round" stroke-opacity="0.55"
+          stroke-dasharray="20,12"
+          marker-end="url(#arrowCool)"/>
+
+    <!-- Central hub: outer ring -->
+    <circle cx="512" cy="512" r="56" fill="white" fill-opacity="0.95"/>
+    <!-- Central hub: inner filled circle with gradient -->
+    <circle cx="512" cy="512" r="40" fill="url(#bgGrad)"/>
+    <!-- Central hub: tiny center dot -->
+    <circle cx="512" cy="512" r="12" fill="white" fill-opacity="0.8"/>
+
+  </g>
+</svg>
