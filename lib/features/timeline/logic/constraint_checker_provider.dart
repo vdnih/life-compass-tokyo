@@ -93,7 +93,7 @@ List<ConstraintResult> _checkC02(List<LifeEvent> events) {
         ruleId: 'C-02',
         targetEventTitle: birth.title,
         severity: ConstraintSeverity.info,
-        message: '出産予定の1年前までに転職を完了しておくと、育休取得がスムーズです',
+        message: '転職から1年以上経過していると、育休取得の条件を満たしやすくなります',
       ));
     }
   }

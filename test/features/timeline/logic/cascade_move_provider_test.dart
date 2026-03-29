@@ -196,7 +196,7 @@ void main() {
   });
 
   group('双方向BFS - スターグラフ', () {
-    test('hub(出産)を動かすと全てのspoke(妊活開始・転職リミット)が連動すること', () {
+    test('hub(出産)を動かすと全てのspoke(妊活開始・転職タイミングの目安)が連動すること', () {
       final events = [
         _event(id: 'birth', date: '2027-04'),
         _event(id: 'katsudo', date: '2026-04'),

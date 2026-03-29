@@ -115,14 +115,14 @@ void main() {
       expect(find.text('妊活開始'), findsOneWidget);
     });
 
-    testWidgets('プレビューに転職リミットが含まれること', (tester) async {
+    testWidgets('プレビューに転職タイミングの目安が含まれること', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('出産').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('転職リミット'), findsOneWidget);
+      expect(find.text('転職タイミングの目安'), findsOneWidget);
     });
 
     testWidgets('キャンセルボタンでダイアログが閉じること', (tester) async {

@@ -204,7 +204,7 @@ void main() {
   group('C-03: 依存関係のオフセット期間が確保されていない場合の警告', () {
     test('C-03: オフセット違反がある場合に警告が出ること', () {
       final events = [
-        _event(date: '2025-01', title: '転職リミット', category: EventCategory.jobChange),
+        _event(date: '2025-01', title: '転職タイミングの目安', category: EventCategory.jobChange),
         _event(date: '2025-06', title: '出産', category: EventCategory.childbirth),
       ];
       final sourceId =
@@ -231,7 +231,7 @@ void main() {
 
     test('C-03: オフセットが正確に守られている場合は警告が出ないこと', () {
       final events = [
-        _event(date: '2025-01', title: '転職リミット', category: EventCategory.jobChange),
+        _event(date: '2025-01', title: '転職タイミングの目安', category: EventCategory.jobChange),
         _event(date: '2025-04', title: '出産', category: EventCategory.childbirth),
       ];
       final sourceId =
@@ -299,7 +299,7 @@ void main() {
 
     test('C-03: 警告メッセージにソースイベント名とターゲットイベント名が含まれること', () {
       final events = [
-        _event(date: '2025-01', title: '転職リミット', category: EventCategory.jobChange),
+        _event(date: '2025-01', title: '転職タイミングの目安', category: EventCategory.jobChange),
         _event(date: '2025-06', title: '出産予定', category: EventCategory.childbirth),
       ];
       final sourceId =
@@ -318,7 +318,7 @@ void main() {
       final results = checkAllConstraints(events, dependencies);
       final c03Result = results.firstWhere((r) => r.ruleId == 'C-03');
 
-      expect(c03Result.message, contains('転職リミット'));
+      expect(c03Result.message, contains('転職タイミングの目安'));
       expect(c03Result.message, contains('出産予定'));
       expect(c03Result.message, contains('3'));
     });
