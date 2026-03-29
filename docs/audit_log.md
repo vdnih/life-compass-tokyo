@@ -4,6 +4,12 @@
 > 人間（ユーザー）はこのログを読んでプロジェクトの進行状況を把握する。
 > 最新のエントリが上に来るように追記すること（降順）。
 
+## 2026-03-29 - [Web] OGP / ソーシャルシェアリングメタデータを追加
+
+- **判断内容**: LINE等でURLをシェアした際のリンクプレビューがFlutterデフォルト表示になっていたため、OGPメタタグを整備した。`web/index.html` に Open Graph・Twitter Card タグを追加。ユーザー提供のブランド画像（2752×1536px）を `web/og-image.png` として配置。タイトルを「My Career App | キャリアも、ライフも、自分らしく。」に更新。`web/manifest.json` および `pubspec.yaml` の description も合わせて更新。
+- **理由**: LINEクローラーは JavaScript を実行せず `<head>` の静的メタタグのみ読む。`web/index.html` は Flutter web ビルド時にそのまま `build/web/` にコピーされるため、ここへの追記が正しい対応。
+- **影響範囲**: `web/index.html`、`web/og-image.png`（新規）、`web/manifest.json`、`pubspec.yaml`
+
 ## 2026-03-29 - [MVV更新] PRODUCT_VISION.md v0.2 適用とドキュメント整合
 
 - **判断内容**: MVV v0.2 をプロダクトオーナーから受領。PRODUCT_VISION.md を v0.1 → v0.2 に全面更新。PRD.md (v5.0→v5.1)、SPEC.md (v1.0→v1.1) の矛盾箇所9件を修正。コードおよびテスト4件も同期。
