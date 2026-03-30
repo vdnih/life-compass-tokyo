@@ -22,7 +22,7 @@ class TimelineScreen extends ConsumerStatefulWidget {
 }
 
 class _TimelineScreenState extends ConsumerState<TimelineScreen> {
-  TimelineViewMode _viewMode = TimelineViewMode.yearMonth;
+  TimelineViewMode _viewMode = TimelineViewMode.year;
 
   /// 書き込み操作に認証ガードをかけるヘルパー
   ///
