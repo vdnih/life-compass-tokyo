@@ -4,6 +4,50 @@
 > 人間（ユーザー）はこのログを読んでプロジェクトの進行状況を把握する。
 > 最新のエントリが上に来るように追記すること（降順）。
 
+## 2026-05-13 10:00 - [QA] Wave 5 品質検証完了
+- **判断内容**: ピボット全5Wave の実装完了後QA検証を実施。flutter analyze / flutter test / カタログ整合性テスト / 統合シナリオテスト（A/B/C）をすべて実行し、品質基準を満たすことを確認した。
+- **理由**: 大規模リファクタリングによるリグレッション確認と品質担保。規定ライフイベントカタログ44件・D&D配置・マイルストーン自動生成・予算プリセット・hard/soft制約という新アーキテクチャが正しく動作することを検証。
+- **影響範囲**: 全テストファイル（test/features/）。新規作成: `test/features/integration/catalog_dnd_scenario_test.dart`（シナリオA/B/C、9件）
+
+---
+
+## 2026-05-12 - [アーキテクチャ判断] 規定ライフイベントカタログD&D方式へのピボット（Phase 1 設計）
+
+- **判断内容**:
+  - プロダクトを「16カテゴリ自由入力」UIから「規定ライフイベントカタログ × ドラッグ&ドロップ」方式にピボットする決定。
+  - 既存の `EventCategory` enum（16値）を完全廃止し、規定カタログのID（`catalogId`, kebab-case）に置換。
+  - マイルストーンを `LifeEvent` の子要素として `parentEventId` で表現（独立コレクションは作らない）。
+  - 依存関係 `EventDependency` に `strength: hard | soft` を追加。hard 違反 = 赤、soft 違反 = 黄でフィードバックし、ドロップはブロックしない。
+  - 規定カタログに `defaultBudgetYen`、`LifeEvent` に `budgetYen` を追加し、予算機能を新設。AppBar右に合計サマリ表示。
+  - 初版スコープのターゲットを20代後半〜30代前半女性に絞り、**介護グループは初版から除外**。
+  - 規定カタログは `lib/features/catalog/` に新規 feature として配置し、`data/groups/` 以下に **グループ別ファイル分割**（marriage_events.dart, childbirth_events.dart, ...）。AIエージェントが安全に編集できる粒度と、`catalog_consistency_test.dart` のCI必須実行で整合性を担保。
+  - SPEC §4 に40件の規定ライフイベントカタログを表形式で列挙（結婚11 / 出産7 / キャリア7 / 住まい5 / 旅行4 / 学び3 / お金3）。各行に hard 先行 / soft 先行 / 既定マイルストーン / 予算プリセット / 期間を明記。
+  - Wave 1 = 設計ドキュメント刷新のみ。Wave 2 以降（実装）は人間レビュー承認後に着手。`lib/` および `test/` 配下のコードには本Wave 1で一切触れていない。
+- **理由**:
+  - 「カテゴリを選んでタイトル自由記述」というUIが、ターゲット層（20代後半〜30代前半女性）にとって最初の摩擦になっており、何を書けばよいか思いつかない問題があった（PDR-005参照）。
+  - 規定カタログ方式により「自分の人生に起こり得る選択肢の地図」をプロダクトが提示でき、Value 1: Compass, not a Mirror を体現できる。
+  - hard / soft 区別は人間が制約を頭の中で扱う粒度と一致し、Value 4: Empowerment, not Direction を維持しつつ情報量を増やせる。
+  - リリース前のためデータ移行スクリプト不要で、破壊的変更を最小コストで実施可能。
+  - 既存ADR（特にADR-001=isWork非保存、ADR-002=制約非永続、ADR-004=テンプレートハードコード、ADR-005=制約チェックはクライアント）の方針と矛盾しない設計を選択。
+- **影響範囲**:
+  - **新規作成**:
+    - `docs/pdr/PDR-005-pivot-to-predefined-catalog.md`
+    - `docs/adr/010-remove-event-category-enum.md`
+    - `docs/adr/011-milestone-as-child-event.md`
+    - `docs/adr/012-dependency-strength-hard-soft.md`
+    - `docs/adr/013-budget-preset-design.md`
+    - `docs/pdr/` ディレクトリ
+  - **改訂**:
+    - `docs/SPEC.md` v1.1 → v2.0（§1 旧16カテゴリ表を削除、§4 規定ライフイベントカタログ40件を新設、§2 hard/soft 強度を導入、旧C-01〜C-03をカタログ静的ルールに統合）
+    - `docs/PRD.md` v5.1 → v6.0（F-02 / F-21 を改訂注記、F-30〜F-33 を Phase 2 に追加、初版ターゲット明示、介護除外）
+    - `docs/FIREBASE_ARCHITECTURE.md` v6.0 → v7.0（events から category 削除し catalogId / parentEventId / kind / budgetYen 追加、dependencies に strength 追加）
+    - `docs/SOFTWARE_ARCHITECTURE.md` v5.0 → v6.0（`lib/features/catalog/` 新設、グループ別ファイル分割方針、Riverpod 構造更新、BudgetSummaryProvider 新設）
+    - `docs/feature_registry.md`（F-02 / F-02-SUB / F-10 / F-20 / F-21 を 🔵 MODIFY、F-30〜F-33 を ⚪ PLANNED で追加。旧 Phase 3 の F-30〜F-32 は機能IDの衝突を回避するため F-AUTH / F-FIRESTORE / F-USER に改名）
+  - **コードへの影響**: なし（Wave 1 スコープ）。Wave 2 以降に `lib/features/catalog/` 新設および `lib/features/timeline/` 配下の改訂を実施予定。
+
+---
+
+
 ## 2026-03-29 - [Web] OGP / ソーシャルシェアリングメタデータを追加
 
 - **判断内容**: LINE等でURLをシェアした際のリンクプレビューがFlutterデフォルト表示になっていたため、OGPメタタグを整備した。`web/index.html` に Open Graph・Twitter Card タグを追加。ユーザー提供のブランド画像（2752×1536px）を `web/og-image.png` として配置。タイトルを「My Career App | キャリアも、ライフも、自分らしく。」に更新。`web/manifest.json` および `pubspec.yaml` の description も合わせて更新。
@@ -156,7 +200,7 @@
 - **理由**: 実装の EventCategory 単一 enum モデルは十分に機能しており全テスト pass。2 enum 分離へのリファクタリングは工数対効果が低い。
 - **影響範囲**:
   - `docs/SOFTWARE_ARCHITECTURE.md` v4.0 → v4.1: EventSubCategory の2 enum 定義を EventCategory 単一 enum に変更、LifeEvent モデルを実態に合わせて更新
-  - `docs/ARCHITECTURE.md` v3.0 → v3.1: Firestore データモデルの subCategory を category に変更
+  - `docs/ARCHITECTURE.md` v3.0 → v3.1: Firestoreデータモデルの subCategory を category に変更
 
 ---
 

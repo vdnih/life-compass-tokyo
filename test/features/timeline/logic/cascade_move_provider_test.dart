@@ -10,7 +10,23 @@ LifeEvent _event({required String id, required String date, String? endDate}) {
     endDate: endDate,
     title: 'Event $id',
     description: '',
-    category: EventCategory.jobChange,
+    catalogId: 'job-change',
+  );
+}
+
+LifeEvent _milestone({
+  required String id,
+  required String date,
+  required String parentEventId,
+}) {
+  return LifeEvent(
+    id: id,
+    date: date,
+    title: 'Milestone $id',
+    description: '',
+    catalogId: 'job-change',
+    kind: EventKind.milestone,
+    parentEventId: parentEventId,
   );
 }
 
@@ -192,6 +208,80 @@ void main() {
 
       final bChange = changes.firstWhere((c) => c.eventId == 'b');
       expect(bChange.newDate, equals('2026-02'));
+    });
+
+    // Wave 4: マイルストーン追従テスト
+    group('マイルストーン追従', () {
+      test('親イベントを3ヶ月後ろに移動するとマイルストーンも3ヶ月後ろに追従すること', () {
+        final events = [
+          _event(id: 'parent', date: '2025-03'),
+          _milestone(id: 'ms1', date: '2025-01', parentEventId: 'parent'),
+        ];
+
+        final changes = computeCascadeUpdates(
+          movedEventId: 'parent',
+          newDate: '2025-06',
+          allEvents: events,
+          allDependencies: [],
+        );
+
+        final ms1Change = changes.firstWhere((c) => c.eventId == 'ms1');
+        expect(ms1Change.newDate, equals('2025-04'));
+      });
+
+      test('親イベントを移動したとき子マイルストーンが変更リストに含まれること', () {
+        final events = [
+          _event(id: 'parent', date: '2025-03'),
+          _milestone(id: 'ms1', date: '2025-01', parentEventId: 'parent'),
+          _milestone(id: 'ms2', date: '2025-02', parentEventId: 'parent'),
+        ];
+
+        final changes = computeCascadeUpdates(
+          movedEventId: 'parent',
+          newDate: '2025-06',
+          allEvents: events,
+          allDependencies: [],
+        );
+
+        expect(changes.any((c) => c.eventId == 'ms1'), isTrue);
+        expect(changes.any((c) => c.eventId == 'ms2'), isTrue);
+      });
+
+      test('別の親イベントのマイルストーンは追従しないこと', () {
+        final events = [
+          _event(id: 'parent-a', date: '2025-03'),
+          _event(id: 'parent-b', date: '2025-06'),
+          _milestone(id: 'ms-b', date: '2025-05', parentEventId: 'parent-b'),
+        ];
+
+        final changes = computeCascadeUpdates(
+          movedEventId: 'parent-a',
+          newDate: '2025-06',
+          allEvents: events,
+          allDependencies: [],
+        );
+
+        expect(changes.any((c) => c.eventId == 'ms-b'), isFalse);
+      });
+
+      test('マイルストーンと親イベントの月差が保持されること', () {
+        // 親: 2025-05, マイルストーン: 2025-02 → 差: -3ヶ月
+        // 親を 2025-08 に移動 → マイルストーンは 2025-05 になること
+        final events = [
+          _event(id: 'parent', date: '2025-05'),
+          _milestone(id: 'ms', date: '2025-02', parentEventId: 'parent'),
+        ];
+
+        final changes = computeCascadeUpdates(
+          movedEventId: 'parent',
+          newDate: '2025-08',
+          allEvents: events,
+          allDependencies: [],
+        );
+
+        final msChange = changes.firstWhere((c) => c.eventId == 'ms');
+        expect(msChange.newDate, equals('2025-05'));
+      });
     });
   });
 

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:my_career_app/features/catalog/data/predefined_catalog_registry.dart';
 import 'package:my_career_app/features/timeline/data/event_repository.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/logic/timeline_events_provider.dart';
@@ -36,7 +37,7 @@ void main() {
           date: '2020-01',
           title: 'Test 1',
           description: '',
-          category: EventCategory.joining,
+          catalogId: 'joining-company',
         ),
       ];
       when(
@@ -58,7 +59,7 @@ void main() {
           date: '2020-01',
           title: 'Test 1',
           description: '',
-          category: EventCategory.joining,
+          catalogId: 'joining-company',
         ),
       ];
       const newEvent = LifeEvent(
@@ -66,7 +67,7 @@ void main() {
         date: '2021-01',
         title: 'Test 2',
         description: '',
-        category: EventCategory.promotion,
+        catalogId: 'promotion',
       );
       final updatedEvents = [...initialEvents, newEvent];
 
@@ -103,7 +104,7 @@ void main() {
         date: '2020-01',
         title: 'Test 1',
         description: '',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
       final initialEvents = [targetEvent];
 
@@ -139,7 +140,7 @@ void main() {
         date: '2020-01',
         title: 'Test 1',
         description: '',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
       final initialEvents = [targetEvent];
       final exception = Exception('Failed to delete event');
@@ -172,7 +173,7 @@ void main() {
           date: '2020-01',
           title: 'Test 1',
           description: '',
-          category: EventCategory.joining,
+          catalogId: 'joining-company',
         ),
       ];
       const newEvent = LifeEvent(
@@ -180,7 +181,7 @@ void main() {
         date: '2021-01',
         title: 'Error Event',
         description: '',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
       final exception = Exception('Failed to save event');
 
@@ -209,14 +210,14 @@ void main() {
         date: '2025-01',
         title: '移動するイベント',
         description: '',
-        category: EventCategory.jobChange,
+        catalogId: 'job-change',
       );
       const updatedEvent = LifeEvent(
         id: 'event-move-1',
         date: '2025-06',
         title: '移動するイベント',
         description: '',
-        category: EventCategory.jobChange,
+        catalogId: 'job-change',
       );
       final initialEvents = [targetEvent];
       final updatedEvents = [updatedEvent];
@@ -253,7 +254,7 @@ void main() {
         endDate: '2026-04',
         title: '期間イベント',
         description: '',
-        category: EventCategory.childcareLeave,
+        catalogId: 'childcare-leave',
       );
       const updatedEvent = LifeEvent(
         id: 'event-move-2',
@@ -261,7 +262,7 @@ void main() {
         endDate: '2026-07',
         title: '期間イベント',
         description: '',
-        category: EventCategory.childcareLeave,
+        catalogId: 'childcare-leave',
       );
       final initialEvents = [targetEvent];
       final updatedEvents = [updatedEvent];
@@ -289,6 +290,103 @@ void main() {
 
       expect(states.last.value, equals(updatedEvents));
       verify(() => mockRepository.updateEvent(any())).called(1);
+    });
+
+    test('addEventFromCatalog: 結婚式（wedding-ceremony）を追加すると親＋3件のマイルストーンが生成されること',
+        () async {
+      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
+      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      // saveEvent が呼ばれた引数を記録するためにモックを設定
+      final savedEvents = <LifeEvent>[];
+      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
+        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
+      });
+      when(() => mockRepository.fetchEvents())
+          .thenAnswer((_) async => List.unmodifiable(savedEvents));
+
+      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
+      await container
+          .read(timelineEventsProvider.notifier)
+          .addEventFromCatalog(catalog, '2026-06');
+
+      // 親イベント1件 + マイルストーン3件 = 4件のsaveEventが呼ばれること
+      expect(savedEvents.length, equals(4));
+    });
+
+    test('addEventFromCatalog: 生成された親イベントの catalogId と kind が正しいこと', () async {
+      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
+      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      final savedEvents = <LifeEvent>[];
+      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
+        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
+      });
+      when(() => mockRepository.fetchEvents())
+          .thenAnswer((_) async => List.unmodifiable(savedEvents));
+
+      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
+      await container
+          .read(timelineEventsProvider.notifier)
+          .addEventFromCatalog(catalog, '2026-06');
+
+      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
+      expect(parent.catalogId, equals('wedding-ceremony'));
+      expect(parent.kind, equals(EventKind.event));
+    });
+
+    test('addEventFromCatalog: 生成されたマイルストーンの parentEventId が親イベントのidを指すこと', () async {
+      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
+      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      final savedEvents = <LifeEvent>[];
+      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
+        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
+      });
+      when(() => mockRepository.fetchEvents())
+          .thenAnswer((_) async => List.unmodifiable(savedEvents));
+
+      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
+      await container
+          .read(timelineEventsProvider.notifier)
+          .addEventFromCatalog(catalog, '2026-06');
+
+      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
+      final milestones =
+          savedEvents.where((e) => e.kind == EventKind.milestone).toList();
+      expect(milestones.every((m) => m.parentEventId == parent.id), isTrue);
+    });
+
+    test('addEventFromCatalog: budgetYen に catalog.defaultBudgetYen が設定されること', () async {
+      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
+      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      final savedEvents = <LifeEvent>[];
+      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
+        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
+      });
+      when(() => mockRepository.fetchEvents())
+          .thenAnswer((_) async => List.unmodifiable(savedEvents));
+
+      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
+      await container
+          .read(timelineEventsProvider.notifier)
+          .addEventFromCatalog(catalog, '2026-06');
+
+      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
+      expect(parent.budgetYen, equals(3000000));
     });
   });
 }

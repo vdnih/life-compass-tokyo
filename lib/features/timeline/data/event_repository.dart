@@ -26,7 +26,7 @@ class InMemoryEventRepository implements EventRepository {
       date: '2020-04',
       title: 'メーカーに入社',
       description: '新卒で消費財メーカーのマーケティング部門へ',
-      category: EventCategory.joining,
+      catalogId: 'joining-company',
       status: EventStatus.recorded,
     ),
     const LifeEvent(
@@ -34,7 +34,7 @@ class InMemoryEventRepository implements EventRepository {
       date: '2022-09',
       title: '資格取得',
       description: 'Webマーケティング検定を取得',
-      category: EventCategory.certification,
+      catalogId: 'obtain-certification',
       status: EventStatus.recorded,
     ),
     const LifeEvent(
@@ -42,7 +42,7 @@ class InMemoryEventRepository implements EventRepository {
       date: '2023-06',
       title: 'スタートアップへ転職',
       description: 'D2C事業を立ち上げるスタートアップにマーケターとして参画',
-      category: EventCategory.jobChange,
+      catalogId: 'job-change',
       status: EventStatus.recorded,
     ),
     const LifeEvent(
@@ -50,7 +50,7 @@ class InMemoryEventRepository implements EventRepository {
       date: '2024-11',
       title: '入籍',
       description: 'パートナーと入籍・新生活スタート',
-      category: EventCategory.marriage,
+      catalogId: 'marriage-registration',
       status: EventStatus.recorded,
     ),
     const LifeEvent(
@@ -58,7 +58,7 @@ class InMemoryEventRepository implements EventRepository {
       date: '2026-06',
       title: '第一子誕生（目標）',
       description: '出産を目標に設定しライフプランを描く',
-      category: EventCategory.childbirth,
+      catalogId: 'childbirth',
       status: EventStatus.goal,
     ),
     const LifeEvent(
@@ -67,7 +67,7 @@ class InMemoryEventRepository implements EventRepository {
       endDate: '2026-06',
       title: '産休',
       description: '出産2ヶ月前から産前休業開始',
-      category: EventCategory.maternityLeave,
+      catalogId: 'maternity-leave',
       status: EventStatus.planned,
     ),
     const LifeEvent(
@@ -76,7 +76,7 @@ class InMemoryEventRepository implements EventRepository {
       endDate: '2027-06',
       title: '育休',
       description: '育児休業取得・子育て中心の1年',
-      category: EventCategory.childcareLeave,
+      catalogId: 'childcare-leave',
       status: EventStatus.planned,
     ),
     const LifeEvent(
@@ -84,7 +84,7 @@ class InMemoryEventRepository implements EventRepository {
       date: '2027-06',
       title: '復職',
       description: 'マーケター職として職場復帰',
-      category: EventCategory.returnToWork,
+      catalogId: 'return-to-work',
       status: EventStatus.planned,
     ),
   ];

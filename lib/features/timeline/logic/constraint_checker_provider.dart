@@ -6,6 +6,10 @@ import 'dependency_provider.dart';
 import 'timeline_events_provider.dart';
 
 /// イベント一覧と依存関係に対して全制約チェックを実行し、結果リストを返す純粋関数
+///
+/// v6.0: EventCategory の代わりに catalogId でチェック。
+/// 旧 C-01 / C-02 は §4.3 のカタログ静的ルールに統合されたため、
+/// ここでは catalogId ベースの比較で判定する。
 List<ConstraintResult> checkAllConstraints(
   List<LifeEvent> events, [
   List<EventDependency> dependencies = const [],
@@ -18,19 +22,22 @@ List<ConstraintResult> checkAllConstraints(
 }
 
 /// C-01: 転職/入社から1年未満に出産/産休イベントがある場合 → Warning
+///
+/// catalogId ベース: 'joining-company' or 'job-change' が先行、
+/// 'childbirth' or 'maternity-leave' が1年未満後に来る場合
 List<ConstraintResult> _checkC01(List<LifeEvent> events) {
   final results = <ConstraintResult>[];
 
+  const jobCatalogIds = {'joining-company', 'job-change'};
+  const birthCatalogIds = {'childbirth', 'maternity-leave'};
+
   final jobEvents = events
-      .where((e) =>
-          e.category == EventCategory.joining ||
-          e.category == EventCategory.jobChange)
+      .where((e) => jobCatalogIds.contains(e.catalogId))
       .toList()
     ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
-  final birthOrLeaveEvents = events.where((e) =>
-      e.category == EventCategory.childbirth ||
-      e.category == EventCategory.maternityLeave);
+  final birthOrLeaveEvents =
+      events.where((e) => birthCatalogIds.contains(e.catalogId));
 
   for (final birthEvent in birthOrLeaveEvents) {
     final birthDate = birthEvent.dateTime;
@@ -46,8 +53,7 @@ List<ConstraintResult> _checkC01(List<LifeEvent> events) {
     if (closestJob == null) continue;
 
     final jobDate = closestJob.dateTime;
-    final twelveMonthsLater =
-        DateTime(jobDate.year, jobDate.month + 12);
+    final twelveMonthsLater = DateTime(jobDate.year, jobDate.month + 12);
 
     // 出産日が転職日+12ヶ月より前（ちょうど12ヶ月はOK）
     if (birthDate.isBefore(twelveMonthsLater)) {
@@ -69,12 +75,14 @@ List<ConstraintResult> _checkC01(List<LifeEvent> events) {
 List<ConstraintResult> _checkC02(List<LifeEvent> events) {
   final results = <ConstraintResult>[];
 
-  final jobEvents = events.where((e) =>
-      e.category == EventCategory.joining ||
-      e.category == EventCategory.jobChange);
+  const jobCatalogIds = {'joining-company', 'job-change'};
+  const childbirthCatalogId = 'childbirth';
+
+  final jobEvents =
+      events.where((e) => jobCatalogIds.contains(e.catalogId));
 
   final childbirthEvents =
-      events.where((e) => e.category == EventCategory.childbirth);
+      events.where((e) => e.catalogId == childbirthCatalogId);
 
   for (final birth in childbirthEvents) {
     final birthDate = birth.dateTime;
@@ -82,7 +90,6 @@ List<ConstraintResult> _checkC02(List<LifeEvent> events) {
         DateTime(birthDate.year, birthDate.month - 12);
 
     // 出産日の12ヶ月以上前に転職/入社があるか
-    // 「12ヶ月以上前」= 転職日が出産日-12ヶ月以前（ちょうど12ヶ月はOK）
     final hasEarlyEnoughJob = jobEvents.any((job) {
       final jobDate = job.dateTime;
       return !jobDate.isAfter(twelveMonthsBefore);
@@ -102,9 +109,6 @@ List<ConstraintResult> _checkC02(List<LifeEvent> events) {
 }
 
 /// C-03: 依存関係のオフセット期間が確保されていない場合 → Warning
-///
-/// すべての依存関係について、source イベントの日付 + offsetMonths が
-/// target イベントの日付と一致しない場合に警告する。
 List<ConstraintResult> _checkC03(
   List<LifeEvent> events,
   List<EventDependency> dependencies,
@@ -115,7 +119,6 @@ List<ConstraintResult> _checkC03(
   final eventMap = {for (final e in events) e.id: e};
 
   for (final dep in dependencies) {
-
     final source = eventMap[dep.sourceEventId];
     final target = eventMap[dep.targetEventId];
 

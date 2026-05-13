@@ -6,6 +6,8 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/logic/auth_provider.dart';
 import '../../../auth/presentation/sign_in_dialog.dart';
+import '../../../catalog/data/predefined_catalog_registry.dart';
+import '../../../catalog/domain/predefined_life_event.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/event_dependency.dart';
@@ -18,6 +20,7 @@ import '../edit_event_dialog.dart';
 import 'dependency_connector.dart';
 import 'event_card.dart';
 import 'event_style.dart';
+import 'milestone_chip.dart';
 
 const _uuid = Uuid();
 
@@ -40,6 +43,10 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
   String? _draggingEventId;
   String? _linkingEventId;
   List<EventDateChange> _cascadePreviewChanges = [];
+
+  /// カタログD&Dホバー中のプレビュー用
+  String? _previewCatalogId;
+  String? _previewDate;
 
   final _dropTargetKey = GlobalKey();
 
@@ -211,6 +218,8 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                           totalYears,
                           events,
                         ),
+                        if (_previewCatalogId != null && _previewDate != null)
+                          _buildDropPreview(startYear, totalYears),
                         ..._buildEventCards(
                             events, startYear, stackIndices, context),
                       ],
@@ -465,6 +474,140 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     }).toList();
   }
 
+  /// カタログドラッグ中のプレビューゴーストカードを構築する
+  Widget _buildDropPreview(int startYear, int totalYears) {
+    final catalog = PredefinedCatalogRegistry.findById(_previewCatalogId!);
+    if (catalog == null) return const SizedBox.shrink();
+
+    final parts = _previewDate!.split('-');
+    final previewYear = int.parse(parts[0]);
+    final yearOffset = previewYear - startYear;
+    if (yearOffset < 0 || yearOffset >= totalYears) return const SizedBox.shrink();
+
+    final xPos = 20.0 + (yearOffset * yearWidth);
+    final rowTop = axisHeight + _rowHeight;
+
+    // 違反チェック
+    final events = widget.events;
+    final previewDate = DateTime(previewYear, 1);
+    Color borderColor = catalog.color.withValues(alpha: 0.6);
+    String? violationMessage;
+
+    for (final hardRule in catalog.hardRules) {
+      final predecessor = events
+          .cast<LifeEvent?>()
+          .firstWhere((e) => e!.catalogId == hardRule.predecessorCatalogId,
+              orElse: () => null);
+      if (predecessor == null) {
+        borderColor = Colors.red.shade400;
+        violationMessage = hardRule.message;
+        break;
+      }
+      if (hardRule.minMonthsAfter != null) {
+        final predParts = predecessor.date.split('-');
+        final predDate =
+            DateTime(int.parse(predParts[0]), int.parse(predParts[1]));
+        final diffMonths = ((previewDate.year - predDate.year) * 12) +
+            (previewDate.month - predDate.month);
+        if (diffMonths < hardRule.minMonthsAfter!) {
+          borderColor = Colors.red.shade400;
+          violationMessage = hardRule.message;
+          break;
+        }
+      }
+    }
+
+    if (violationMessage == null) {
+      for (final softRule in catalog.softRules) {
+        final predecessor = events
+            .cast<LifeEvent?>()
+            .firstWhere((e) => e!.catalogId == softRule.predecessorCatalogId,
+                orElse: () => null);
+        if (predecessor == null) {
+          borderColor = Colors.amber.shade400;
+          violationMessage = softRule.message;
+          break;
+        }
+        final predParts = predecessor.date.split('-');
+        final predDate =
+            DateTime(int.parse(predParts[0]), int.parse(predParts[1]));
+        final diffMonths = ((previewDate.year - predDate.year) * 12) +
+            (previewDate.month - predDate.month);
+        if (diffMonths < softRule.recommendedMinMonthsAfter) {
+          borderColor = Colors.amber.shade400;
+          violationMessage = softRule.message;
+          break;
+        }
+      }
+    }
+
+    return Positioned(
+      left: xPos - 60,
+      top: rowTop + _topPadding,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: 0.6,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 120,
+                height: 50,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border(
+                    left: BorderSide(color: borderColor, width: 3),
+                    top: BorderSide(color: Colors.grey.shade200),
+                    right: BorderSide(color: Colors.grey.shade200),
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      catalog.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: catalog.color,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                ),
+              ),
+              if (violationMessage != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: borderColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    violationMessage,
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: borderColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDropTarget(
     double totalWidth,
     double totalHeight,
@@ -477,11 +620,10 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       left: 0,
       width: totalWidth,
       height: _rowHeight * 2,
-      child: DragTarget<String>(
+      child: DragTarget<Object>(
         key: _dropTargetKey,
         onWillAcceptWithDetails: (_) => true,
         onMove: (details) {
-          if (_draggingEventId == null) return;
           final renderBox =
               _dropTargetKey.currentContext?.findRenderObject() as RenderBox?;
           if (renderBox == null) return;
@@ -493,20 +635,36 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
           final newYear = startYear + yearIndex;
           final newDateStr = '$newYear-01';
 
-          final deps = ref.read(dependencyProvider).valueOrNull ?? [];
-          final changes = computeCascadeUpdates(
-            movedEventId: _draggingEventId!,
-            newDate: newDateStr,
-            allEvents: events,
-            allDependencies: deps,
-          );
-          if (mounted) setState(() => _cascadePreviewChanges = changes);
+          final data = details.data;
+          if (data is String) {
+            if (_draggingEventId == null) return;
+            final deps = ref.read(dependencyProvider).valueOrNull ?? [];
+            final changes = computeCascadeUpdates(
+              movedEventId: _draggingEventId!,
+              newDate: newDateStr,
+              allEvents: events,
+              allDependencies: deps,
+            );
+            if (mounted) setState(() => _cascadePreviewChanges = changes);
+          } else if (data is PredefinedLifeEvent) {
+            if (mounted) {
+              setState(() {
+                _previewCatalogId = data.id;
+                _previewDate = newDateStr;
+              });
+            }
+          }
         },
         onLeave: (_) {
-          if (mounted) setState(() => _cascadePreviewChanges = []);
+          if (mounted) {
+            setState(() {
+              _cascadePreviewChanges = [];
+              _previewCatalogId = null;
+              _previewDate = null;
+            });
+          }
         },
         onAcceptWithDetails: (details) {
-          final eventId = details.data;
           final renderBox =
               _dropTargetKey.currentContext!.findRenderObject() as RenderBox;
           final localOffset = renderBox.globalToLocal(details.offset);
@@ -516,7 +674,13 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
 
           final newYear = startYear + yearIndex;
           final newDateStr = '$newYear-01';
-          _applyCascadeMove(eventId, newDateStr, events);
+
+          final data = details.data;
+          if (data is String) {
+            _applyCascadeMove(data, newDateStr, events);
+          } else if (data is PredefinedLifeEvent) {
+            _applyAddFromCatalog(data, newDateStr);
+          }
         },
         builder: (context, candidateData, _) {
           if (candidateData.isNotEmpty) {
@@ -527,6 +691,28 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
         },
       ),
     );
+  }
+
+  Future<void> _applyAddFromCatalog(
+    PredefinedLifeEvent catalog,
+    String date,
+  ) async {
+    setState(() {
+      _previewCatalogId = null;
+      _previewDate = null;
+    });
+    await ref
+        .read(timelineEventsProvider.notifier)
+        .addEventFromCatalog(catalog, date);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('「${catalog.label}」を追加しました'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _applyCascadeMove(
@@ -611,8 +797,13 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       }
     }
 
-    // Regular event cards
-    for (final event in events) {
+    // Regular event cards (events のみ。milestones は親の下に配置)
+    final mainEvents =
+        events.where((e) => e.kind == EventKind.event).toList();
+    final milestones =
+        events.where((e) => e.kind == EventKind.milestone).toList();
+
+    for (final event in mainEvents) {
       final yearOffset = event.dateTime.year - startYear;
       final xPos = 20.0 + (yearOffset * yearWidth);
       final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
@@ -626,6 +817,13 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       final isDragging = _draggingEventId == event.id;
       final isInCascade = _draggingEventId != null &&
           _cascadePreviewChanges.any((c) => c.eventId == event.id);
+
+      // 子マイルストーンを収集
+      final childMilestones =
+          milestones.where((m) => m.parentEventId == event.id).toList()
+            ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+      final color = eventColor(event);
 
       result.add(Positioned(
         left: xPos - 60,
@@ -669,10 +867,36 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                 _showEventDetails(context, event, eventConstraints, events);
               }
             },
-            child: EventCard(
-              event: event,
-              eventConstraints: eventConstraints,
-              isDimmed: isDragging || (isInCascade && !isDragging),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                EventCard(
+                  event: event,
+                  eventConstraints: eventConstraints,
+                  isDimmed: isDragging || (isInCascade && !isDragging),
+                ),
+                if (childMilestones.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  SizedBox(
+                    width: 120,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: childMilestones
+                          .map((m) => Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: MilestoneChip(
+                                  milestone: m,
+                                  parentColor: color,
+                                  onDelete: () =>
+                                      _deleteEvent(context, m),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
@@ -680,6 +904,10 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     }
 
     return result;
+  }
+
+  Future<void> _deleteEvent(BuildContext context, LifeEvent event) async {
+    await ref.read(timelineEventsProvider.notifier).deleteEvent(event);
   }
 
   void _handleTap(
@@ -794,7 +1022,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child:
-                  Icon(categoryIcon(event.category), color: color, size: 20),
+                  Icon(catalogIcon(event.catalogId), color: color, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -866,7 +1094,10 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                             color: color, shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 6),
-                      Text(event.category.label,
+                      Text(
+                          PredefinedCatalogRegistry.findById(event.catalogId)
+                                  ?.label ??
+                              event.catalogId,
                           style: TextStyle(
                               fontSize: 12,
                               color: color,

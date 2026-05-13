@@ -59,6 +59,9 @@ int _dateToMonths(String dateStr) {
 /// 到達可能な全イベントに同じ差分を適用する。
 /// 移動元イベント自身も結果に含まれる。
 /// 差分が 0 の場合は空リストを返す。
+///
+/// Wave 4 追加: 移動対象イベントの id を parentEventId として持つ
+/// マイルストーンも一緒に移動する。マイルストーンと親イベントの月差は保持される。
 List<EventDateChange> computeCascadeUpdates({
   required String movedEventId,
   required String newDate,
@@ -114,5 +117,30 @@ List<EventDateChange> computeCascadeUpdates({
     ));
   }
 
-  return changes;
+  // Wave 4: visited に含まれるイベントを parentEventId として持つマイルストーンを追従させる
+  // マイルストーンは依存グラフに含まれないため、別途処理する。
+  // マイルストーンの新しい日付 = マイルストーン元の日付 + deltaMonths（親と同じ差分）
+  final milestoneChanges = <EventDateChange>[];
+  for (final event in allEvents) {
+    if (event.kind != EventKind.milestone) continue;
+    if (event.parentEventId == null) continue;
+    // 親が visited に含まれる（つまり移動対象グループの一員）かつ
+    // まだ changes に含まれていない場合にのみ追加する
+    if (!visited.contains(event.parentEventId)) continue;
+    if (changes.any((c) => c.eventId == event.id)) continue;
+
+    final updatedDate = _addMonths(event.date, deltaMonths);
+    final updatedEndDate =
+        event.endDate != null ? _addMonths(event.endDate!, deltaMonths) : null;
+
+    milestoneChanges.add(EventDateChange(
+      eventId: event.id,
+      oldDate: event.date,
+      newDate: updatedDate,
+      oldEndDate: event.endDate,
+      newEndDate: updatedEndDate,
+    ));
+  }
+
+  return [...changes, ...milestoneChanges];
 }

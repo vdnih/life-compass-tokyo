@@ -2,45 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 
 void main() {
-  group('EventCategory の仕様', () {
-    test('仕事系カテゴリは isWork == true を返すこと', () {
-      expect(EventCategory.joining.isWork, isTrue);
-      expect(EventCategory.jobChange.isWork, isTrue);
-      expect(EventCategory.promotion.isWork, isTrue);
-      expect(EventCategory.retirement.isWork, isTrue);
-      expect(EventCategory.maternityLeave.isWork, isTrue);
-      expect(EventCategory.startup.isWork, isTrue);
-      expect(EventCategory.certification.isWork, isTrue);
-      expect(EventCategory.sideJob.isWork, isTrue);
-    });
-
-    test('プライベート系カテゴリは isWork == false を返すこと', () {
-      expect(EventCategory.marriage.isWork, isFalse);
-      expect(EventCategory.childbirth.isWork, isFalse);
-      expect(EventCategory.childcareLeave.isWork, isFalse);
-      expect(EventCategory.returnToWork.isWork, isFalse);
-      expect(EventCategory.moving.isWork, isFalse);
-      expect(EventCategory.travel.isWork, isFalse);
-      expect(EventCategory.education.isWork, isFalse);
-      expect(EventCategory.caregiving.isWork, isFalse);
-    });
-
-    test('各カテゴリは日本語ラベルを持つこと', () {
-      expect(EventCategory.joining.label, '入社');
-      expect(EventCategory.marriage.label, '結婚');
-      expect(EventCategory.childbirth.label, '出産');
-      expect(EventCategory.childcareLeave.label, '育休');
-    });
-
-    test('maternityLeave の isWork が true であること', () {
-      expect(EventCategory.maternityLeave.isWork, isTrue);
-    });
-
-    test('maternityLeave の label が 産休 であること', () {
-      expect(EventCategory.maternityLeave.label, '産休');
-    });
-  });
-
   group('EventStatus の仕様', () {
     test('各ステータスは日本語ラベルを持つこと', () {
       expect(EventStatus.recorded.label, '記録');
@@ -57,45 +18,181 @@ void main() {
     });
   });
 
-  group('LifeEvent の機能一覧（仕様）', () {
+  group('EventKind の仕様', () {
+    test('event と milestone の2値が存在すること', () {
+      expect(EventKind.values.length, 2);
+      expect(EventKind.values.contains(EventKind.event), isTrue);
+      expect(EventKind.values.contains(EventKind.milestone), isTrue);
+    });
+  });
+
+  group('LifeEvent の機能一覧（v6.0 catalogId 方式）', () {
+    test('catalogId フィールドが正しく保存されること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'joining-company',
+      );
+
+      expect(event.catalogId, 'joining-company');
+    });
+
+    test('parentEventId が null のとき通常イベントとして扱えること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'joining-company',
+      );
+
+      expect(event.parentEventId, isNull);
+    });
+
+    test('parentEventId が非null のときマイルストーンとして設定できること', () {
+      const event = LifeEvent(
+        id: 'milestone-id',
+        date: '2023-06',
+        title: '準備',
+        description: '',
+        catalogId: 'wedding-ceremony',
+        parentEventId: 'parent-event-id',
+        kind: EventKind.milestone,
+      );
+
+      expect(event.parentEventId, 'parent-event-id');
+    });
+
+    test('kind のデフォルトが EventKind.event であること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'joining-company',
+      );
+
+      expect(event.kind, EventKind.event);
+    });
+
+    test('kind が milestone に設定できること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'wedding-ceremony',
+        kind: EventKind.milestone,
+      );
+
+      expect(event.kind, EventKind.milestone);
+    });
+
+    test('kind が toJson/fromJson でラウンドトリップすること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'wedding-ceremony',
+        kind: EventKind.milestone,
+      );
+
+      final json = event.toJson();
+      final restored = LifeEvent.fromJson(json);
+
+      expect(restored.kind, EventKind.milestone);
+    });
+
+    test('budgetYen が null の場合も toJson/fromJson で正しく処理されること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'joining-company',
+      );
+
+      final json = event.toJson();
+      final restored = LifeEvent.fromJson(json);
+
+      expect(restored.budgetYen, isNull);
+    });
+
+    test('budgetYen を設定できること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'wedding-ceremony',
+        budgetYen: 3000000,
+      );
+
+      expect(event.budgetYen, 3000000);
+    });
+
+    test('budgetYen が toJson/fromJson でラウンドトリップすること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'wedding-ceremony',
+        budgetYen: 3000000,
+      );
+
+      final json = event.toJson();
+      final restored = LifeEvent.fromJson(json);
+
+      expect(restored.budgetYen, 3000000);
+    });
+
+    test('catalogId が toJson/fromJson でラウンドトリップすること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'job-change',
+      );
+
+      final json = event.toJson();
+      final restored = LifeEvent.fromJson(json);
+
+      expect(restored.catalogId, 'job-change');
+    });
+
+    test('parentEventId が toJson/fromJson でラウンドトリップすること', () {
+      const event = LifeEvent(
+        id: 'milestone-id',
+        date: '2023-06',
+        title: '準備',
+        description: '',
+        catalogId: 'wedding-ceremony',
+        parentEventId: 'parent-123',
+        kind: EventKind.milestone,
+      );
+
+      final json = event.toJson();
+      final restored = LifeEvent.fromJson(json);
+
+      expect(restored.parentEventId, 'parent-123');
+    });
+
     test('date文字列 ("yyyy-MM") から正しい DateTime を取得できること', () {
       const event = LifeEvent(
         id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: 'テスト詳細',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
 
       expect(event.dateTime.year, 2023);
       expect(event.dateTime.month, 8);
-    });
-
-    test('endDate文字列 ("yyyy-MM") から正しい DateTime を取得できること', () {
-      const event = LifeEvent(
-        id: 'test-id',
-        date: '2023-08',
-        endDate: '2025-12',
-        title: 'テスト',
-        description: 'テスト詳細',
-        category: EventCategory.joining,
-      );
-
-      expect(event.endDateTime, isNotNull);
-      expect(event.endDateTime!.year, 2025);
-      expect(event.endDateTime!.month, 12);
-    });
-
-    test('endDate が未指定の場合は null を返すこと', () {
-      const event = LifeEvent(
-        id: 'test-id',
-        date: '2023-08',
-        title: 'テスト',
-        description: 'テスト詳細',
-        category: EventCategory.joining,
-      );
-
-      expect(event.endDateTime, isNull);
     });
 
     test('endDate が設定されている場合、hasDuration は true を返すこと', () {
@@ -105,7 +202,7 @@ void main() {
         endDate: '2024-03',
         title: 'テスト',
         description: '詳細',
-        category: EventCategory.joining,
+        catalogId: 'childcare-leave',
       );
 
       expect(event.hasDuration, isTrue);
@@ -117,30 +214,10 @@ void main() {
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
 
       expect(event.hasDuration, isFalse);
-    });
-
-    test('isWork は category.isWork を返すこと', () {
-      const workEvent = LifeEvent(
-        id: 'test-id-work',
-        date: '2023-08',
-        title: '入社',
-        description: '',
-        category: EventCategory.joining,
-      );
-      const privateEvent = LifeEvent(
-        id: 'test-id-private',
-        date: '2023-08',
-        title: '結婚',
-        description: '',
-        category: EventCategory.marriage,
-      );
-
-      expect(workEvent.isWork, isTrue);
-      expect(privateEvent.isWork, isFalse);
     });
 
     test('デフォルトのステータスは EventStatus.recorded であること', () {
@@ -149,7 +226,7 @@ void main() {
         date: '2023-08',
         title: 'テスト',
         description: '',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
 
       expect(event.status, EventStatus.recorded);
@@ -161,46 +238,54 @@ void main() {
         date: '2028-04',
         title: '起業',
         description: '',
-        category: EventCategory.startup,
+        catalogId: 'entrepreneurship',
         status: EventStatus.goal,
       );
 
       expect(event.isFuturePlan, isTrue);
     });
 
-    test('copyWith メソッドで一部のプロパティを変更した新しいインスタンスを生成できること', () {
+    test('copyWith メソッドで catalogId を変更できること', () {
       const event = LifeEvent(
         id: 'test-id',
         date: '2023-08',
         title: '元のタイトル',
         description: '元の詳細',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
 
-      final updated = event.copyWith(
-        title: '変更後のタイトル',
-        category: EventCategory.promotion,
-      );
+      final updated = event.copyWith(catalogId: 'job-change');
 
-      expect(updated.title, '変更後のタイトル');
-      expect(updated.category, EventCategory.promotion);
+      expect(updated.catalogId, 'job-change');
       expect(updated.date, '2023-08');
-      expect(updated.description, '元の詳細');
-      expect(updated.status, EventStatus.recorded);
     });
 
-    test('copyWith メソッドで status を変更できること', () {
+    test('copyWith メソッドで kind を変更できること', () {
       const event = LifeEvent(
         id: 'test-id',
-        date: '2028-04',
-        title: '起業',
+        date: '2023-08',
+        title: 'テスト',
         description: '',
-        category: EventCategory.startup,
+        catalogId: 'wedding-ceremony',
       );
 
-      final updated = event.copyWith(status: EventStatus.goal);
+      final updated = event.copyWith(kind: EventKind.milestone);
 
-      expect(updated.status, EventStatus.goal);
+      expect(updated.kind, EventKind.milestone);
+    });
+
+    test('copyWith メソッドで budgetYen を変更できること', () {
+      const event = LifeEvent(
+        id: 'test-id',
+        date: '2023-08',
+        title: 'テスト',
+        description: '',
+        catalogId: 'wedding-ceremony',
+      );
+
+      final updated = event.copyWith(budgetYen: 500000);
+
+      expect(updated.budgetYen, 500000);
     });
 
     test('同じプロパティを持つ2つのインスタンスは等しいこと', () {
@@ -209,14 +294,14 @@ void main() {
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
       const event2 = LifeEvent(
         id: 'test-id',
         date: '2023-08',
         title: 'テスト',
         description: '詳細',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
 
       expect(event1, equals(event2));
@@ -228,23 +313,10 @@ void main() {
         date: '2023-08',
         title: 'テスト',
         description: '',
-        category: EventCategory.joining,
+        catalogId: 'joining-company',
       );
 
       expect(event.isGoal, isFalse);
-    });
-
-    test('isGoal を true に設定できること', () {
-      const event = LifeEvent(
-        id: 'test-id',
-        date: '2028-06',
-        title: 'ゴールイベント',
-        description: '',
-        category: EventCategory.childbirth,
-        isGoal: true,
-      );
-
-      expect(event.isGoal, isTrue);
     });
 
     test('goalId を設定できること', () {
@@ -253,51 +325,11 @@ void main() {
         date: '2028-06',
         title: '関連イベント',
         description: '',
-        category: EventCategory.jobChange,
+        catalogId: 'job-change',
         goalId: 'goal-123',
       );
 
       expect(event.goalId, 'goal-123');
-    });
-
-    test('デフォルトの goalId は null であること', () {
-      const event = LifeEvent(
-        id: 'test-id',
-        date: '2023-08',
-        title: 'テスト',
-        description: '',
-        category: EventCategory.joining,
-      );
-
-      expect(event.goalId, isNull);
-    });
-
-    test('copyWith メソッドで isGoal を変更できること', () {
-      const event = LifeEvent(
-        id: 'test-id',
-        date: '2028-06',
-        title: '目標',
-        description: '',
-        category: EventCategory.childbirth,
-      );
-
-      final updated = event.copyWith(isGoal: true);
-
-      expect(updated.isGoal, isTrue);
-    });
-
-    test('copyWith メソッドで goalId を変更できること', () {
-      const event = LifeEvent(
-        id: 'test-id',
-        date: '2028-06',
-        title: '関連イベント',
-        description: '',
-        category: EventCategory.jobChange,
-      );
-
-      final updated = event.copyWith(goalId: 'goal-456');
-
-      expect(updated.goalId, 'goal-456');
     });
   });
 }

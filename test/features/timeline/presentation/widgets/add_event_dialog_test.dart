@@ -124,8 +124,8 @@ void main() {
 
       // 仕事系カテゴリは非表示
       expect(find.text('入社'), findsNothing);
-      // プライベート系カテゴリが表示される
-      expect(find.text('結婚'), findsOneWidget);
+      // プライベート系カタログが表示される（結婚グループ等）
+      expect(find.text('入籍'), findsOneWidget);
       expect(find.text('出産'), findsOneWidget);
     });
 
