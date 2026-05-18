@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/year_month_picker.dart';
 import '../../catalog/data/predefined_catalog_registry.dart';
 import '../../catalog/domain/predefined_life_event.dart';
+import 'catalog_picker_field.dart';
 import '../logic/timeline_events_provider.dart';
 import '../domain/life_event.dart';
 
@@ -85,12 +87,12 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showYearMonthPicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
-      helpText: '開始年月を選択',
+      title: '開始年月を選択',
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -105,12 +107,12 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   }
 
   Future<void> _selectEndDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showYearMonthPicker(
       context: context,
       initialDate: _selectedEndDate ?? _selectedDate,
       firstDate: _selectedDate,
       lastDate: DateTime(2100),
-      helpText: '終了年月を選択',
+      title: '終了年月を選択',
     );
     if (picked != null) {
       setState(() {
@@ -200,24 +202,10 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
               ),
               const SizedBox(height: 16),
               _sectionLabel('カテゴリ'),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: catalogItems.map((item) {
-                  final isSelected = _selectedCatalogId == item.id;
-                  return ChoiceChip(
-                    label: Text(item.label),
-                    selected: isSelected,
-                    selectedColor: item.color.withValues(alpha: 0.2),
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _selectedCatalogId = item.id;
-                        });
-                      }
-                    },
-                  );
-                }).toList(),
+              CatalogPickerField(
+                selectedCatalogId: _selectedCatalogId,
+                availableItems: catalogItems,
+                onChanged: (id) => setState(() => _selectedCatalogId = id),
               ),
               const SizedBox(height: 16),
               _sectionLabel('ステータス'),
