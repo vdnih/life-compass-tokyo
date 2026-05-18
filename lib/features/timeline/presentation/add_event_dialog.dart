@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../catalog/data/predefined_catalog_registry.dart';
+import '../../catalog/domain/predefined_life_event.dart';
 import '../logic/timeline_events_provider.dart';
-import '../logic/constraint_checker_provider.dart';
 import '../domain/life_event.dart';
-import 'widgets/constraint_warning.dart';
 
 /// UUID生成ユーティリティ
 const _uuid = Uuid();
 
+/// イベント追加ダイアログ
+///
+/// 仕事/プライベートのレーン区分を選択し、カタログからカテゴリを選んで
+/// ライフイベントをタイムラインに追加する。
 class AddEventDialog extends ConsumerStatefulWidget {
   final DateTime? initialDate;
   final bool initialIsWork;
@@ -31,12 +35,10 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   late DateTime _selectedDate;
   DateTime? _selectedEndDate;
   bool _hasEndDate = false;
-  late bool _isWork;
-  late EventCategory _category;
   EventStatus _status = EventStatus.recorded;
 
-  List<EventCategory> get _availableCategories =>
-      EventCategory.values.where((c) => c.isWork == _isWork).toList();
+  late bool _isWork;
+  late String _selectedCatalogId;
 
   @override
   void initState() {
@@ -46,7 +48,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
     _selectedDate = widget.initialDate ?? DateTime.now();
     _selectedEndDate = widget.initialDate ?? DateTime.now();
     _isWork = widget.initialIsWork;
-    _category = _isWork ? EventCategory.joining : EventCategory.marriage;
+    _selectedCatalogId = _isWork ? 'joining-company' : 'marriage-registration';
   }
 
   @override
@@ -54,6 +56,32 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  List<PredefinedLifeEvent> get _catalogItems {
+    if (_isWork) {
+      return PredefinedCatalogRegistry.all
+          .where((e) => e.group == LifeEventGroup.career)
+          .toList();
+    } else {
+      return PredefinedCatalogRegistry.all
+          .where((e) => e.group != LifeEventGroup.career)
+          .toList();
+    }
+  }
+
+  void _onLaneChanged(bool isWork) {
+    setState(() {
+      _isWork = isWork;
+      final items = isWork
+          ? PredefinedCatalogRegistry.all
+              .where((e) => e.group == LifeEventGroup.career)
+              .toList()
+          : PredefinedCatalogRegistry.all
+              .where((e) => e.group != LifeEventGroup.career)
+              .toList();
+      _selectedCatalogId = items.isNotEmpty ? items.first.id : '';
+    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -108,6 +136,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final catalogItems = _catalogItems;
     return AlertDialog(
       title: Row(
         children: [
@@ -138,7 +167,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionLabel('種別'),
+              _sectionLabel('レーン'),
               SegmentedButton<bool>(
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.resolveWith((states) {
@@ -165,35 +194,27 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                 ],
                 selected: {_isWork},
                 onSelectionChanged: (newSelection) {
-                  setState(() {
-                    _isWork = newSelection.first;
-                    _category = _availableCategories.first;
-                  });
+                  _onLaneChanged(newSelection.first);
                 },
+                showSelectedIcon: false,
               ),
               const SizedBox(height: 16),
               _sectionLabel('カテゴリ'),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: _availableCategories.map((cat) {
-                  final selected = _category == cat;
+                children: catalogItems.map((item) {
+                  final isSelected = _selectedCatalogId == item.id;
                   return ChoiceChip(
-                    label: Text(cat.label),
-                    selected: selected,
-                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
-                    labelStyle: TextStyle(
-                      color: selected ? AppTheme.primary : null,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      fontSize: 12,
-                    ),
-                    side: BorderSide(
-                      color: selected
-                          ? AppTheme.primary.withValues(alpha: 0.5)
-                          : Colors.grey.withValues(alpha: 0.3),
-                    ),
-                    onSelected: (value) {
-                      if (value) setState(() => _category = cat);
+                    label: Text(item.label),
+                    selected: isSelected,
+                    selectedColor: item.color.withValues(alpha: 0.2),
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedCatalogId = item.id;
+                        });
+                      }
                     },
                   );
                 }).toList(),
@@ -369,39 +390,6 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                     ),
                   ),
                 ),
-              // 制約チェックのプレビュー表示
-              Builder(
-                builder: (context) {
-                  final eventsAsync = ref.watch(timelineEventsProvider);
-                  if (!eventsAsync.hasValue) {
-                    return const SizedBox.shrink();
-                  }
-                  final previewEvent = LifeEvent(
-                    id: 'preview',
-                    date:
-                        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
-                    title: _titleController.text.isEmpty
-                        ? '(新規)'
-                        : _titleController.text,
-                    description: '',
-                    category: _category,
-                  );
-                  final allConstraints = checkAllConstraints([
-                    ...eventsAsync.value!,
-                    previewEvent,
-                  ]);
-                  final relevant = allConstraints
-                      .where(
-                        (c) => c.targetEventTitle == previewEvent.title,
-                      )
-                      .toList();
-                  if (relevant.isEmpty) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: ConstraintWarningList(constraints: relevant),
-                  );
-                },
-              ),
             ],
           ),
         ),
@@ -426,7 +414,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                 endDate: endDateStr,
                 title: _titleController.text,
                 description: _descriptionController.text,
-                category: _category,
+                catalogId: _selectedCatalogId,
                 status: _status,
               );
               ref.read(timelineEventsProvider.notifier).addEvent(newEvent);

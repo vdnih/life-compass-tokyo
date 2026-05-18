@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../catalog/data/predefined_catalog_registry.dart';
 import '../logic/timeline_events_provider.dart';
-import '../logic/constraint_checker_provider.dart';
 import '../domain/life_event.dart';
-import 'widgets/constraint_warning.dart';
 
-/// イベント編集ダイアログ
+/// イベント編集ダイアログ（Wave 4 予算フィールド追加）
+///
+/// Wave 3 でカタログD&D方式への本格書き換えを予定。
+/// TODO(Wave3): カタログ選択UIを実装
 class EditEventDialog extends ConsumerStatefulWidget {
   final LifeEvent event;
 
@@ -20,15 +23,11 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
+  late TextEditingController _budgetController;
   late DateTime _selectedDate;
   DateTime? _selectedEndDate;
   late bool _hasEndDate;
-  late bool _isWork;
-  late EventCategory _category;
   late EventStatus _status;
-
-  List<EventCategory> get _availableCategories =>
-      EventCategory.values.where((c) => c.isWork == _isWork).toList();
 
   @override
   void initState() {
@@ -36,12 +35,15 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
     _titleController = TextEditingController(text: widget.event.title);
     _descriptionController =
         TextEditingController(text: widget.event.description);
+    _budgetController = TextEditingController(
+      text: widget.event.budgetYen != null
+          ? widget.event.budgetYen.toString()
+          : '',
+    );
     _selectedDate = widget.event.dateTime;
     _hasEndDate = widget.event.endDate != null;
     _selectedEndDate =
         widget.event.endDate != null ? widget.event.endDateTime : null;
-    _isWork = widget.event.isWork;
-    _category = widget.event.category;
     _status = widget.event.status;
   }
 
@@ -49,6 +51,7 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _budgetController.dispose();
     super.dispose();
   }
 
@@ -102,6 +105,16 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
     );
   }
 
+  /// カタログの defaultBudgetYen を取得してプレースホルダー文字列を生成する
+  String _budgetPlaceholder() {
+    final catalog =
+        PredefinedCatalogRegistry.findById(widget.event.catalogId);
+    if (catalog != null && catalog.defaultBudgetYen != null) {
+      return '目安: ¥${catalog.defaultBudgetYen}円';
+    }
+    return '例: 300000';
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -134,70 +147,6 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionLabel('種別'),
-              SegmentedButton<bool>(
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return AppTheme.primary;
-                    }
-                    return Colors.transparent;
-                  }),
-                  foregroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return Colors.white;
-                    }
-                    return AppTheme.primary;
-                  }),
-                  side: WidgetStateProperty.all(
-                    BorderSide(
-                      color: AppTheme.primary.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ),
-                segments: const [
-                  ButtonSegment(value: true, label: Text('仕事')),
-                  ButtonSegment(value: false, label: Text('プライベート')),
-                ],
-                selected: {_isWork},
-                onSelectionChanged: (newSelection) {
-                  setState(() {
-                    _isWork = newSelection.first;
-                    if (!_availableCategories.contains(_category)) {
-                      _category = _availableCategories.first;
-                    }
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              _sectionLabel('カテゴリ'),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _availableCategories.map((cat) {
-                  final selected = _category == cat;
-                  return ChoiceChip(
-                    label: Text(cat.label),
-                    selected: selected,
-                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
-                    labelStyle: TextStyle(
-                      color: selected ? AppTheme.primary : null,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w400,
-                      fontSize: 12,
-                    ),
-                    side: BorderSide(
-                      color: selected
-                          ? AppTheme.primary.withValues(alpha: 0.5)
-                          : Colors.grey.withValues(alpha: 0.3),
-                    ),
-                    onSelected: (value) {
-                      if (value) setState(() => _category = cat);
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
               _sectionLabel('ステータス'),
               SegmentedButton<EventStatus>(
                 style: ButtonStyle(
@@ -253,6 +202,26 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
                   alignLabelWithHint: true,
                 ),
                 maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _budgetController,
+                decoration: InputDecoration(
+                  labelText: '予算（円）',
+                  hintText: _budgetPlaceholder(),
+                  prefixIcon: const Icon(Icons.currency_yen, size: 18),
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    final parsed = int.tryParse(value);
+                    if (parsed == null) {
+                      return '数値を入力してください';
+                    }
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               InkWell(
@@ -352,35 +321,6 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
                     ),
                   ),
                 ),
-              Builder(
-                builder: (context) {
-                  final eventsAsync = ref.watch(timelineEventsProvider);
-                  if (!eventsAsync.hasValue) return const SizedBox.shrink();
-                  final previewEvent = LifeEvent(
-                    id: widget.event.id,
-                    date:
-                        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
-                    title: _titleController.text.isEmpty
-                        ? '(編集中)'
-                        : _titleController.text,
-                    description: '',
-                    category: _category,
-                  );
-                  final others = eventsAsync.value!
-                      .where((e) => e.id != widget.event.id)
-                      .toList();
-                  final allConstraints =
-                      checkAllConstraints([...others, previewEvent]);
-                  final relevant = allConstraints
-                      .where((c) => c.targetEventTitle == previewEvent.title)
-                      .toList();
-                  if (relevant.isEmpty) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: ConstraintWarningList(constraints: relevant),
-                  );
-                },
-              ),
             ],
           ),
         ),
@@ -398,6 +338,10 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
                 endDateStr =
                     '${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}';
               }
+              final budgetText = _budgetController.text.trim();
+              final budgetYen =
+                  budgetText.isNotEmpty ? int.tryParse(budgetText) : null;
+
               final updated = LifeEvent(
                 id: widget.event.id,
                 date:
@@ -405,10 +349,13 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
                 endDate: endDateStr,
                 title: _titleController.text,
                 description: _descriptionController.text,
-                category: _category,
+                catalogId: widget.event.catalogId,
                 status: _status,
                 goalId: widget.event.goalId,
                 isGoal: widget.event.isGoal,
+                parentEventId: widget.event.parentEventId,
+                kind: widget.event.kind,
+                budgetYen: budgetYen,
               );
               ref
                   .read(timelineEventsProvider.notifier)

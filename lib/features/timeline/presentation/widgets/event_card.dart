@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
+import '../../../catalog/data/predefined_catalog_registry.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/life_event.dart';
 import 'event_style.dart';
+
+/// 予算（円）を表示用テキストに変換する
+///
+/// 10万以上 → 「¥XXX万」、10万未満 → 「¥XXX円」
+String _formatBudget(int yen) {
+  if (yen >= 100000) {
+    final man = (yen / 10000).round();
+    return '¥${man}万';
+  }
+  return '¥${yen}円';
+}
 
 /// タイムライン上に表示するイベントカード
 ///
@@ -28,6 +40,15 @@ class EventCard extends StatelessWidget {
     final color = eventColor(event);
     final opacity = isDimmed ? 0.3 : eventOpacity(event);
     final hasWarning = eventConstraints.isNotEmpty;
+
+    // 予算テキストの解決
+    final userBudget = event.budgetYen;
+    final catalogDefault =
+        PredefinedCatalogRegistry.findById(event.catalogId)?.defaultBudgetYen;
+    final budgetText = userBudget != null
+        ? _formatBudget(userBudget)
+        : (catalogDefault != null ? _formatBudget(catalogDefault) : null);
+    final isDefaultBudget = userBudget == null && catalogDefault != null;
 
     return Opacity(
       opacity: opacity,
@@ -59,23 +80,41 @@ class EventCard extends StatelessWidget {
                         width: 3,
                         child: Container(color: color),
                       ),
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
-                          ),
-                          child: Text(
-                            event.title,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: color,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              event.title,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: color,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
                             ),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                          ),
+                            if (budgetText != null) ...[
+                              const SizedBox(height: 2),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  budgetText,
+                                  style: TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDefaultBudget
+                                        ? Colors.grey.shade400
+                                        : color.withValues(alpha: 0.8),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
@@ -122,7 +161,7 @@ class EventCard extends StatelessWidget {
                 ),
               ),
             Icon(
-              categoryIcon(event.category),
+              catalogIcon(event.catalogId),
               color: color.withValues(alpha: 0.7),
               size: 20,
             ),

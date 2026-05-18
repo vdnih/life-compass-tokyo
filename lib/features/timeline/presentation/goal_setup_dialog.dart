@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/goal_template_data.dart';
 import '../domain/goal_template.dart';
-import '../domain/life_event.dart';
 import '../logic/goal_template_provider.dart';
 import 'widgets/event_style.dart';
 
@@ -38,7 +37,7 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
     // ゴールイベント自体
     events.add(_PreviewEvent(
       title: template.name,
-      category: template.goalCategory,
+      catalogId: template.goalCatalogId,
       date: goalDateStr,
       isGoal: true,
     ));
@@ -48,7 +47,7 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
       final date = addMonthsToDate(goalDateStr, te.offsetMonthsFromGoal);
       events.add(_PreviewEvent(
         title: te.titleTemplate,
-        category: te.category,
+        catalogId: te.catalogId,
         date: date,
         isGoal: false,
         offsetMonths: te.offsetMonthsFromGoal,
@@ -282,7 +281,7 @@ class _TemplateCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                categoryIcon(template.goalCategory),
+                catalogIcon(template.goalCatalogId),
                 color: color,
                 size: 18,
               ),
@@ -324,14 +323,14 @@ class _TemplateCard extends StatelessWidget {
 /// プレビューイベントのデータモデル（ダイアログ内限定）
 class _PreviewEvent {
   final String title;
-  final EventCategory category;
+  final String catalogId;
   final String date;
   final bool isGoal;
   final int offsetMonths;
 
   const _PreviewEvent({
     required this.title,
-    required this.category,
+    required this.catalogId,
     required this.date,
     required this.isGoal,
     this.offsetMonths = 0,
@@ -346,7 +345,7 @@ class _PreviewEventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = categoryColor(event.category);
+    final color = catalogColor(event.catalogId);
     final dateStr = _formatDate(event.date);
 
     return Container(
@@ -433,8 +432,8 @@ class _PreviewEventTile extends StatelessWidget {
                       const SizedBox(width: 2),
                       Text(
                         '関連',
-                        style:
-                            TextStyle(fontSize: 10, color: Colors.grey[400]),
+                        style: TextStyle(
+                            fontSize: 10, color: Colors.grey[400]),
                       ),
                     ],
                   ],
@@ -451,5 +450,4 @@ class _PreviewEventTile extends StatelessWidget {
     final parts = dateStr.split('-');
     return '${parts[0]}年${int.parse(parts[1])}月';
   }
-
 }

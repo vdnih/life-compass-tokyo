@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'life_event.dart';
 
 /// ゴールテンプレート定義
 /// ユーザーが選択するゴールと、それに関連するイベント群を定義する
@@ -14,8 +13,8 @@ class GoalTemplate {
   /// テンプレートの説明
   final String description;
 
-  /// ゴールイベントのカテゴリ
-  final EventCategory goalCategory;
+  /// ゴールイベントのカタログID
+  final String goalCatalogId;
 
   /// ゴールに関連するテンプレートイベント群
   final List<TemplateEvent> relatedEvents;
@@ -24,7 +23,7 @@ class GoalTemplate {
     required this.id,
     required this.name,
     required this.description,
-    required this.goalCategory,
+    required this.goalCatalogId,
     required this.relatedEvents,
   });
 }
@@ -36,8 +35,8 @@ class TemplateEvent {
   /// イベントタイトルのテンプレート文字列
   final String titleTemplate;
 
-  /// イベントカテゴリ
-  final EventCategory category;
+  /// イベントのカタログID（PredefinedCatalogRegistry で参照可能）
+  final String catalogId;
 
   /// ゴールからの相対月数（負=ゴール前、正=ゴール後）
   final int offsetMonthsFromGoal;
@@ -47,7 +46,7 @@ class TemplateEvent {
 
   const TemplateEvent({
     required this.titleTemplate,
-    required this.category,
+    required this.catalogId,
     required this.offsetMonthsFromGoal,
     this.durationMonths,
   });

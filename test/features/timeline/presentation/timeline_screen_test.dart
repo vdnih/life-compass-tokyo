@@ -21,7 +21,7 @@ class _StubEventsNotifier extends TimelineEventsNotifier {
       date: '2020-01',
       title: 'テストイベント',
       description: '',
-      category: EventCategory.joining,
+      catalogId: 'joining-company',
     ),
   ];
 }

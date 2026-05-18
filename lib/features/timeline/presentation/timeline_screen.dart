@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/logic/auth_provider.dart';
 import '../../auth/presentation/sign_in_dialog.dart';
+import '../../catalog/presentation/catalog_panel.dart';
 import '../../user_profile/user_profile.dart';
 import '../../user_profile/profile_settings_dialog.dart';
+import '../logic/budget_summary_provider.dart';
 import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
 import 'widgets/year_month_timeline.dart';
@@ -22,7 +24,7 @@ class TimelineScreen extends ConsumerStatefulWidget {
 }
 
 class _TimelineScreenState extends ConsumerState<TimelineScreen> {
-  TimelineViewMode _viewMode = TimelineViewMode.year;
+  TimelineViewMode _viewMode = TimelineViewMode.yearMonth;
 
   /// 書き込み操作に認証ガードをかけるヘルパー
   ///
@@ -39,12 +41,26 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     }
   }
 
+  /// 合計予算テキストを組み立てる
+  String _formatTotalBudget(int totalYen) {
+    if (totalYen == 0) return '';
+    if (totalYen >= 100000000) {
+      final oku = (totalYen / 100000000).toStringAsFixed(1);
+      return '合計 ¥${oku}億';
+    }
+    if (totalYen >= 10000) {
+      final man = (totalYen / 10000).round();
+      return '合計 ¥${man}万';
+    }
+    return '合計 ¥${totalYen}円';
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileNotifierProvider);
     final eventsAsync = ref.watch(timelineEventsProvider);
-    final constraints = ref.watch(constraintCheckerProvider);
     final authAsync = ref.watch(authStateProvider);
+    final totalBudget = ref.watch(budgetSummaryProvider);
 
     final isLoggedIn = authAsync.valueOrNull != null;
 
@@ -57,6 +73,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       data: (profile) => profile?.age != null ? '${profile!.age}歳' : '',
       orElse: () => '',
     );
+    final totalBudgetText = _formatTotalBudget(totalBudget);
 
     return Scaffold(
       appBar: AppBar(
@@ -84,6 +101,27 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           ],
         ),
         actions: [
+          // 合計予算チップ
+          if (totalBudgetText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  totalBudgetText,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: SegmentedButton<TimelineViewMode>(
@@ -158,7 +196,8 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               padding: const EdgeInsets.only(right: 4),
               child: IconButton(
                 tooltip: 'サインアウト',
-                icon: const Icon(Icons.logout, color: Colors.white70, size: 20),
+                icon:
+                    const Icon(Icons.logout, color: Colors.white70, size: 20),
                 onPressed: () async {
                   final authRepo = ref.read(authRepositoryProvider);
                   await authRepo.signOut();
@@ -167,19 +206,73 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             ),
         ],
       ),
-      body: eventsAsync.when(
-        data: (events) => _viewMode == TimelineViewMode.yearMonth
-            ? YearMonthTimeline(events: events, constraints: constraints)
-            : YearTimeline(events: events, constraints: constraints),
-        loading: () => Center(
-          child: CircularProgressIndicator(color: AppTheme.primary),
-        ),
-        error: (e, _) => Center(
-          child: Text(
-            'エラーが発生しました: $e',
-            style: const TextStyle(color: Colors.red),
-          ),
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 600;
+
+          final timelineBody = eventsAsync.when(
+            data: (events) => _viewMode == TimelineViewMode.yearMonth
+                ? YearMonthTimeline(
+                    events: events,
+                    constraints: ref.watch(constraintCheckerProvider),
+                  )
+                : YearTimeline(
+                    events: events,
+                    constraints: ref.watch(constraintCheckerProvider),
+                  ),
+            loading: () => Center(
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            ),
+            error: (e, _) => Center(
+              child: Text(
+                'エラーが発生しました: $e',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          );
+
+          if (isDesktop) {
+            // デスクトップ: 左にカタログパネル（200px固定）+ 右にタイムライン
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(
+                  width: 200,
+                  child: CatalogPanel(),
+                ),
+                Container(width: 1, color: Colors.grey.shade200),
+                Expanded(child: timelineBody),
+              ],
+            );
+          } else {
+            // モバイル: タイムラインのみ表示（カタログはドロワーボタンで開く）
+            return Builder(
+              builder: (ctx) => Stack(
+                children: [
+                  timelineBody,
+                  Positioned(
+                    bottom: 88,
+                    left: 12,
+                    child: FloatingActionButton.small(
+                      heroTag: 'catalog_panel_btn',
+                      tooltip: 'カタログを開く',
+                      backgroundColor: AppTheme.primary,
+                      onPressed: () {
+                        Scaffold.of(ctx).openDrawer();
+                      },
+                      child: const Icon(Icons.menu_book_outlined,
+                          color: Colors.white, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
+      ),
+      drawer: const Drawer(
+        width: 220,
+        child: CatalogPanel(),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _withAuth(() {
