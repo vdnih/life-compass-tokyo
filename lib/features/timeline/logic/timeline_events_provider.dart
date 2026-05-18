@@ -74,6 +74,9 @@ class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
         catalogId: catalog.id,
         kind: EventKind.event,
         date: date,
+        endDate: catalog.defaultDurationMonths != null
+            ? _addMonths(date, catalog.defaultDurationMonths!)
+            : null,
         title: catalog.label,
         description: '',
         status: EventStatus.planned,
