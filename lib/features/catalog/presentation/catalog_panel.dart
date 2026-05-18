@@ -201,21 +201,26 @@ class _CatalogItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LongPressDraggable<PredefinedLifeEvent>(
-      data: item,
-      delay: const Duration(milliseconds: 400),
-      feedback: Material(
-        color: Colors.transparent,
-        child: Transform.scale(
-          scale: 0.85,
-          child: _buildItemCard(opacity: 1.0),
+    // Listener でトラックパッドの pan/zoom イベントを吸収し、
+    // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。
+    return Listener(
+      onPointerPanZoomStart: (_) {},
+      child: LongPressDraggable<PredefinedLifeEvent>(
+        data: item,
+        delay: const Duration(milliseconds: 400),
+        feedback: Material(
+          color: Colors.transparent,
+          child: Transform.scale(
+            scale: 0.85,
+            child: _buildItemCard(opacity: 1.0),
+          ),
         ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.4,
+        childWhenDragging: Opacity(
+          opacity: 0.4,
+          child: _buildItemRow(),
+        ),
         child: _buildItemRow(),
       ),
-      child: _buildItemRow(),
     );
   }
 

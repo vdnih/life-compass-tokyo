@@ -550,36 +550,50 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 120,
-                height: 50,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border(
-                    left: BorderSide(color: borderColor, width: 3),
-                    top: BorderSide(color: Colors.grey.shade200),
-                    right: BorderSide(color: Colors.grey.shade200),
-                    bottom: BorderSide(color: Colors.grey.shade200),
-                  ),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      catalog.label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: catalog.color,
+              Stack(
+                children: [
+                  Container(
+                    width: 120,
+                    height: 50,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          catalog.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: catalog.color,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
                     ),
                   ),
-                ),
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 3,
+                      decoration: BoxDecoration(
+                        color: borderColor,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          bottomLeft: Radius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               if (violationMessage != null)
                 Container(
@@ -679,6 +693,12 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
           if (data is String) {
             _applyCascadeMove(data, newDateStr, events);
           } else if (data is PredefinedLifeEvent) {
+            // 認証チェック（タップ追加と同じパターン）
+            if (!mounted) return;
+            if (ref.read(authStateProvider).valueOrNull == null) {
+              showDialog<void>(context: context, builder: (_) => const SignInDialog());
+              return;
+            }
             _applyAddFromCatalog(data, newDateStr);
           }
         },
@@ -828,10 +848,14 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       result.add(Positioned(
         left: xPos - 60,
         top: topPos,
-        child: LongPressDraggable<String>(
-          data: event.id,
-          delay: const Duration(milliseconds: 400),
-          onDragStarted: () {
+        // Listener でトラックパッドの pan/zoom イベントを吸収し、
+        // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。
+        child: Listener(
+          onPointerPanZoomStart: (_) {},
+          child: LongPressDraggable<String>(
+            data: event.id,
+            delay: const Duration(milliseconds: 400),
+            onDragStarted: () {
             setState(() => _draggingEventId = event.id);
           },
           onDraggableCanceled: (_, __) {
@@ -899,6 +923,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
               ],
             ),
           ),
+        ),
         ),
       ));
     }
