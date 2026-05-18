@@ -75,16 +75,17 @@ void main() {
     });
 
     // Wave 4: lifestyle に home-purchase / home-search / home-purchase-signing / move-in の4件を追加
-    test('全カタログが44件であること', () {
-      expect(allEvents.length, 44);
+    // + career に side-job-preparation / side-job-short の2件を追加 → 46件
+    test('全カタログが46件であること', () {
+      expect(allEvents.length, 46);
     });
 
-    test('キャリアグループが7件であること', () {
+    test('キャリアグループが9件であること', () {
       final careerCount = allEvents
           .where((e) => e.group == LifeEventGroup.career)
           .length;
 
-      expect(careerCount, 7);
+      expect(careerCount, 9);
     });
 
     // Wave 4: lifestyle に4件追加（合計9件）

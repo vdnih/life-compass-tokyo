@@ -298,4 +298,16 @@
   - `lib/features/timeline/presentation/widgets/year_month_timeline.dart` — 全面改修
   - `lib/features/timeline/presentation/widgets/year_timeline.dart` — 全面改修
 
+## 2026-05-18 - [UI/Architecture] タイムライン表示形式の刷新：▲マーカー × 期間バー
+- **判断内容**: 単月イベントを▲マーカー、期間イベントを横伸びバーに変更。旧来の箱カード＋矢印線を廃止。
+- **理由**: 箱カード統一表示では期間の有無が視覚的に区別できず、矢印線は細すぎて見づらかった。
+- **影響範囲**:
+  - `lib/features/timeline/presentation/widgets/point_event_marker.dart` — 新規作成（▲マーカー）
+  - `lib/features/timeline/presentation/widgets/duration_event_bar.dart` — 新規作成（横伸びバー）
+  - `lib/features/timeline/presentation/widgets/year_timeline.dart` — _buildDurationArrows 廃止、レンダリング切り替え、スタッキングをInterval Scheduling方式に変更
+  - `lib/features/timeline/presentation/widgets/year_month_timeline.dart` — 同上
+  - `lib/features/timeline/logic/timeline_events_provider.dart` — addEventFromCatalog で defaultDurationMonths を endDate に自動反映
+  - `lib/features/catalog/data/groups/travel_events.dart` — 海外旅行・長期休暇旅行・ワーケーションの defaultDurationMonths: 1 を削除
+  - `lib/features/catalog/data/groups/career_events.dart` — start-side-job ラベルを '長期副業' に変更、side-job-preparation (3m) と side-job-short (3m) を追加
+
 <!-- ここより上に新しいエントリを追記する -->

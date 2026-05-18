@@ -5,14 +5,14 @@ import 'package:my_career_app/features/catalog/logic/catalog_provider.dart';
 
 void main() {
   group('catalogAllProvider の仕様', () {
-    // Wave 4: lifestyle に4件追加したため44件に更新
-    test('catalogAllProvider が44件返すこと', () {
+    // career に副業準備・短期副業の2件を追加したため46件に更新
+    test('catalogAllProvider が46件返すこと', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
       final all = container.read(catalogAllProvider);
 
-      expect(all.length, 44);
+      expect(all.length, 46);
     });
 
     test('catalogAllProvider が marriage グループのイベントを含むこと', () {
@@ -67,7 +67,7 @@ void main() {
   });
 
   group('catalogSearchProvider の仕様', () {
-    // Wave 4: lifestyle に4件追加したため44件に更新
+    // career に副業準備・短期副業の2件を追加したため46件に更新
     test('catalogSearchProvider でクエリ空文字のとき全件返ること', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -75,7 +75,7 @@ void main() {
       container.read(catalogSearchQueryProvider.notifier).state = '';
       final results = container.read(catalogSearchProvider);
 
-      expect(results.length, 44);
+      expect(results.length, 46);
     });
 
     test('catalogSearchProvider で「結婚」で検索すると関連イベントが返ること', () {

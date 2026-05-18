@@ -388,5 +388,58 @@ void main() {
       final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
       expect(parent.budgetYen, equals(3000000));
     });
+
+    test(
+        'addEventFromCatalog: defaultDurationMonths を持つカタログ（pregnancy=10ヶ月）をドロップすると endDate が設定されること',
+        () async {
+      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
+      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      final savedEvents = <LifeEvent>[];
+      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
+        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
+      });
+      when(() => mockRepository.fetchEvents())
+          .thenAnswer((_) async => List.unmodifiable(savedEvents));
+
+      // pregnancy は defaultDurationMonths: 10
+      final catalog = PredefinedCatalogRegistry.findById('pregnancy')!;
+      await container
+          .read(timelineEventsProvider.notifier)
+          .addEventFromCatalog(catalog, '2026-03');
+
+      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
+      // 2026-03 + 10ヶ月 = 2027-01
+      expect(parent.endDate, equals('2027-01'));
+    });
+
+    test(
+        'addEventFromCatalog: defaultDurationMonths を持たないカタログ（childbirth）をドロップすると endDate が null になること',
+        () async {
+      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
+      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
+
+      final container = createContainer();
+      await container.read(timelineEventsProvider.future);
+
+      final savedEvents = <LifeEvent>[];
+      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
+        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
+      });
+      when(() => mockRepository.fetchEvents())
+          .thenAnswer((_) async => List.unmodifiable(savedEvents));
+
+      // childbirth は defaultDurationMonths を持たない（null）
+      final catalog = PredefinedCatalogRegistry.findById('childbirth')!;
+      await container
+          .read(timelineEventsProvider.notifier)
+          .addEventFromCatalog(catalog, '2026-03');
+
+      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
+      expect(parent.endDate, isNull);
+    });
   });
 }

@@ -39,7 +39,7 @@ import '../../domain/predefined_life_event.dart';
 /// ),
 /// ```
 
-/// キャリアグループの全カタログイベント（7件）
+/// キャリアグループの全カタログイベント（9件）
 const List<PredefinedLifeEvent> careerEvents = [
   PredefinedLifeEvent(
     id: 'joining-company',
@@ -103,7 +103,7 @@ const List<PredefinedLifeEvent> careerEvents = [
   ),
   PredefinedLifeEvent(
     id: 'start-side-job',
-    label: '副業開始',
+    label: '長期副業',
     group: LifeEventGroup.career,
     icon: Icons.work_outline,
     color: Color(0xFF9DB5E8),
@@ -120,6 +120,41 @@ const List<PredefinedLifeEvent> careerEvents = [
         offsetMonthsFromParent: -1,
       ),
     ],
+  ),
+  PredefinedLifeEvent(
+    id: 'side-job-preparation',
+    label: '副業準備',
+    group: LifeEventGroup.career,
+    icon: Icons.edit_note,
+    color: Color(0xFF9DB5E8),
+    defaultDurationMonths: 3,
+    hardRules: [
+      HardPrecedence(
+        predecessorCatalogId: 'joining-company',
+        message: '入社の後に置かれるイベントの目安です',
+      ),
+    ],
+    softRules: [],
+    milestoneTemplates: [
+      MilestoneTemplate(label: '副業内容検討', offsetMonthsFromParent: 0),
+      MilestoneTemplate(label: '事業計画', offsetMonthsFromParent: 1),
+    ],
+  ),
+  PredefinedLifeEvent(
+    id: 'side-job-short',
+    label: '短期副業',
+    group: LifeEventGroup.career,
+    icon: Icons.timelapse,
+    color: Color(0xFF9DB5E8),
+    defaultDurationMonths: 3,
+    hardRules: [
+      HardPrecedence(
+        predecessorCatalogId: 'joining-company',
+        message: '入社の後に置かれるイベントの目安です',
+      ),
+    ],
+    softRules: [],
+    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'obtain-certification',

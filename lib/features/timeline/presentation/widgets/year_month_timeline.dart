@@ -18,9 +18,11 @@ import '../../logic/timeline_events_provider.dart';
 import '../add_event_dialog.dart';
 import '../edit_event_dialog.dart';
 import 'dependency_connector.dart';
+import 'duration_event_bar.dart';
 import 'event_card.dart';
 import 'event_style.dart';
 import 'milestone_chip.dart';
+import 'point_event_marker.dart';
 
 const _uuid = Uuid();
 
@@ -63,19 +65,33 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   // ---- stacking helpers ----
 
   /// Returns a map of eventId → stack index within its (date, lane) slot.
+  double _colIdx(String yyyyMM, DateTime startDate) {
+    final p = yyyyMM.split('-');
+    return ((int.parse(p[0]) - startDate.year) * 12 +
+        (int.parse(p[1]) - startDate.month)).toDouble();
+  }
+
   Map<String, int> _computeStackIndices(
       List<LifeEvent> events, DateTime startDate) {
-    final groups = <String, List<String>>{};
-    for (final e in events) {
-      final offset = (e.dateTime.year - startDate.year) * 12 +
-          (e.dateTime.month - startDate.month);
-      final key = '${offset}_${e.isWork}';
-      groups.putIfAbsent(key, () => []).add(e.id);
-    }
     final indices = <String, int>{};
-    for (final group in groups.values) {
-      for (int i = 0; i < group.length; i++) {
-        indices[group[i]] = i;
+    for (final isWork in [true, false]) {
+      final lane = events.where((e) => e.isWork == isWork).toList()
+        ..sort((a, b) =>
+            _colIdx(a.date, startDate).compareTo(_colIdx(b.date, startDate)));
+      final stackEndAt = <double>[];
+      for (final event in lane) {
+        final start = _colIdx(event.date, startDate);
+        final end = event.hasDuration
+            ? _colIdx(event.endDate!, startDate) + 1.0
+            : start + 1.0;
+        int level = stackEndAt.indexWhere((e) => e <= start);
+        if (level == -1) {
+          level = stackEndAt.length;
+          stackEndAt.add(end);
+        } else {
+          stackEndAt[level] = end;
+        }
+        indices[event.id] = level;
       }
     }
     return indices;
@@ -83,14 +99,17 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
 
   double _computeRowHeight(List<LifeEvent> events, DateTime startDate) {
     if (events.isEmpty) return _minRowHeight;
-    final counts = <String, int>{};
+    final indices = _computeStackIndices(events, startDate);
+    int workMax = 0, privateMax = 0;
     for (final e in events) {
-      final offset = (e.dateTime.year - startDate.year) * 12 +
-          (e.dateTime.month - startDate.month);
-      final key = '${offset}_${e.isWork}';
-      counts[key] = (counts[key] ?? 0) + 1;
+      final lvl = (indices[e.id] ?? 0) + 1;
+      if (e.isWork) {
+        if (lvl > workMax) workMax = lvl;
+      } else {
+        if (lvl > privateMax) privateMax = lvl;
+      }
     }
-    final maxStack = counts.values.reduce(max);
+    final maxStack = max(workMax, privateMax);
     return max(_minRowHeight, _topPadding + maxStack * _cardHeight);
   }
 
@@ -203,7 +222,6 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                         _buildNowMarker(nowXPos, totalHeight),
                         ..._buildMonthTicks(
                             totalMonths, startDate, profile, axisHeight),
-                        ..._buildDurationArrows(events, startDate, stackIndices),
                         dependenciesAsync.when(
                           data: (deps) => DependencyConnector(
                             dependencies: deps,
@@ -452,52 +470,6 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     });
   }
 
-  List<Widget> _buildDurationArrows(
-    List<LifeEvent> events,
-    DateTime startDate,
-    Map<String, int> stackIndices,
-  ) {
-    return events.where((e) => e.hasDuration).map((event) {
-      final startOffset = ((event.dateTime.year - startDate.year) * 12) +
-          (event.dateTime.month - startDate.month);
-      final endOffset = ((event.endDateTime!.year - startDate.year) * 12) +
-          (event.endDateTime!.month - startDate.month);
-
-      final startXPos = 20.0 + (startOffset * monthWidth);
-      final endXPos = 20.0 + (endOffset * monthWidth);
-      final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
-      final stackIdx = stackIndices[event.id] ?? 0;
-      final baseTop =
-          rowTop + _topPadding + stackIdx * _cardHeight + 50.0 + 4.0;
-      final color = eventColor(event);
-      final opacity = eventOpacity(event);
-
-      return Positioned(
-        left: startXPos + 12,
-        top: baseTop - 1,
-        width: endXPos - startXPos - 12,
-        child: Opacity(
-          opacity: opacity,
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 2,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-              ),
-              Icon(Icons.arrow_right,
-                  color: color.withValues(alpha: 0.6), size: 16),
-            ],
-          ),
-        ),
-      );
-    }).toList();
-  }
-
   /// カタログドラッグ中のプレビューゴーストカードを構築する
   Widget _buildDropPreview(DateTime startDate, int totalMonths) {
     final catalog = PredefinedCatalogRegistry.findById(_previewCatalogId!);
@@ -566,82 +538,140 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
       }
     }
 
-    return Positioned(
-      left: xPos - 60,
-      top: rowTop + _topPadding,
-      child: IgnorePointer(
-        child: Opacity(
-          opacity: 0.6,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  Container(
-                    width: 120,
-                    height: 50,
-                    clipBehavior: Clip.antiAlias,
+    final previewDurationMonths = catalog.defaultDurationMonths;
+    final barPreviewWidth = previewDurationMonths != null
+        ? (previewDurationMonths * monthWidth).clamp(30.0, double.infinity)
+        : null;
+
+    Widget previewBody;
+    if (barPreviewWidth != null) {
+      previewBody = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: barPreviewWidth,
+            height: 50,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: catalog.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor, width: 2),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0, top: 0, bottom: 0, width: 3,
+                  child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          catalog.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: catalog.color,
-                          ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 3,
-                      decoration: BoxDecoration(
-                        color: borderColor,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (violationMessage != null)
-                Container(
-                  margin: const EdgeInsets.only(top: 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: borderColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    violationMessage,
-                    style: TextStyle(
-                      fontSize: 8,
                       color: borderColor,
-                      fontWeight: FontWeight.w500,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        bottomLeft: Radius.circular(8),
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      catalog.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: catalog.color,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (violationMessage != null)
+            _previewViolationChip(violationMessage, borderColor),
+        ],
+      );
+    } else {
+      previewBody = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              Container(
+                width: 120,
+                height: 50,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      catalog.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: catalog.color,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0, top: 0, bottom: 0,
+                child: Container(
+                  width: 3,
+                  decoration: BoxDecoration(
+                    color: borderColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
+          if (violationMessage != null)
+            _previewViolationChip(violationMessage, borderColor),
+        ],
+      );
+    }
+
+    return Positioned(
+      left: barPreviewWidth != null ? xPos : xPos - 60,
+      top: rowTop + _topPadding,
+      child: IgnorePointer(
+        child: Opacity(opacity: 0.6, child: previewBody),
+      ),
+    );
+  }
+
+  Widget _previewViolationChip(String message, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          fontSize: 8,
+          color: color,
+          fontWeight: FontWeight.w500,
         ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -865,6 +895,16 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
       final stackIdx = stackIndices[event.id] ?? 0;
       final topPos = rowTop + _topPadding + stackIdx * _cardHeight;
 
+      double barWidth = 0;
+      if (event.hasDuration) {
+        final endOffset = ((event.endDateTime!.year - startDate.year) * 12) +
+            (event.endDateTime!.month - startDate.month);
+        barWidth = ((endOffset - monthOffset) * monthWidth)
+            .clamp(30.0, double.infinity);
+      }
+
+      final leftOffset = event.hasDuration ? xPos : xPos - 40;
+
       final eventConstraints = widget.constraints
           .where((c) => c.targetEventTitle == event.title)
           .toList();
@@ -881,7 +921,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
       final color = eventColor(event);
 
       result.add(Positioned(
-        left: xPos - 60,
+        left: leftOffset,
         top: topPos,
         // Listener でトラックパッドの pan/zoom イベントを吸収し、
         // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。
@@ -891,74 +931,99 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
             data: event.id,
             delay: const Duration(milliseconds: 400),
             onDragStarted: () {
-            setState(() => _draggingEventId = event.id);
-          },
-          onDraggableCanceled: (_, __) {
-            setState(() {
-              _draggingEventId = null;
-              _cascadePreviewChanges = [];
-            });
-          },
-          onDragEnd: (_) {
-            setState(() {
-              _draggingEventId = null;
-              _cascadePreviewChanges = [];
-            });
-          },
-          feedback: Material(
-            color: Colors.transparent,
-            child: Transform.scale(
-              scale: 1.05,
-              child: EventCard(
-                  event: event, eventConstraints: eventConstraints),
-            ),
-          ),
-          childWhenDragging: EventCard(
-            event: event,
-            eventConstraints: eventConstraints,
-            isDimmed: true,
-          ),
-          child: GestureDetector(
-            onTap: () {
-              if (_linkingEventId != null) {
-                _handleLinkTap(event, events);
-              } else {
-                _showEventDetails(context, event, eventConstraints, events);
-              }
+              setState(() => _draggingEventId = event.id);
             },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                EventCard(
-                  event: event,
-                  eventConstraints: eventConstraints,
-                  isDimmed: isDragging || (isInCascade && !isDragging),
-                ),
-                if (childMilestones.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  SizedBox(
-                    width: 120,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: childMilestones
-                          .map((m) => Padding(
-                                padding: const EdgeInsets.only(bottom: 2),
-                                child: MilestoneChip(
-                                  milestone: m,
-                                  parentColor: color,
-                                  onDelete: () =>
-                                      _deleteEvent(context, m),
-                                ),
-                              ))
-                          .toList(),
-                    ),
+            onDraggableCanceled: (_, __) {
+              setState(() {
+                _draggingEventId = null;
+                _cascadePreviewChanges = [];
+              });
+            },
+            onDragEnd: (_) {
+              setState(() {
+                _draggingEventId = null;
+                _cascadePreviewChanges = [];
+              });
+            },
+            feedback: Material(
+              color: Colors.transparent,
+              child: Transform.scale(
+                scale: 1.05,
+                child: event.hasDuration
+                    ? DurationEventBar(
+                        event: event,
+                        barWidth: barWidth.clamp(80.0, 200.0),
+                        eventConstraints: eventConstraints,
+                      )
+                    : PointEventMarker(
+                        event: event,
+                        eventConstraints: eventConstraints,
+                      ),
+              ),
+            ),
+            childWhenDragging: event.hasDuration
+                ? DurationEventBar(
+                    event: event,
+                    barWidth: barWidth,
+                    eventConstraints: eventConstraints,
+                    isDimmed: true,
+                  )
+                : PointEventMarker(
+                    event: event,
+                    eventConstraints: eventConstraints,
+                    isDimmed: true,
                   ),
+            child: GestureDetector(
+              onTap: () {
+                if (_linkingEventId != null) {
+                  _handleLinkTap(event, events);
+                } else {
+                  _showEventDetails(context, event, eventConstraints, events);
+                }
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (event.hasDuration)
+                    DurationEventBar(
+                      event: event,
+                      barWidth: barWidth,
+                      eventConstraints: eventConstraints,
+                      isDimmed: isDragging || (isInCascade && !isDragging),
+                    )
+                  else
+                    PointEventMarker(
+                      event: event,
+                      eventConstraints: eventConstraints,
+                      isDimmed: isDragging || (isInCascade && !isDragging),
+                    ),
+                  if (childMilestones.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    SizedBox(
+                      width: event.hasDuration
+                          ? barWidth.clamp(80.0, 120.0)
+                          : 80,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: childMilestones
+                            .map((m) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 2),
+                                  child: MilestoneChip(
+                                    milestone: m,
+                                    parentColor: color,
+                                    onDelete: () =>
+                                        _deleteEvent(context, m),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
         ),
       ));
     }
