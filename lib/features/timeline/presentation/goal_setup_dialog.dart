@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/year_month_picker.dart';
 import '../data/goal_template_data.dart';
 import '../domain/goal_template.dart';
 import '../logic/goal_template_provider.dart';
@@ -61,12 +62,12 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
   }
 
   Future<void> _selectGoalDate(BuildContext context) async {
-    final picked = await showDatePicker(
+    final picked = await showYearMonthPicker(
       context: context,
       initialDate: _goalDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2040),
-      helpText: 'ゴール年月を選択',
+      title: 'ゴール年月を選択',
     );
     if (picked != null && picked != _goalDate) {
       setState(() {

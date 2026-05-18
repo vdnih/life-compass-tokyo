@@ -60,6 +60,56 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   // Computed dynamically in build()
   double _rowHeight = _minRowHeight;
 
+  // ---- scroll ----
+  final ScrollController _horizontalScrollController = ScrollController();
+  bool _hasScrolledToNow = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToNow());
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToNow() {
+    if (_hasScrolledToNow) return;
+    if (!_horizontalScrollController.hasClients) return;
+    final now = DateTime.now();
+    final startDate = DateTime(now.year - 5, now.month);
+    final nowOffset =
+        ((now.year - startDate.year) * 12) + (now.month - startDate.month);
+    final nowXPos = 20.0 + (nowOffset * monthWidth);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset =
+        (nowXPos - viewportWidth / 2).clamp(0.0, _horizontalScrollController.position.maxScrollExtent);
+    _horizontalScrollController.jumpTo(targetOffset);
+    _hasScrolledToNow = true;
+  }
+
+  void _animateToNow() {
+    if (!_horizontalScrollController.hasClients) return;
+    final now = DateTime.now();
+    final startDate = DateTime(now.year - 5, now.month);
+    final nowOffset =
+        ((now.year - startDate.year) * 12) + (now.month - startDate.month);
+    final nowXPos = 20.0 + (nowOffset * monthWidth);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset =
+        (nowXPos - viewportWidth / 2).clamp(0.0, _horizontalScrollController.position.maxScrollExtent);
+    _horizontalScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  }
+
   // ---- stacking helpers ----
 
   /// Returns a map of eventId → stack index within its (date, lane) slot.
@@ -99,111 +149,96 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   @override
   Widget build(BuildContext context) {
     final events = widget.events;
+    final now = DateTime.now();
 
-    Widget mainContent;
-    if (events.isEmpty) {
-      mainContent = Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.timeline,
-                size: 64, color: AppTheme.primary.withValues(alpha: 0.25)),
-            const SizedBox(height: 16),
-            Text(
-              'まだイベントがありません',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primary.withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '＋ボタンでイベントを追加しましょう',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.primary.withValues(alpha: 0.35),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      final profile = ref.watch(userProfileNotifierProvider).valueOrNull;
-      final dependenciesAsync = ref.watch(dependencyProvider);
+    // 常にデフォルト範囲を確保（現在 -5年 〜 現在 +15年）
+    DateTime startDate = DateTime(now.year - 5, now.month);
+    DateTime endDate = DateTime(now.year + 15, now.month);
 
+    // イベントがある場合は範囲を必要に応じて拡張
+    if (events.isNotEmpty) {
       final sortedEvents = List<LifeEvent>.from(events)
         ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
-      final firstDate = sortedEvents.first.dateTime;
-      DateTime lastDate = sortedEvents.last.dateTime;
-      for (var e in events) {
-        if (e.hasDuration && e.endDateTime!.isAfter(lastDate)) {
-          lastDate = e.endDateTime!;
+      final firstEventDate = sortedEvents.first.dateTime;
+      DateTime lastEventDate = sortedEvents.last.dateTime;
+      for (final e in events) {
+        if (e.hasDuration && e.endDateTime!.isAfter(lastEventDate)) {
+          lastEventDate = e.endDateTime!;
         }
       }
-
-      final startDate = DateTime(firstDate.year, firstDate.month - 3);
-      final endDate = DateTime(lastDate.year, lastDate.month + 6);
-      final totalMonths = ((endDate.year - startDate.year) * 12) +
-          (endDate.month - startDate.month);
-
-      _rowHeight = _computeRowHeight(events, startDate);
-      final stackIndices = _computeStackIndices(events, startDate);
-
-      final now = DateTime.now();
-      final nowOffset =
-          ((now.year - startDate.year) * 12) + (now.month - startDate.month);
-      final nowXPos = 20.0 + (nowOffset * monthWidth);
-
-      final eventPositions = <String, double>{};
-      final eventLanes = <String, bool>{};
-      for (final event in events) {
-        final monthOffset = ((event.dateTime.year - startDate.year) * 12) +
-            (event.dateTime.month - startDate.month);
-        eventPositions[event.id] = 20.0 + (monthOffset * monthWidth);
-        eventLanes[event.id] = event.isWork;
+      if (firstEventDate.isBefore(startDate)) {
+        startDate = DateTime(firstEventDate.year, firstEventDate.month - 3);
       }
+      if (lastEventDate.isAfter(endDate)) {
+        endDate = DateTime(lastEventDate.year, lastEventDate.month + 6);
+      }
+    }
 
-      final totalWidth = totalMonths * monthWidth + 100;
-      final totalHeight = axisHeight + _rowHeight * 2;
+    final totalMonths = ((endDate.year - startDate.year) * 12) +
+        (endDate.month - startDate.month);
 
-      mainContent = SingleChildScrollView(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 40),
-              child: SizedBox(
-                width: sidebarWidth,
-                height: totalHeight,
-                child: _buildLaneLabels(),
-              ),
+    final profile = ref.watch(userProfileNotifierProvider).valueOrNull;
+    final dependenciesAsync = ref.watch(dependencyProvider);
+
+    _rowHeight = _computeRowHeight(events, startDate);
+    final stackIndices = events.isNotEmpty
+        ? _computeStackIndices(events, startDate)
+        : <String, int>{};
+
+    final nowOffset =
+        ((now.year - startDate.year) * 12) + (now.month - startDate.month);
+    final nowXPos = 20.0 + (nowOffset * monthWidth);
+
+    final eventPositions = <String, double>{};
+    final eventLanes = <String, bool>{};
+    for (final event in events) {
+      final monthOffset = ((event.dateTime.year - startDate.year) * 12) +
+          (event.dateTime.month - startDate.month);
+      eventPositions[event.id] = 20.0 + (monthOffset * monthWidth);
+      eventLanes[event.id] = event.isWork;
+    }
+
+    final totalWidth = totalMonths * monthWidth + 100;
+    final totalHeight = axisHeight + _rowHeight * 2;
+
+    final timelineContent = SingleChildScrollView(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 40),
+            child: SizedBox(
+              width: sidebarWidth,
+              height: totalHeight,
+              child: _buildLaneLabels(),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding:
-                    const EdgeInsets.only(top: 40, bottom: 40, right: 40),
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTapUp: (details) => _handleTap(
-                    details,
-                    startDate,
-                    totalMonths,
-                    context,
-                  ),
-                  child: SizedBox(
-                    width: totalWidth,
-                    height: totalHeight,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _buildGridLines(totalHeight),
-                        _buildNowMarker(nowXPos, totalHeight),
-                        ..._buildMonthTicks(
-                            totalMonths, startDate, profile, axisHeight),
-                        ..._buildDurationArrows(events, startDate, stackIndices),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(top: 40, bottom: 40, right: 40),
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTapUp: (details) => _handleTap(
+                  details,
+                  startDate,
+                  totalMonths,
+                  context,
+                ),
+                child: SizedBox(
+                  width: totalWidth,
+                  height: totalHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _buildGridLines(totalHeight),
+                      _buildNowMarker(nowXPos, totalHeight),
+                      ..._buildMonthTicks(
+                          totalMonths, startDate, profile, axisHeight),
+                      if (events.isNotEmpty) ...[
+                        ..._buildDurationArrows(
+                            events, startDate, stackIndices),
                         dependenciesAsync.when(
                           data: (deps) => DependencyConnector(
                             dependencies: deps,
@@ -217,32 +252,103 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                           loading: () => const SizedBox.shrink(),
                           error: (_, __) => const SizedBox.shrink(),
                         ),
-                        _buildDropTarget(
-                          totalWidth,
-                          totalHeight,
-                          startDate,
-                          totalMonths,
-                          events,
-                        ),
-                        if (_previewCatalogId != null && _previewDate != null)
-                          _buildDropPreview(startDate, totalMonths),
+                      ],
+                      _buildDropTarget(
+                        totalWidth,
+                        totalHeight,
+                        startDate,
+                        totalMonths,
+                        events,
+                      ),
+                      if (_previewCatalogId != null && _previewDate != null)
+                        _buildDropPreview(startDate, totalMonths),
+                      if (events.isNotEmpty)
                         ..._buildEventCards(
                             events, startDate, stackIndices, context),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final Widget mainContent = events.isEmpty
+        ? Stack(
+            children: [
+              timelineContent,
+              IgnorePointer(
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.timeline,
+                            size: 48,
+                            color: AppTheme.primary.withValues(alpha: 0.25)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'まだイベントがありません',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '＋ボタンでイベントを追加しましょう',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.primary.withValues(alpha: 0.35),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-    }
+            ],
+          )
+        : timelineContent;
 
     return Column(
       children: [
         if (_linkingEventId != null) _buildLinkModeBanner(),
-        Expanded(child: mainContent),
+        Expanded(
+          child: Stack(
+            children: [
+              mainContent,
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton.small(
+                  heroTag: 'scrollToNowMonth',
+                  tooltip: '今月に戻る',
+                  onPressed: _animateToNow,
+                  backgroundColor: AppTheme.primary,
+                  child: const Icon(Icons.today,
+                      color: Colors.white, size: 20),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
