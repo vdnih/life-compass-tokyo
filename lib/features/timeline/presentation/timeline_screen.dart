@@ -11,7 +11,6 @@ import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
 import 'widgets/year_month_timeline.dart';
 import 'widgets/year_timeline.dart';
-import 'add_event_dialog.dart';
 import 'goal_setup_dialog.dart';
 
 enum TimelineViewMode { yearMonth, year }
@@ -251,7 +250,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                 children: [
                   timelineBody,
                   Positioned(
-                    bottom: 88,
+                    bottom: 16,
                     left: 12,
                     child: FloatingActionButton.small(
                       heroTag: 'catalog_panel_btn',
@@ -273,16 +272,6 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       drawer: const Drawer(
         width: 220,
         child: CatalogPanel(),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _withAuth(() {
-          showDialog(
-            context: context,
-            builder: (context) => const AddEventDialog(),
-          );
-        }),
-        tooltip: 'イベントを追加',
-        child: const Icon(Icons.add),
       ),
     );
   }

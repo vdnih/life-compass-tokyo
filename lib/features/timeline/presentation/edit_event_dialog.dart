@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/year_month_picker.dart';
 import '../../catalog/data/predefined_catalog_registry.dart';
 import '../logic/timeline_events_provider.dart';
 import '../domain/life_event.dart';
@@ -56,12 +57,12 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showYearMonthPicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
-      helpText: '開始年月を選択',
+      title: '開始年月を選択',
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -76,12 +77,12 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
   }
 
   Future<void> _selectEndDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showYearMonthPicker(
       context: context,
       initialDate: _selectedEndDate ?? _selectedDate,
       firstDate: _selectedDate,
       lastDate: DateTime(2100),
-      helpText: '終了年月を選択',
+      title: '終了年月を選択',
     );
     if (picked != null) {
       setState(() {

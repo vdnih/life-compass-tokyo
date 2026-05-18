@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/logic/auth_provider.dart';
+import '../../auth/presentation/sign_in_dialog.dart';
 import '../../timeline/logic/timeline_events_provider.dart';
+import '../../timeline/presentation/add_event_dialog.dart';
 import '../domain/predefined_life_event.dart';
 import '../logic/catalog_provider.dart';
 
@@ -28,9 +31,58 @@ class CatalogPanel extends ConsumerWidget {
       color: Colors.grey.shade50,
       child: Column(
         children: [
+          // カスタムイベント追加ボタン
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                final user = ref.read(authStateProvider).valueOrNull;
+                if (user == null) {
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) => const SignInDialog(),
+                  );
+                } else {
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) => const AddEventDialog(),
+                  );
+                }
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.add_circle_outline,
+                        size: 15, color: AppTheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'カスタムイベントの追加',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // 検索フィールド
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: TextField(
               decoration: InputDecoration(
                 hintText: '検索',

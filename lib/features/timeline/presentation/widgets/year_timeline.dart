@@ -59,6 +59,54 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
 
   double _rowHeight = _minRowHeight;
 
+  // ---- scroll ----
+  final ScrollController _horizontalScrollController = ScrollController();
+  bool _hasScrolledToNow = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToNow());
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToNow() {
+    if (_hasScrolledToNow) return;
+    if (!_horizontalScrollController.hasClients) return;
+    final now = DateTime.now();
+    final startYear = now.year - 5;
+    final nowOffset = now.year - startYear;
+    final nowXPos = 20.0 + (nowOffset * yearWidth);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset =
+        (nowXPos - viewportWidth / 2).clamp(0.0, _horizontalScrollController.position.maxScrollExtent);
+    _horizontalScrollController.jumpTo(targetOffset);
+    _hasScrolledToNow = true;
+  }
+
+  void _animateToNow() {
+    if (!_horizontalScrollController.hasClients) return;
+    final now = DateTime.now();
+    final startYear = now.year - 5;
+    final nowOffset = now.year - startYear;
+    final nowXPos = 20.0 + (nowOffset * yearWidth);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset =
+        (nowXPos - viewportWidth / 2).clamp(0.0, _horizontalScrollController.position.maxScrollExtent);
+    _horizontalScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  }
+
   // ---- stacking helpers ----
 
   Map<String, int> _computeStackIndices(
@@ -95,107 +143,87 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
   @override
   Widget build(BuildContext context) {
     final events = widget.events;
+    final now = DateTime.now();
 
-    Widget mainContent;
-    if (events.isEmpty) {
-      mainContent = Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.timeline,
-                size: 64, color: AppTheme.primary.withValues(alpha: 0.25)),
-            const SizedBox(height: 16),
-            Text(
-              'まだイベントがありません',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primary.withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '＋ボタンでイベントを追加しましょう',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.primary.withValues(alpha: 0.35),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      final profile = ref.watch(userProfileNotifierProvider).valueOrNull;
-      final dependenciesAsync = ref.watch(dependencyProvider);
+    // 常にデフォルト範囲を確保（現在 -5年 〜 現在 +15年）
+    int startYear = now.year - 5;
+    int endYear = now.year + 15;
 
+    // イベントがある場合は範囲を必要に応じて拡張
+    if (events.isNotEmpty) {
       final sortedEvents = List<LifeEvent>.from(events)
         ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
-      final firstYear = sortedEvents.first.dateTime.year;
-      int lastYear = sortedEvents.last.dateTime.year;
-      for (var e in events) {
-        if (e.hasDuration && e.endDateTime!.year > lastYear) {
-          lastYear = e.endDateTime!.year;
+      final firstEventYear = sortedEvents.first.dateTime.year;
+      int lastEventYear = sortedEvents.last.dateTime.year;
+      for (final e in events) {
+        if (e.hasDuration && e.endDateTime!.year > lastEventYear) {
+          lastEventYear = e.endDateTime!.year;
         }
       }
+      if (firstEventYear < startYear) startYear = firstEventYear - 2;
+      if (lastEventYear > endYear) endYear = lastEventYear + 3;
+    }
 
-      final startYear = firstYear - 2;
-      final endYear = lastYear + 3;
-      final totalYears = endYear - startYear;
+    final totalYears = endYear - startYear;
 
-      _rowHeight = _computeRowHeight(events, startYear);
-      final stackIndices = _computeStackIndices(events, startYear);
+    final profile = ref.watch(userProfileNotifierProvider).valueOrNull;
+    final dependenciesAsync = ref.watch(dependencyProvider);
 
-      final now = DateTime.now();
-      final nowOffset = now.year - startYear;
-      final nowXPos = 20.0 + (nowOffset * yearWidth);
+    _rowHeight = _computeRowHeight(events, startYear);
+    final stackIndices = events.isNotEmpty
+        ? _computeStackIndices(events, startYear)
+        : <String, int>{};
 
-      final eventPositions = <String, double>{};
-      final eventLanes = <String, bool>{};
-      for (final event in events) {
-        final yearOffset = event.dateTime.year - startYear;
-        eventPositions[event.id] = 20.0 + (yearOffset * yearWidth);
-        eventLanes[event.id] = event.isWork;
-      }
+    final nowOffset = now.year - startYear;
+    final nowXPos = 20.0 + (nowOffset * yearWidth);
 
-      final totalWidth = totalYears * yearWidth + 100;
-      final totalHeight = axisHeight + _rowHeight * 2;
+    final eventPositions = <String, double>{};
+    final eventLanes = <String, bool>{};
+    for (final event in events) {
+      final yearOffset = event.dateTime.year - startYear;
+      eventPositions[event.id] = 20.0 + (yearOffset * yearWidth);
+      eventLanes[event.id] = event.isWork;
+    }
 
-      mainContent = SingleChildScrollView(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 40),
-              child: SizedBox(
-                width: sidebarWidth,
-                height: totalHeight,
-                child: _buildLaneLabels(),
-              ),
+    final totalWidth = totalYears * yearWidth + 100;
+    final totalHeight = axisHeight + _rowHeight * 2;
+
+    final timelineContent = SingleChildScrollView(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 40),
+            child: SizedBox(
+              width: sidebarWidth,
+              height: totalHeight,
+              child: _buildLaneLabels(),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding:
-                    const EdgeInsets.only(top: 40, bottom: 40, right: 40),
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTapUp: (details) => _handleTap(
-                    details,
-                    startYear,
-                    totalYears,
-                    context,
-                  ),
-                  child: SizedBox(
-                    width: totalWidth,
-                    height: totalHeight,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _buildGridLines(totalHeight),
-                        _buildNowMarker(nowXPos, totalHeight),
-                        ..._buildYearTicks(
-                            totalYears, startYear, profile, axisHeight),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(top: 40, bottom: 40, right: 40),
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTapUp: (details) => _handleTap(
+                  details,
+                  startYear,
+                  totalYears,
+                  context,
+                ),
+                child: SizedBox(
+                  width: totalWidth,
+                  height: totalHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _buildGridLines(totalHeight),
+                      _buildNowMarker(nowXPos, totalHeight),
+                      ..._buildYearTicks(
+                          totalYears, startYear, profile, axisHeight),
+                      if (events.isNotEmpty) ...[
                         ..._buildDurationArrows(
                             events, startYear, stackIndices),
                         dependenciesAsync.when(
@@ -211,32 +239,103 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                           loading: () => const SizedBox.shrink(),
                           error: (_, __) => const SizedBox.shrink(),
                         ),
-                        _buildDropTarget(
-                          totalWidth,
-                          totalHeight,
-                          startYear,
-                          totalYears,
-                          events,
-                        ),
-                        if (_previewCatalogId != null && _previewDate != null)
-                          _buildDropPreview(startYear, totalYears),
+                      ],
+                      _buildDropTarget(
+                        totalWidth,
+                        totalHeight,
+                        startYear,
+                        totalYears,
+                        events,
+                      ),
+                      if (_previewCatalogId != null && _previewDate != null)
+                        _buildDropPreview(startYear, totalYears),
+                      if (events.isNotEmpty)
                         ..._buildEventCards(
                             events, startYear, stackIndices, context),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final Widget mainContent = events.isEmpty
+        ? Stack(
+            children: [
+              timelineContent,
+              IgnorePointer(
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.timeline,
+                            size: 48,
+                            color: AppTheme.primary.withValues(alpha: 0.25)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'まだイベントがありません',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '＋ボタンでイベントを追加しましょう',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.primary.withValues(alpha: 0.35),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-    }
+            ],
+          )
+        : timelineContent;
 
     return Column(
       children: [
         if (_linkingEventId != null) _buildLinkModeBanner(),
-        Expanded(child: mainContent),
+        Expanded(
+          child: Stack(
+            children: [
+              mainContent,
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton.small(
+                  heroTag: 'scrollToNowYear',
+                  tooltip: '今年に戻る',
+                  onPressed: _animateToNow,
+                  backgroundColor: AppTheme.primary,
+                  child: const Icon(Icons.today,
+                      color: Colors.white, size: 20),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
