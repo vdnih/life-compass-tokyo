@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../catalog/data/predefined_catalog_registry.dart';
 import '../../catalog/domain/predefined_life_event.dart';
+import 'catalog_picker_field.dart';
 import '../logic/timeline_events_provider.dart';
 import '../domain/life_event.dart';
 
@@ -200,24 +201,10 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
               ),
               const SizedBox(height: 16),
               _sectionLabel('カテゴリ'),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: catalogItems.map((item) {
-                  final isSelected = _selectedCatalogId == item.id;
-                  return ChoiceChip(
-                    label: Text(item.label),
-                    selected: isSelected,
-                    selectedColor: item.color.withValues(alpha: 0.2),
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _selectedCatalogId = item.id;
-                        });
-                      }
-                    },
-                  );
-                }).toList(),
+              CatalogPickerField(
+                selectedCatalogId: _selectedCatalogId,
+                availableItems: catalogItems,
+                onChanged: (id) => setState(() => _selectedCatalogId = id),
               ),
               const SizedBox(height: 16),
               _sectionLabel('ステータス'),
