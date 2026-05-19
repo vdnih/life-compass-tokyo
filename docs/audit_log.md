@@ -4,6 +4,19 @@
 > 人間（ユーザー）はこのログを読んでプロジェクトの進行状況を把握する。
 > 最新のエントリが上に来るように追記すること（降順）。
 
+## 2026-05-19 - [UI改善] タイムライン D&D マグネティックUI + 月縦ガイド線
+
+- **判断内容**:
+  - 年月タイムライン（`year_month_timeline.dart`）と年タイムライン（`year_timeline.dart`）のドラッグ中フィードバックを強化。`_snapMonthIndex` / `_snapYearIndex` を state に保持し、ドラッグ中はスナップ先の月/年セルを `AppTheme.primary` の透過色＋左右ボーダーでハイライト表示するようにした。
+  - `_buildGridLines` を拡張し、タイムライン本体に毎月（年タイムラインでは毎年）の薄い縦ガイド線を追加。年月ビューでは1月のみ alpha=0.10 で他月よりやや濃く、それ以外は alpha=0.05 で「邪魔にならない程度」とした。
+- **理由**: ユーザーから「イベントをドラッグ&ドロップで移動する際にどの月に置かれるのか分からない」「月の縦線がほしい」とのフィードバック。スナップ計算自体は既存実装で `floor()` によりセル単位になっているため、視覚的フィードバックの強化と月境界の可視化のみで「マグネティックUI」を実現した。
+- **影響範囲**:
+  - `lib/features/timeline/presentation/widgets/year_month_timeline.dart`
+  - `lib/features/timeline/presentation/widgets/year_timeline.dart`
+- **検証**: `flutter analyze` で関連ファイルにエラー・警告ゼロ。`flutter test test/features/timeline/` で timeline 系テストは全件パス（既存の `add_event_dialog_test.dart` の2件失敗は私の変更前から発生しており本変更とは無関係）。
+
+---
+
 ## 2026-05-13 10:00 - [QA] Wave 5 品質検証完了
 - **判断内容**: ピボット全5Wave の実装完了後QA検証を実施。flutter analyze / flutter test / カタログ整合性テスト / 統合シナリオテスト（A/B/C）をすべて実行し、品質基準を満たすことを確認した。
 - **理由**: 大規模リファクタリングによるリグレッション確認と品質担保。規定ライフイベントカタログ44件・D&D配置・マイルストーン自動生成・予算プリセット・hard/soft制約という新アーキテクチャが正しく動作することを検証。
