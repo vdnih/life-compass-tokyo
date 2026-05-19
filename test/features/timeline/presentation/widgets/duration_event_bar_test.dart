@@ -8,7 +8,6 @@ void main() {
   const testEvent = LifeEvent(
     id: 'test-duration-event',
     catalogId: 'childcare-leave',
-    kind: EventKind.event,
     date: '2026-03',
     endDate: '2027-03',
     title: '育休',

@@ -1,14 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-/// イベントの種別
-///
-/// - `event`: 通常のライフイベント
-/// - `milestone`: 親イベントに紐づくマイルストーン
-enum EventKind {
-  event,
-  milestone;
-}
-
 /// イベントステータス
 /// 過去の記録か、将来の計画かを区別する
 enum EventStatus {
@@ -27,8 +18,6 @@ enum EventStatus {
 ///
 /// v6.0 変更点:
 /// - `EventCategory` enum を削除。代わりに `catalogId` (String) を使用
-/// - `parentEventId` を追加（マイルストーンの親参照用）
-/// - `kind` (EventKind) を追加
 /// - `budgetYen` (int?) を追加
 @immutable
 class LifeEvent {
@@ -37,12 +26,6 @@ class LifeEvent {
 
   /// カタログID（kebab-case）。`PredefinedCatalogRegistry` で参照可能
   final String catalogId;
-
-  /// 親イベントのID（kind == milestone のときのみ非null）
-  final String? parentEventId;
-
-  /// イベントの種別（event または milestone）
-  final EventKind kind;
 
   /// イベント開始日（yyyy-MM 形式）
   final String date;
@@ -71,8 +54,6 @@ class LifeEvent {
   const LifeEvent({
     required this.id,
     required this.catalogId,
-    this.parentEventId,
-    this.kind = EventKind.event,
     required this.date,
     this.endDate,
     required this.title,
@@ -123,8 +104,6 @@ class LifeEvent {
   LifeEvent copyWith({
     String? id,
     String? catalogId,
-    Object? parentEventId = _sentinel,
-    EventKind? kind,
     String? date,
     Object? endDate = _sentinel,
     String? title,
@@ -137,10 +116,6 @@ class LifeEvent {
     return LifeEvent(
       id: id ?? this.id,
       catalogId: catalogId ?? this.catalogId,
-      parentEventId: parentEventId == _sentinel
-          ? this.parentEventId
-          : parentEventId as String?,
-      kind: kind ?? this.kind,
       date: date ?? this.date,
       endDate: endDate == _sentinel ? this.endDate : endDate as String?,
       title: title ?? this.title,
@@ -157,8 +132,6 @@ class LifeEvent {
     return {
       'id': id,
       'catalogId': catalogId,
-      'parentEventId': parentEventId,
-      'kind': kind.name,
       'date': date,
       'endDate': endDate,
       'title': title,
@@ -175,11 +148,6 @@ class LifeEvent {
     return LifeEvent(
       id: json['id'] as String,
       catalogId: (json['catalogId'] as String?) ?? '',
-      parentEventId: json['parentEventId'] as String?,
-      kind: EventKind.values.firstWhere(
-        (e) => e.name == json['kind'],
-        orElse: () => EventKind.event,
-      ),
       date: json['date'] as String,
       endDate: json['endDate'] as String?,
       title: json['title'] as String,
@@ -200,8 +168,6 @@ class LifeEvent {
     return other is LifeEvent &&
         other.id == id &&
         other.catalogId == catalogId &&
-        other.parentEventId == parentEventId &&
-        other.kind == kind &&
         other.date == date &&
         other.endDate == endDate &&
         other.title == title &&
@@ -216,8 +182,6 @@ class LifeEvent {
   int get hashCode {
     return id.hashCode ^
         catalogId.hashCode ^
-        parentEventId.hashCode ^
-        kind.hashCode ^
         date.hashCode ^
         endDate.hashCode ^
         title.hashCode ^

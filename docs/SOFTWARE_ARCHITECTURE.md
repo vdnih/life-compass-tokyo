@@ -79,9 +79,7 @@ lib/
     │   │   ├── predefined_life_event.dart         # 規定イベント型
     │   │   ├── life_event_group.dart              # enum LifeEventGroup
     │   │   ├── hard_precedence.dart               # hard 先行ルール
-    │   │   ├── soft_precedence.dart               # soft 先行ルール
-    │   │   ├── milestone_template.dart            # 既定マイルストーン
-    │   │   └── event_kind.dart                    # enum EventKind (event/milestone)
+    │   │   └── soft_precedence.dart               # soft 先行ルール
     │   ├── data/
     │   │   ├── predefined_catalog_registry.dart   # 全グループ集約レジストリ
     │   │   └── groups/                            # ★グループ別ファイル分割
@@ -108,7 +106,7 @@ lib/
     │   │   ├── firestore_dependency_repository.dart
     │   │   └── goal_template_data.dart                     # ★v6.0: catalogId参照に書き換え
     │   ├── domain/
-    │   │   ├── life_event.dart                             # ★v6.0: catalogId/parentEventId/kind/budgetYen追加、EventCategory削除
+    │   │   ├── life_event.dart                             # ★v6.0: catalogId/budgetYen追加、EventCategory削除
     │   │   ├── constraint_result.dart
     │   │   ├── event_dependency.dart                       # ★v6.0: strength追加
     │   │   ├── dependency_strength.dart                    # ★v6.0新規: enum DependencyStrength
@@ -118,7 +116,7 @@ lib/
     │   │   ├── constraint_checker_provider.dart            # ★v6.0: hard/soft区別、カタログ静的ルール統合
     │   │   ├── dependency_provider.dart
     │   │   ├── goal_template_provider.dart
-    │   │   ├── cascade_move_provider.dart                  # ★v6.0: 親移動時の子マイルストーン追従
+    │   │   ├── cascade_move_provider.dart                  # ★v6.0: 依存グラフBFSによる連動移動
     │   │   └── budget_summary_provider.dart                # ★v6.0新規: 合計予算算出
     │   └── presentation/
     │       ├── timeline_screen.dart                        # ★v6.0: 左パネル統合
@@ -128,7 +126,6 @@ lib/
     │           ├── year_timeline.dart                      # ★v6.0: カタログからのドロップ受付
     │           ├── year_month_timeline.dart                # ★v6.0: 同上
     │           ├── event_card.dart                         # ★v6.0: 予算表示行追加
-    │           ├── milestone_chip.dart                     # ★v6.0新規: 親直下の子マイルストーン
     │           ├── constraint_warning.dart                 # ★v6.0: hard/soft 色分け
     │           ├── dependency_connector.dart
     │           ├── event_style.dart                        # ★v6.0: catalogColor/catalogIcon
@@ -152,7 +149,7 @@ test/
     │   │   └── event_dependency_test.dart                  # ★v6.0: strength のテスト追加
     │   ├── logic/
     │   │   ├── constraint_checker_provider_test.dart       # ★v6.0: hard/soft 区別テスト
-    │   │   ├── cascade_move_provider_test.dart             # ★v6.0: マイルストーン追従テスト
+    │   │   ├── cascade_move_provider_test.dart             # ★v6.0: カスケード移動の各種シナリオ
     │   │   └── budget_summary_provider_test.dart           # ★v6.0新規
     │   └── presentation/
     └── auth/
@@ -176,7 +173,7 @@ test/
    スキーマ違反を起こしにくくする。
 4. **CI 必須テスト**: `test/features/catalog/data/catalog_consistency_test.dart` で
    「全カタログのIDが一意」「hardRules / softRules が参照する predecessorCatalogId が実在」
-   「milestoneTemplates の offset が整数月」「重複ラベル無し」などを検証する。
+   「重複ラベル無し」などを検証する。
 
 ### 5.2. Riverpod 構造の更新
 
@@ -235,21 +232,8 @@ sequenceDiagram
     Checker-->>TL: List<ConstraintResult>
     TL-->>User: 赤(hard) / 黄(soft) / 通常 のフィードバック
     User->>TL: ドロップ
-    TL->>Logic: addEvent(catalogId, date, kind=event, milestones)
-    Logic->>Logic: 子マイルストーン群も同時生成
+    TL->>Logic: addEventFromCatalog(catalog, date)
     Logic-->>TL: 再描画
-```
-
-### 6.3. マイルストーン追従カスケード移動
-
-```mermaid
-graph LR
-    Drag[親イベントD&D] -->|moveEvent| Cascade[CascadeMoveProvider]
-    Cascade -->|親に紐づく子検索| Children[parentEventId == movedId]
-    Children -->|相対offset維持| Sort[移動順序決定]
-    Sort -->|一括更新| Logic[TimelineEventsProvider]
-    Logic -->|ref.watch| Checker[ConstraintChecker]
-    Checker -->|hard/soft違反?| UI[警告表示]
 ```
 
 ## 7. 主要モデル定義（参考）
@@ -269,7 +253,6 @@ class PredefinedLifeEvent {
   final int? defaultBudgetYen;                  // 中央値 (ADR-013)
   final List<HardPrecedence> hardRules;
   final List<SoftPrecedence> softRules;
-  final List<MilestoneTemplate> milestoneTemplates;
   const PredefinedLifeEvent({ ... });
 }
 
@@ -298,13 +281,6 @@ class SoftPrecedence {
   final String message;
   const SoftPrecedence({...});
 }
-
-class MilestoneTemplate {
-  final String label;
-  final int offsetMonthsFromParent;       // 負=前、正=後
-  final int? defaultBudgetYen;
-  const MilestoneTemplate({...});
-}
 ```
 
 ### 7.2. LifeEvent（v6.0 改訂）
@@ -314,8 +290,6 @@ class MilestoneTemplate {
 class LifeEvent {
   final String id;                  // UUID
   final String catalogId;           // ★v6.0: EventCategory置換
-  final String? parentEventId;      // ★v6.0新規: マイルストーン用
-  final EventKind kind;             // ★v6.0新規: event | milestone
   final String date;                // yyyy-MM
   final String? endDate;
   final String title;               // catalogId.label を初期値、ユーザー編集可
@@ -326,16 +300,13 @@ class LifeEvent {
   final bool isGoal;
   const LifeEvent({...});
 }
-
-enum EventKind { event, milestone }
 ```
 
 **v5.0 → v6.0 の変更点**:
 - `category: EventCategory` を **削除**（ADR-010）
 - `catalogId: String` を **追加**
-- `parentEventId: String?` を **追加**（ADR-011）
-- `kind: EventKind` を **追加**（ADR-011）
 - `budgetYen: int?` を **追加**（ADR-013）
+- ~~`parentEventId: String?` / `kind: EventKind` 追加（ADR-011）~~ → 2026-05-19 にマイルストーン機能とともに削除（ADR-011 Superseded）
 
 ### 7.3. EventDependency（v6.0 改訂）
 

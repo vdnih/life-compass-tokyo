@@ -26,8 +26,8 @@
    - 左パネルにグループ別（結婚 / 出産 / キャリア / 住まい / 旅行 / 学び / お金）のカタログを表示し、
      項目をタイムラインへドラッグして配置する。
    - 既存16カテゴリは廃止し、カタログのID（`catalogId`）で各イベントを識別する。
-2. **マイルストーンを LifeEvent の子要素** として表現する（`parentEventId`）。
-   - 例: 「結婚式」の下に「式場選び」「式場決定」「衣装合わせ」などの小さなイベント。
+2. ~~**マイルストーンを LifeEvent の子要素** として表現する（`parentEventId`）。~~
+   - **2026-05-19 廃止**（ADR-011 Superseded / audit_log 2026-05-19 参照）。実装後の運用検証で十分な価値を提供できず、親子整合性のバグ温床になっていたためマイルストーン機能ごと一旦廃止した。再度必要になった際は要件定義からやり直す。
 3. **規定イベントごとに hard 先行 / soft 先行を事前定義** する。
    - hard = 物理的・法的に成立しない順序（入籍はプロポーズの後 / 育休は出産の後 など）。
    - soft = 慣習・準備期間として推奨（結婚式は式場決定から半年以上 など）。
@@ -85,6 +85,6 @@
 
 - `docs/PRODUCT_VISION.md` v0.2（Values: Compass / Living Plan / First-class Citizen / Empowerment）
 - `docs/adr/ADR-010-remove-event-category-enum.md`
-- `docs/adr/ADR-011-milestone-as-child-event.md`
+- `docs/adr/ADR-011-milestone-as-child-event.md`（Superseded: 2026-05-19）
 - `docs/adr/ADR-012-dependency-strength-hard-soft.md`
 - `docs/adr/ADR-013-budget-preset-design.md`

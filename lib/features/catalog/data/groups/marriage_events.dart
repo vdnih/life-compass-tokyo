@@ -31,13 +31,6 @@ import '../../domain/predefined_life_event.dart';
 ///       message: '〜が一般的な目安です',
 ///     ),
 ///   ],
-///   milestoneTemplates: [
-///     MilestoneTemplate(
-///       label: '指輪選び',
-///       offsetMonthsFromParent: -2,  // 負=前、正=後
-///       defaultBudgetYen: null,
-///     ),
-///   ],
 /// ),
 /// ```
 
@@ -51,7 +44,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
     color: Color(0xFFD4698F),
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'move-in-together',
@@ -66,16 +58,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         predecessorCatalogId: 'dating-start',
         recommendedMinMonthsAfter: 6,
         message: 'お付き合い開始から6ヶ月以上経ってからの同棲が一般的な目安です',
-      ),
-    ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '部屋探し開始',
-        offsetMonthsFromParent: -2,
-      ),
-      MilestoneTemplate(
-        label: '引越し作業',
-        offsetMonthsFromParent: 0,
       ),
     ],
   ),
@@ -93,7 +75,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         message: 'お付き合い開始から6ヶ月以上経ってからの結婚意思共有が一般的な目安です',
       ),
     ],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'propose',
@@ -108,16 +89,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         predecessorCatalogId: 'marriage-intent-shared',
         recommendedMinMonthsAfter: 0,
         message: '結婚意思共有の後のプロポーズが一般的な目安です',
-      ),
-    ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '指輪選び',
-        offsetMonthsFromParent: -2,
-      ),
-      MilestoneTemplate(
-        label: 'プロポーズ準備',
-        offsetMonthsFromParent: -1,
       ),
     ],
   ),
@@ -141,12 +112,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         message: 'プロポーズから1ヶ月以上経過した両家顔合わせが一般的な目安です',
       ),
     ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '日程調整',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'venue-decision',
@@ -168,16 +133,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         message: '両家顔合わせの後の式場決定が一般的な目安です',
       ),
     ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '式場見学',
-        offsetMonthsFromParent: -2,
-      ),
-      MilestoneTemplate(
-        label: '見積比較',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'marriage-registration',
@@ -193,12 +148,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
       ),
     ],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '婚姻届準備',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'wedding-ceremony',
@@ -220,20 +169,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         message: '式場決定から6ヶ月以上の準備期間が一般的な目安です',
       ),
     ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '衣装合わせ',
-        offsetMonthsFromParent: -3,
-      ),
-      MilestoneTemplate(
-        label: '招待状発送',
-        offsetMonthsFromParent: -3,
-      ),
-      MilestoneTemplate(
-        label: '最終打合せ',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'honeymoon',
@@ -249,16 +184,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         predecessorCatalogId: 'wedding-ceremony',
         recommendedMinMonthsAfter: 0,
         message: '結婚式の後の新婚旅行が一般的な目安です',
-      ),
-    ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '旅行先決定',
-        offsetMonthsFromParent: -3,
-      ),
-      MilestoneTemplate(
-        label: '予約',
-        offsetMonthsFromParent: -2,
       ),
     ],
   ),
@@ -277,12 +202,6 @@ const List<PredefinedLifeEvent> marriageEvents = [
         message: '式場決定の後の前撮りが一般的な目安です',
       ),
     ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '衣装決定',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'wedding-anniversary-1st',
@@ -299,6 +218,5 @@ const List<PredefinedLifeEvent> marriageEvents = [
       ),
     ],
     softRules: [],
-    milestoneTemplates: [],
   ),
 ];

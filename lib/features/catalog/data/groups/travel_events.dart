@@ -25,12 +25,6 @@ import '../../domain/predefined_life_event.dart';
 ///       message: '語学資格取得の後の留学が一般的な目安です',
 ///     ),
 ///   ],
-///   milestoneTemplates: [
-///     MilestoneTemplate(
-///       label: '学校決定',
-///       offsetMonthsFromParent: -3,
-///     ),
-///   ],
 /// ),
 /// ```
 
@@ -45,16 +39,6 @@ const List<PredefinedLifeEvent> travelEvents = [
     defaultBudgetYen: 300000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '航空券予約',
-        offsetMonthsFromParent: -2,
-      ),
-      MilestoneTemplate(
-        label: 'ホテル予約',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'long-vacation',
@@ -65,12 +49,6 @@ const List<PredefinedLifeEvent> travelEvents = [
     defaultBudgetYen: 200000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '旅行計画',
-        offsetMonthsFromParent: -2,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'workation',
@@ -81,12 +59,6 @@ const List<PredefinedLifeEvent> travelEvents = [
     defaultBudgetYen: 150000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '滞在先決定',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'study-abroad',
@@ -102,16 +74,6 @@ const List<PredefinedLifeEvent> travelEvents = [
         predecessorCatalogId: 'obtain-certification',
         recommendedMinMonthsAfter: 0,
         message: '語学資格取得の後の留学が一般的な目安です',
-      ),
-    ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '学校決定',
-        offsetMonthsFromParent: -3,
-      ),
-      MilestoneTemplate(
-        label: 'ビザ申請',
-        offsetMonthsFromParent: -2,
       ),
     ],
   ),

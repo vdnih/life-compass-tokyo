@@ -62,28 +62,6 @@ class SoftPrecedence {
   });
 }
 
-/// 既定マイルストーンのテンプレート
-///
-/// 親イベントがタイムラインに配置されたとき、
-/// 自動生成される子マイルストーンの定義。
-@immutable
-class MilestoneTemplate {
-  /// マイルストーンのラベル
-  final String label;
-
-  /// 親イベントの開始日からの月数オフセット（負=前、正=後）
-  final int offsetMonthsFromParent;
-
-  /// 予算プリセット（円、null の場合は予算なし）
-  final int? defaultBudgetYen;
-
-  const MilestoneTemplate({
-    required this.label,
-    required this.offsetMonthsFromParent,
-    this.defaultBudgetYen,
-  });
-}
-
 /// 規定ライフイベントカタログの1件を表すイミュータブルなモデル
 ///
 /// アプリ内にハードコードされた静的データ。
@@ -117,9 +95,6 @@ class PredefinedLifeEvent {
   /// soft 先行ルール一覧
   final List<SoftPrecedence> softRules;
 
-  /// 既定マイルストーンテンプレート一覧
-  final List<MilestoneTemplate> milestoneTemplates;
-
   const PredefinedLifeEvent({
     required this.id,
     required this.label,
@@ -130,6 +105,5 @@ class PredefinedLifeEvent {
     this.defaultBudgetYen,
     required this.hardRules,
     required this.softRules,
-    required this.milestoneTemplates,
   });
 }

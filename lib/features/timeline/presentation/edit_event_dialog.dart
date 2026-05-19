@@ -354,8 +354,6 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
                 status: _status,
                 goalId: widget.event.goalId,
                 isGoal: widget.event.isGoal,
-                parentEventId: widget.event.parentEventId,
-                kind: widget.event.kind,
                 budgetYen: budgetYen,
               );
               ref

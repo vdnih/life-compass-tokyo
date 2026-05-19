@@ -31,12 +31,6 @@ import '../../domain/predefined_life_event.dart';
 ///       message: '転職から12ヶ月以上経過していると、育休取得の条件を満たしやすくなります',
 ///     ),
 ///   ],
-///   milestoneTemplates: [
-///     MilestoneTemplate(
-///       label: '出産準備',
-///       offsetMonthsFromParent: -2,
-///     ),
-///   ],
 /// ),
 /// ```
 
@@ -50,7 +44,6 @@ const List<PredefinedLifeEvent> childbirthEvents = [
     color: Color(0xFFE87EA1),
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'pregnancy',
@@ -65,16 +58,6 @@ const List<PredefinedLifeEvent> childbirthEvents = [
         predecessorCatalogId: 'job-change',
         recommendedMinMonthsAfter: 12,
         message: '転職から12ヶ月以上経過していると、育休取得の条件を満たしやすくなります',
-      ),
-    ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '母子手帳交付',
-        offsetMonthsFromParent: 1,
-      ),
-      MilestoneTemplate(
-        label: '安定期',
-        offsetMonthsFromParent: 4,
       ),
     ],
   ),
@@ -99,12 +82,6 @@ const List<PredefinedLifeEvent> childbirthEvents = [
         message: '転職から12ヶ月以上経過していると、育休取得の条件を満たしやすくなります',
       ),
     ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '出産準備',
-        offsetMonthsFromParent: -2,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'maternity-leave',
@@ -120,7 +97,6 @@ const List<PredefinedLifeEvent> childbirthEvents = [
       ),
     ],
     softRules: [],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'childcare-leave',
@@ -136,7 +112,6 @@ const List<PredefinedLifeEvent> childbirthEvents = [
       ),
     ],
     softRules: [],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'return-to-work',
@@ -155,12 +130,6 @@ const List<PredefinedLifeEvent> childbirthEvents = [
         predecessorCatalogId: 'childcare-leave',
         recommendedMinMonthsAfter: 12,
         message: '育休開始から12ヶ月程度が一般的な復職時期の目安です',
-      ),
-    ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '慣らし保育',
-        offsetMonthsFromParent: -1,
       ),
     ],
   ),
@@ -182,16 +151,6 @@ const List<PredefinedLifeEvent> childbirthEvents = [
         predecessorCatalogId: 'childbirth',
         recommendedMinMonthsAfter: 12,
         message: '出産から12ヶ月以上経過した入園が一般的な目安です',
-      ),
-    ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '保活開始',
-        offsetMonthsFromParent: -6,
-      ),
-      MilestoneTemplate(
-        label: '見学',
-        offsetMonthsFromParent: -4,
       ),
     ],
   ),

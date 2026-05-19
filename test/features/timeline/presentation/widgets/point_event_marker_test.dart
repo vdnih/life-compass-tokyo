@@ -8,7 +8,6 @@ void main() {
   const testEvent = LifeEvent(
     id: 'test-point-event',
     catalogId: 'childbirth',
-    kind: EventKind.event,
     date: '2026-03',
     title: '出産',
     description: '',

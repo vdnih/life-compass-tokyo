@@ -13,7 +13,6 @@ void main() {
         color: Color(0xFFD4698F),
         hardRules: [],
         softRules: [],
-        milestoneTemplates: [],
       );
 
       expect(event.id, 'test-event');
@@ -30,7 +29,6 @@ void main() {
         color: Color(0xFF5B7FD4),
         hardRules: [],
         softRules: [],
-        milestoneTemplates: [],
       );
 
       expect(event.hardRules, isEmpty);
@@ -45,28 +43,12 @@ void main() {
         color: Color(0xFFE87EA1),
         hardRules: [],
         softRules: [],
-        milestoneTemplates: [],
       );
 
       expect(event.softRules, isEmpty);
     });
 
-    test('milestoneTemplates が空リストのとき正しく扱えること', () {
-      const event = PredefinedLifeEvent(
-        id: 'test-event',
-        label: 'テストイベント',
-        group: LifeEventGroup.travel,
-        icon: Icons.flight,
-        color: Color(0xFF7BBFB5),
-        hardRules: [],
-        softRules: [],
-        milestoneTemplates: [],
-      );
-
-      expect(event.milestoneTemplates, isEmpty);
-    });
-
-    test('hardRules と softRules と milestoneTemplates をすべて持つイベントを生成できること', () {
+    test('hardRules と softRules を持つイベントを生成できること', () {
       const event = PredefinedLifeEvent(
         id: 'wedding-ceremony',
         label: '結婚式',
@@ -87,17 +69,10 @@ void main() {
             message: '式場決定から6ヶ月以上の準備期間が一般的な目安です',
           ),
         ],
-        milestoneTemplates: [
-          MilestoneTemplate(
-            label: '衣装合わせ',
-            offsetMonthsFromParent: -3,
-          ),
-        ],
       );
 
       expect(event.hardRules.length, 1);
       expect(event.softRules.length, 1);
-      expect(event.milestoneTemplates.length, 1);
       expect(event.defaultBudgetYen, 3000000);
     });
 
@@ -110,7 +85,6 @@ void main() {
         color: Color(0xFFCCA87A),
         hardRules: [],
         softRules: [],
-        milestoneTemplates: [],
       );
 
       expect(event.defaultDurationMonths, isNull);
@@ -126,7 +100,6 @@ void main() {
         defaultDurationMonths: 10,
         hardRules: [],
         softRules: [],
-        milestoneTemplates: [],
       );
 
       expect(event.defaultDurationMonths, 10);
@@ -210,45 +183,6 @@ void main() {
 
       expect(rule.predecessorCatalogId, 'dating-start');
       expect(rule.recommendedMinMonthsAfter, 6);
-    });
-  });
-
-  group('MilestoneTemplate の仕様', () {
-    test('const コンストラクタで生成できること', () {
-      const milestone = MilestoneTemplate(
-        label: '指輪選び',
-        offsetMonthsFromParent: -2,
-      );
-
-      expect(milestone.label, '指輪選び');
-      expect(milestone.offsetMonthsFromParent, -2);
-    });
-
-    test('負の offset が設定できること', () {
-      const milestone = MilestoneTemplate(
-        label: '準備',
-        offsetMonthsFromParent: -3,
-      );
-
-      expect(milestone.offsetMonthsFromParent, -3);
-    });
-
-    test('正の offset が設定できること', () {
-      const milestone = MilestoneTemplate(
-        label: '母子手帳交付',
-        offsetMonthsFromParent: 1,
-      );
-
-      expect(milestone.offsetMonthsFromParent, 1);
-    });
-
-    test('defaultBudgetYen が null のとき正しく扱えること', () {
-      const milestone = MilestoneTemplate(
-        label: 'テスト',
-        offsetMonthsFromParent: 0,
-      );
-
-      expect(milestone.defaultBudgetYen, isNull);
     });
   });
 }

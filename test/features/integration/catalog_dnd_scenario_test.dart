@@ -17,7 +17,7 @@ void main() {
     registerFallbackValue(FakeLifeEvent());
   });
 
-  group('シナリオA: 結婚式を配置するとマイルストーンが自動生成される', () {
+  group('シナリオA: 結婚式を配置するとカタログから単一イベントが生成される', () {
     late MockEventRepository mockRepository;
 
     setUp(() {
@@ -34,7 +34,7 @@ void main() {
       return container;
     }
 
-    test('addEventFromCatalog(weddingCeremony) で親イベント1件＋マイルストーン3件が生成されること', () async {
+    test('addEventFromCatalog(weddingCeremony) で1件のイベントが生成されること', () async {
       when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
       when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
 
@@ -53,67 +53,9 @@ void main() {
           .read(timelineEventsProvider.notifier)
           .addEventFromCatalog(catalog, '2027-06');
 
-      // 親1件 + マイルストーン3件（衣装合わせ・招待状発送・最終打合せ）
-      expect(savedEvents.length, equals(4));
-
-      final parentEvents = savedEvents.where((e) => e.kind == EventKind.event).toList();
-      final milestoneEvents = savedEvents.where((e) => e.kind == EventKind.milestone).toList();
-      expect(parentEvents.length, equals(1));
-      expect(milestoneEvents.length, equals(3));
-    });
-
-    test('kind=event の wedding-ceremony と kind=milestone の3件が生成されること', () async {
-      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
-      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
-
-      final container = createContainer();
-      await container.read(timelineEventsProvider.future);
-
-      final savedEvents = <LifeEvent>[];
-      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
-        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
-      });
-      when(() => mockRepository.fetchEvents())
-          .thenAnswer((_) async => List.unmodifiable(savedEvents));
-
-      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
-      await container
-          .read(timelineEventsProvider.notifier)
-          .addEventFromCatalog(catalog, '2027-06');
-
-      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
-      expect(parent.catalogId, equals('wedding-ceremony'));
-
-      final milestones = savedEvents.where((e) => e.kind == EventKind.milestone).toList();
-      final milestoneTitles = milestones.map((m) => m.title).toSet();
-      expect(milestoneTitles.contains('衣装合わせ'), isTrue);
-      expect(milestoneTitles.contains('招待状発送'), isTrue);
-      expect(milestoneTitles.contains('最終打合せ'), isTrue);
-    });
-
-    test('生成されたマイルストーンの parentEventId が親の id と一致すること', () async {
-      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
-      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
-
-      final container = createContainer();
-      await container.read(timelineEventsProvider.future);
-
-      final savedEvents = <LifeEvent>[];
-      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
-        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
-      });
-      when(() => mockRepository.fetchEvents())
-          .thenAnswer((_) async => List.unmodifiable(savedEvents));
-
-      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
-      await container
-          .read(timelineEventsProvider.notifier)
-          .addEventFromCatalog(catalog, '2027-06');
-
-      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
-      final milestones = savedEvents.where((e) => e.kind == EventKind.milestone).toList();
-
-      expect(milestones.every((m) => m.parentEventId == parent.id), isTrue);
+      // マイルストーン機能廃止後はカタログから1件のみ生成される
+      expect(savedEvents.length, equals(1));
+      expect(savedEvents.single.catalogId, equals('wedding-ceremony'));
     });
   });
 
@@ -126,7 +68,6 @@ void main() {
         date: '2027-06',
         title: '結婚式',
         description: '',
-        kind: EventKind.event,
       );
 
       final events = [weddingEvent];
@@ -152,7 +93,6 @@ void main() {
         date: '2026-12',
         title: '結婚式場決定',
         description: '',
-        kind: EventKind.event,
       );
       const weddingEvent = LifeEvent(
         id: 'wedding-1',
@@ -160,7 +100,6 @@ void main() {
         date: '2027-06',
         title: '結婚式',
         description: '',
-        kind: EventKind.event,
       );
 
       final events = [venueEvent, weddingEvent];

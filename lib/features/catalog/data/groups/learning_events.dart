@@ -25,12 +25,6 @@ import '../../domain/predefined_life_event.dart';
 ///       message: '学習開始から24ヶ月程度が一般的な学位取得期間の目安です',
 ///     ),
 ///   ],
-///   milestoneTemplates: [
-///     MilestoneTemplate(
-///       label: '入学',
-///       offsetMonthsFromParent: -24,
-///     ),
-///   ],
 /// ),
 /// ```
 
@@ -45,12 +39,6 @@ const List<PredefinedLifeEvent> learningEvents = [
     defaultBudgetYen: 50000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '教材購入',
-        offsetMonthsFromParent: 0,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'obtain-degree',
@@ -67,16 +55,6 @@ const List<PredefinedLifeEvent> learningEvents = [
         message: '学習開始から24ヶ月程度が一般的な学位取得期間の目安です',
       ),
     ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '入学',
-        offsetMonthsFromParent: -24,
-      ),
-      MilestoneTemplate(
-        label: '論文執筆',
-        offsetMonthsFromParent: -3,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'language-study-abroad',
@@ -88,15 +66,5 @@ const List<PredefinedLifeEvent> learningEvents = [
     defaultBudgetYen: 1000000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '学校決定',
-        offsetMonthsFromParent: -3,
-      ),
-      MilestoneTemplate(
-        label: 'ビザ申請',
-        offsetMonthsFromParent: -2,
-      ),
-    ],
   ),
 ];
