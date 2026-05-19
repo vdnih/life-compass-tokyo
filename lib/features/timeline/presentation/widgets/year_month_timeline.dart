@@ -49,6 +49,9 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   String? _previewCatalogId;
   String? _previewDate;
 
+  /// ドラッグ中のスナップ先月インデックス（マグネティックUI用）
+  int? _snapMonthIndex;
+
   final _dropTargetKey = GlobalKey();
 
   static const double monthWidth = 60.0;
@@ -250,7 +253,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      _buildGridLines(totalHeight),
+                      _buildGridLines(totalHeight, totalMonths, startDate),
                       _buildNowMarker(nowXPos, totalHeight),
                       ..._buildMonthTicks(
                           totalMonths, startDate, profile, axisHeight),
@@ -451,26 +454,50 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     );
   }
 
-  Widget _buildGridLines(double totalHeight) {
-    return Stack(
-      children: [
+  Widget _buildGridLines(
+      double totalHeight, int totalMonths, DateTime startDate) {
+    final children = <Widget>[];
+
+    // 月ごとの縦ガイド線（1月はやや濃く、他月は非常に薄く）
+    final gridHeight = totalHeight - axisHeight;
+    for (int i = 0; i <= totalMonths; i++) {
+      final xPos = 20.0 + (i * monthWidth);
+      final monthAt = DateTime(startDate.year, startDate.month + i).month;
+      final isJan = monthAt == 1;
+      children.add(
         Positioned(
-          top: axisHeight + _rowHeight,
-          left: 0,
-          right: 0,
-          child: Container(height: 1, color: Colors.grey.shade200),
-        ),
-        Positioned(
+          left: xPos - 0.5,
           top: axisHeight,
-          left: 0,
-          right: 0,
+          height: gridHeight,
           child: Container(
-            height: 1,
-            color: AppTheme.primary.withValues(alpha: 0.15),
+            width: isJan ? 1.0 : 0.5,
+            color: isJan
+                ? AppTheme.primary.withValues(alpha: 0.10)
+                : AppTheme.primary.withValues(alpha: 0.05),
           ),
         ),
-      ],
-    );
+      );
+    }
+
+    // 仕事/プライベートの境界線（水平）
+    children.add(Positioned(
+      top: axisHeight + _rowHeight,
+      left: 0,
+      right: 0,
+      child: Container(height: 1, color: Colors.grey.shade200),
+    ));
+    // 軸下の境界線
+    children.add(Positioned(
+      top: axisHeight,
+      left: 0,
+      right: 0,
+      child: Container(
+        height: 1,
+        color: AppTheme.primary.withValues(alpha: 0.15),
+      ),
+    ));
+
+    return Stack(children: children);
   }
 
   Widget _buildNowMarker(double nowXPos, double totalHeight) {
@@ -809,6 +836,10 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           final newDateStr =
               '${newDate.year}-${newDate.month.toString().padLeft(2, '0')}';
 
+          if (mounted && _snapMonthIndex != monthIndex) {
+            setState(() => _snapMonthIndex = monthIndex);
+          }
+
           final data = details.data;
           if (data is String) {
             // 既存イベントの移動
@@ -837,6 +868,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
               _cascadePreviewChanges = [];
               _previewCatalogId = null;
               _previewDate = null;
+              _snapMonthIndex = null;
             });
           }
         },
@@ -853,6 +885,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           final newDateStr =
               '${newDate.year}-${newDate.month.toString().padLeft(2, '0')}';
 
+          if (mounted) setState(() => _snapMonthIndex = null);
+
           final data = details.data;
           if (data is String) {
             _applyCascadeMove(data, newDateStr, events);
@@ -867,11 +901,41 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           }
         },
         builder: (context, candidateData, _) {
-          if (candidateData.isNotEmpty) {
-            return Container(
-                color: AppTheme.primary.withValues(alpha: 0.05));
+          if (candidateData.isEmpty || _snapMonthIndex == null) {
+            return const SizedBox.shrink();
           }
-          return const SizedBox.shrink();
+          final xPos = 20.0 + (_snapMonthIndex! * monthWidth);
+          return Stack(
+            children: [
+              // 全体を薄く敷く（既存挙動の踏襲）
+              Positioned.fill(
+                child: Container(
+                    color: AppTheme.primary.withValues(alpha: 0.04)),
+              ),
+              // スナップ先月セルを強めにハイライト
+              Positioned(
+                left: xPos,
+                top: 0,
+                width: monthWidth,
+                height: _rowHeight * 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.14),
+                    border: Border(
+                      left: BorderSide(
+                        color: AppTheme.primary.withValues(alpha: 0.55),
+                        width: 1.5,
+                      ),
+                      right: BorderSide(
+                        color: AppTheme.primary.withValues(alpha: 0.55),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -1028,12 +1092,14 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
               setState(() {
                 _draggingEventId = null;
                 _cascadePreviewChanges = [];
+                _snapMonthIndex = null;
               });
             },
             onDragEnd: (_) {
               setState(() {
                 _draggingEventId = null;
                 _cascadePreviewChanges = [];
+                _snapMonthIndex = null;
               });
             },
             feedback: Material(

@@ -49,6 +49,9 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
   String? _previewCatalogId;
   String? _previewDate;
 
+  /// ドラッグ中のスナップ先年インデックス（マグネティックUI用）
+  int? _snapYearIndex;
+
   final _dropTargetKey = GlobalKey();
 
   static const double yearWidth = 80.0;
@@ -235,7 +238,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      _buildGridLines(totalHeight),
+                      _buildGridLines(totalHeight, totalYears),
                       _buildNowMarker(nowXPos, totalHeight),
                       ..._buildYearTicks(
                           totalYears, startYear, profile, axisHeight),
@@ -436,26 +439,45 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     );
   }
 
-  Widget _buildGridLines(double totalHeight) {
-    return Stack(
-      children: [
+  Widget _buildGridLines(double totalHeight, int totalYears) {
+    final children = <Widget>[];
+
+    // 年ごとの縦ガイド線（年単位なので一律に薄め）
+    final gridHeight = totalHeight - axisHeight;
+    for (int i = 0; i <= totalYears; i++) {
+      final xPos = 20.0 + (i * yearWidth);
+      children.add(
         Positioned(
-          top: axisHeight + _rowHeight,
-          left: 0,
-          right: 0,
-          child: Container(height: 1, color: Colors.grey.shade200),
-        ),
-        Positioned(
+          left: xPos - 0.5,
           top: axisHeight,
-          left: 0,
-          right: 0,
+          height: gridHeight,
           child: Container(
-            height: 1,
-            color: AppTheme.primary.withValues(alpha: 0.15),
+            width: 1.0,
+            color: AppTheme.primary.withValues(alpha: 0.10),
           ),
         ),
-      ],
-    );
+      );
+    }
+
+    // 仕事/プライベートの境界線（水平）
+    children.add(Positioned(
+      top: axisHeight + _rowHeight,
+      left: 0,
+      right: 0,
+      child: Container(height: 1, color: Colors.grey.shade200),
+    ));
+    // 軸下の境界線
+    children.add(Positioned(
+      top: axisHeight,
+      left: 0,
+      right: 0,
+      child: Container(
+        height: 1,
+        color: AppTheme.primary.withValues(alpha: 0.15),
+      ),
+    ));
+
+    return Stack(children: children);
   }
 
   Widget _buildNowMarker(double nowXPos, double totalHeight) {
@@ -776,6 +798,10 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
           final newYear = startYear + yearIndex;
           final newDateStr = '$newYear-01';
 
+          if (mounted && _snapYearIndex != yearIndex) {
+            setState(() => _snapYearIndex = yearIndex);
+          }
+
           final data = details.data;
           if (data is String) {
             if (_draggingEventId == null) return;
@@ -802,6 +828,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
               _cascadePreviewChanges = [];
               _previewCatalogId = null;
               _previewDate = null;
+              _snapYearIndex = null;
             });
           }
         },
@@ -815,6 +842,8 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
 
           final newYear = startYear + yearIndex;
           final newDateStr = '$newYear-01';
+
+          if (mounted) setState(() => _snapYearIndex = null);
 
           final data = details.data;
           if (data is String) {
@@ -830,11 +859,39 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
           }
         },
         builder: (context, candidateData, _) {
-          if (candidateData.isNotEmpty) {
-            return Container(
-                color: AppTheme.primary.withValues(alpha: 0.05));
+          if (candidateData.isEmpty || _snapYearIndex == null) {
+            return const SizedBox.shrink();
           }
-          return const SizedBox.shrink();
+          final xPos = 20.0 + (_snapYearIndex! * yearWidth);
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                    color: AppTheme.primary.withValues(alpha: 0.04)),
+              ),
+              Positioned(
+                left: xPos,
+                top: 0,
+                width: yearWidth,
+                height: _rowHeight * 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.14),
+                    border: Border(
+                      left: BorderSide(
+                        color: AppTheme.primary.withValues(alpha: 0.55),
+                        width: 1.5,
+                      ),
+                      right: BorderSide(
+                        color: AppTheme.primary.withValues(alpha: 0.55),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -984,12 +1041,14 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
               setState(() {
                 _draggingEventId = null;
                 _cascadePreviewChanges = [];
+                _snapYearIndex = null;
               });
             },
             onDragEnd: (_) {
               setState(() {
                 _draggingEventId = null;
                 _cascadePreviewChanges = [];
+                _snapYearIndex = null;
               });
             },
             feedback: Material(
