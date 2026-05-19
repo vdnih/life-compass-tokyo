@@ -292,7 +292,7 @@ void main() {
       verify(() => mockRepository.updateEvent(any())).called(1);
     });
 
-    test('addEventFromCatalog: 結婚式（wedding-ceremony）を追加すると親＋3件のマイルストーンが生成されること',
+    test('addEventFromCatalog: 結婚式（wedding-ceremony）を追加すると単一のイベントが生成されること',
         () async {
       when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
       when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
@@ -313,11 +313,11 @@ void main() {
           .read(timelineEventsProvider.notifier)
           .addEventFromCatalog(catalog, '2026-06');
 
-      // 親イベント1件 + マイルストーン3件 = 4件のsaveEventが呼ばれること
-      expect(savedEvents.length, equals(4));
+      // マイルストーン機能廃止後はカタログから1件のみ生成される
+      expect(savedEvents.length, equals(1));
     });
 
-    test('addEventFromCatalog: 生成された親イベントの catalogId と kind が正しいこと', () async {
+    test('addEventFromCatalog: 生成されたイベントの catalogId が正しいこと', () async {
       when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
       when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
 
@@ -336,34 +336,7 @@ void main() {
           .read(timelineEventsProvider.notifier)
           .addEventFromCatalog(catalog, '2026-06');
 
-      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
-      expect(parent.catalogId, equals('wedding-ceremony'));
-      expect(parent.kind, equals(EventKind.event));
-    });
-
-    test('addEventFromCatalog: 生成されたマイルストーンの parentEventId が親イベントのidを指すこと', () async {
-      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
-      when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
-
-      final container = createContainer();
-      await container.read(timelineEventsProvider.future);
-
-      final savedEvents = <LifeEvent>[];
-      when(() => mockRepository.saveEvent(any())).thenAnswer((invocation) async {
-        savedEvents.add(invocation.positionalArguments[0] as LifeEvent);
-      });
-      when(() => mockRepository.fetchEvents())
-          .thenAnswer((_) async => List.unmodifiable(savedEvents));
-
-      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
-      await container
-          .read(timelineEventsProvider.notifier)
-          .addEventFromCatalog(catalog, '2026-06');
-
-      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
-      final milestones =
-          savedEvents.where((e) => e.kind == EventKind.milestone).toList();
-      expect(milestones.every((m) => m.parentEventId == parent.id), isTrue);
+      expect(savedEvents.single.catalogId, equals('wedding-ceremony'));
     });
 
     test('addEventFromCatalog: budgetYen に catalog.defaultBudgetYen が設定されること', () async {
@@ -385,8 +358,7 @@ void main() {
           .read(timelineEventsProvider.notifier)
           .addEventFromCatalog(catalog, '2026-06');
 
-      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
-      expect(parent.budgetYen, equals(3000000));
+      expect(savedEvents.single.budgetYen, equals(3000000));
     });
 
     test(
@@ -411,9 +383,8 @@ void main() {
           .read(timelineEventsProvider.notifier)
           .addEventFromCatalog(catalog, '2026-03');
 
-      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
       // 2026-03 + 10ヶ月 = 2027-01
-      expect(parent.endDate, equals('2027-01'));
+      expect(savedEvents.single.endDate, equals('2027-01'));
     });
 
     test(
@@ -438,8 +409,7 @@ void main() {
           .read(timelineEventsProvider.notifier)
           .addEventFromCatalog(catalog, '2026-03');
 
-      final parent = savedEvents.firstWhere((e) => e.kind == EventKind.event);
-      expect(parent.endDate, isNull);
+      expect(savedEvents.single.endDate, isNull);
     });
   });
 }

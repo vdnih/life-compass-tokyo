@@ -310,4 +310,26 @@
   - `lib/features/catalog/data/groups/travel_events.dart` — 海外旅行・長期休暇旅行・ワーケーションの defaultDurationMonths: 1 を削除
   - `lib/features/catalog/data/groups/career_events.dart` — start-side-job ラベルを '長期副業' に変更、side-job-preparation (3m) と side-job-short (3m) を追加
 
+## 2026-05-19 - [機能削除] マイルストーン機能（F-31）を一旦廃止
+
+- **判断内容**: マイルストーン機能（親イベント直下に子イベントを `parentEventId` + `kind: milestone` で紐づける構造）を全面的に削除する。コード・カタログ定義・テスト・ドキュメントから milestone 関連の記述を除去し、ADR-011 のステータスを「Superseded」に変更する。
+- **理由**: 実際に使ってみたところ想定したユースケースを満たせず、UI/D&D/カスケード移動の各レイヤで親子整合性のバグ温床になっていた。再度必要になった際は機能要件から再検討するため、現時点では中途半端な構造を残さず削除する判断とした（ユーザー指示）。
+- **方針の決定事項**:
+  - 既存 Firestore データ（`kind == milestone`）は `FirestoreEventRepository.fetchEvents` でロード時にフィルタして無視する。Firestore 上のドキュメントは削除しない（将来の手戻りに備えた選択肢を残す）。
+  - `LifeEvent.parentEventId` / `LifeEvent.kind` / `EventKind` enum は完全削除（再設計時にどんな構造になるか分からないため、死コードを残さない）。
+  - ADR-011 はファイルとして残し、Status のみ Superseded に変更（意思決定の経緯を保全）。
+- **影響範囲**:
+  - `lib/features/timeline/domain/life_event.dart` — `parentEventId` / `kind` / `EventKind` を削除
+  - `lib/features/timeline/logic/timeline_events_provider.dart` — `addEventFromCatalog` から子マイルストーン自動生成を削除
+  - `lib/features/timeline/logic/cascade_move_provider.dart` — `milestoneChanges` の追従ロジックを削除
+  - `lib/features/timeline/presentation/widgets/milestone_chip.dart` — ファイル削除
+  - `lib/features/timeline/presentation/widgets/year_timeline.dart` / `year_month_timeline.dart` — milestone 描画ブロックを削除
+  - `lib/features/timeline/data/firestore_event_repository.dart` — fetchEvents で `kind == 'milestone'` を除外
+  - `lib/features/catalog/domain/predefined_life_event.dart` — `MilestoneTemplate` / `milestoneTemplates` を削除
+  - `lib/features/catalog/data/groups/*.dart` — 全 7 グループから `milestoneTemplates` 引数とサンプルコメントを削除
+  - `test/features/timeline/presentation/widgets/milestone_chip_test.dart` — ファイル削除
+  - `test/features/timeline/domain/life_event_test.dart` / `logic/cascade_move_provider_test.dart` / `logic/timeline_events_provider_test.dart` / `catalog/domain/predefined_life_event_test.dart` / `integration/catalog_dnd_scenario_test.dart` — milestone 関連テストを削除/修正
+  - `docs/adr/011-milestone-as-child-event.md` — Status を Superseded に変更し廃止理由を追記
+  - `docs/PRD.md` / `docs/SPEC.md` / `docs/SOFTWARE_ARCHITECTURE.md` / `docs/FIREBASE_ARCHITECTURE.md` / `docs/feature_registry.md` / `docs/pdr/PDR-005-pivot-to-predefined-catalog.md` — マイルストーン関連記述を削除/更新
+
 <!-- ここより上に新しいエントリを追記する -->

@@ -19,7 +19,10 @@ class FirestoreEventRepository implements EventRepository {
   @override
   Future<List<LifeEvent>> fetchEvents() async {
     final snapshot = await _eventsRef.get();
+    // 廃止されたマイルストーン機能で保存されたドキュメント（kind == 'milestone'）は
+    // 読み込み時に除外する。Firestore 上のデータは将来の再設計に備えて残す。
     return snapshot.docs
+        .where((doc) => doc.data()['kind'] != 'milestone')
         .map((doc) => LifeEvent.fromJson(doc.data()))
         .toList();
   }

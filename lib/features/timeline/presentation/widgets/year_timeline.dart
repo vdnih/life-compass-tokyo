@@ -21,7 +21,6 @@ import 'dependency_connector.dart';
 import 'duration_event_bar.dart';
 import 'event_card.dart';
 import 'event_style.dart';
-import 'milestone_chip.dart';
 import 'point_event_marker.dart';
 
 const _uuid = Uuid();
@@ -945,13 +944,7 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       }
     }
 
-    // Regular event cards (events のみ。milestones は親の下に配置)
-    final mainEvents =
-        events.where((e) => e.kind == EventKind.event).toList();
-    final milestones =
-        events.where((e) => e.kind == EventKind.milestone).toList();
-
-    for (final event in mainEvents) {
+    for (final event in events) {
       final fracOffset = _fracYear(event.date, startYear);
       final xPos = 20.0 + (fracOffset * yearWidth);
       final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
@@ -973,13 +966,6 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
       final isDragging = _draggingEventId == event.id;
       final isInCascade = _draggingEventId != null &&
           _cascadePreviewChanges.any((c) => c.eventId == event.id);
-
-      // 子マイルストーンを収集
-      final childMilestones =
-          milestones.where((m) => m.parentEventId == event.id).toList()
-            ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
-      final color = eventColor(event);
 
       result.add(Positioned(
         left: leftOffset,
@@ -1059,28 +1045,6 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
                       eventConstraints: eventConstraints,
                       isDimmed: isDragging || (isInCascade && !isDragging),
                     ),
-                  if (childMilestones.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    SizedBox(
-                      width: event.hasDuration
-                          ? barWidth.clamp(80.0, 120.0)
-                          : 80,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: childMilestones
-                            .map((m) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 2),
-                                  child: MilestoneChip(
-                                    milestone: m,
-                                    parentColor: color,
-                                    onDelete: () =>
-                                        _deleteEvent(context, m),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -1090,10 +1054,6 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     }
 
     return result;
-  }
-
-  Future<void> _deleteEvent(BuildContext context, LifeEvent event) async {
-    await ref.read(timelineEventsProvider.notifier).deleteEvent(event);
   }
 
   void _handleTap(

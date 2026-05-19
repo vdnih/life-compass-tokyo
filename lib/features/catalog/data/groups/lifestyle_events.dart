@@ -30,12 +30,6 @@ import '../../domain/predefined_life_event.dart';
 ///       message: '検討開始から6ヶ月以上の比較期間が一般的な目安です',
 ///     ),
 ///   ],
-///   milestoneTemplates: [
-///     MilestoneTemplate(
-///       label: '物件探し',
-///       offsetMonthsFromParent: -2,
-///     ),
-///   ],
 /// ),
 /// ```
 
@@ -50,16 +44,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
     defaultBudgetYen: 300000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '物件探し',
-        offsetMonthsFromParent: -2,
-      ),
-      MilestoneTemplate(
-        label: '契約',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'rental-contract-renewal',
@@ -70,7 +54,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
     defaultBudgetYen: 100000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'consider-home-purchase',
@@ -80,16 +63,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
     color: Color(0xFF82B38A),
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '物件情報収集',
-        offsetMonthsFromParent: 0,
-      ),
-      MilestoneTemplate(
-        label: '住宅ローン仮審査',
-        offsetMonthsFromParent: 3,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'purchase-home',
@@ -111,20 +84,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
         message: '検討開始から6ヶ月以上の比較期間が一般的な目安です',
       ),
     ],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '物件決定',
-        offsetMonthsFromParent: -2,
-      ),
-      MilestoneTemplate(
-        label: '契約',
-        offsetMonthsFromParent: -1,
-      ),
-      MilestoneTemplate(
-        label: '引渡し',
-        offsetMonthsFromParent: 0,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'renovation',
@@ -141,16 +100,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
       ),
     ],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '業者選定',
-        offsetMonthsFromParent: -2,
-      ),
-      MilestoneTemplate(
-        label: '見積比較',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
   // Wave 4: 住宅購入テンプレート用に追加
   PredefinedLifeEvent(
@@ -162,7 +111,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
     defaultBudgetYen: 35000000,
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'home-search',
@@ -178,7 +126,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
         message: '住宅購入検討の後に物件探しを始めるのが一般的な目安です',
       ),
     ],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'home-purchase-signing',
@@ -194,7 +141,6 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
       ),
     ],
     softRules: [],
-    milestoneTemplates: [],
   ),
   PredefinedLifeEvent(
     id: 'move-in',
@@ -210,6 +156,5 @@ const List<PredefinedLifeEvent> lifestyleEvents = [
       ),
     ],
     softRules: [],
-    milestoneTemplates: [],
   ),
 ];

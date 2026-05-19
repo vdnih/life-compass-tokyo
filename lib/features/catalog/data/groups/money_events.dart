@@ -19,12 +19,6 @@ import '../../domain/predefined_life_event.dart';
 ///   defaultBudgetYen: null,        // null=予算なし、整数=円
 ///   hardRules: [],                 // お金グループは hard ルールなし
 ///   softRules: [],                 // お金グループは soft ルールなし
-///   milestoneTemplates: [
-///     MilestoneTemplate(
-///       label: '口座開設',
-///       offsetMonthsFromParent: 0,
-///     ),
-///   ],
 /// ),
 /// ```
 
@@ -38,12 +32,6 @@ const List<PredefinedLifeEvent> moneyEvents = [
     color: Color(0xFFCCA87A),
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '口座開設',
-        offsetMonthsFromParent: 0,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'start-ideco',
@@ -53,12 +41,6 @@ const List<PredefinedLifeEvent> moneyEvents = [
     color: Color(0xFFCCA87A),
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '加入手続き',
-        offsetMonthsFromParent: 0,
-      ),
-    ],
   ),
   PredefinedLifeEvent(
     id: 'review-insurance',
@@ -68,11 +50,5 @@ const List<PredefinedLifeEvent> moneyEvents = [
     color: Color(0xFFCCA87A),
     hardRules: [],
     softRules: [],
-    milestoneTemplates: [
-      MilestoneTemplate(
-        label: '比較検討',
-        offsetMonthsFromParent: -1,
-      ),
-    ],
   ),
 ];

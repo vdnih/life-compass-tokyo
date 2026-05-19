@@ -59,8 +59,6 @@ users/{userId}
    └ events/{eventId}
        ├ id: String (UUID, ドキュメントID)
        ├ catalogId: String (規定ライフイベントのID。SPEC §4参照。ADR-010)
-       ├ parentEventId: String? (マイルストーン用の親イベントID。ADR-011)
-       ├ kind: String ("event" | "milestone"。ADR-011)
        ├ title: String (catalogIdのラベルを初期値とし、ユーザー編集可)
        ├ status: String ("recorded" | "planned" | "goal" | "considering")
        ├ date: String (yyyy-MM)
@@ -77,9 +75,9 @@ users/{userId}
 |---|---|---|---|
 | `category` | String (EventCategory値) | **削除** | ADR-010: EventCategory enum 廃止 |
 | `catalogId` | — | **追加** String | 規定カタログのID（kebab-case） |
-| `parentEventId` | — | **追加** String? | マイルストーン用 |
-| `kind` | — | **追加** String | "event" or "milestone" |
 | `budgetYen` | — | **追加** Number? | ユーザー上書き予算 |
+| ~~`parentEventId`~~ | — | ~~追加 String?~~ | **2026-05-19 廃止**（ADR-011 Superseded）。既存ドキュメントにフィールドが残っていても無視する |
+| ~~`kind`~~ | — | ~~追加 String~~ | **2026-05-19 廃止**（ADR-011 Superseded）。`FirestoreEventRepository.fetchEvents` で `kind == "milestone"` のドキュメントをロード時に除外する |
 
 リリース前のため移行スクリプトは作成しない。`isWork` 情報はカタログ側の `LifeEventGroup` から導出する。
 
@@ -124,7 +122,7 @@ v6.0 以前のドキュメントに `strength` が無い場合、Repository 層�
 
 ### 4.1. Firestore ルール
 
-v7.0 のスキーマ変更（`catalogId` / `parentEventId` / `kind` / `budgetYen` / `strength` 追加）でも、
+v7.0 のスキーマ変更（`catalogId` / `budgetYen` / `strength` 追加）でも、
 **セキュリティルールに変更は不要**。既存の `users/{userId}/{document=**}` レベルの owner-only ルールが
 追加フィールドも自動的にカバーする。
 
@@ -144,9 +142,6 @@ service cloud.firestore {
 セキュリティルールでは型レベル検証のみ。以下のビジネスルール検証は **クライアント側で必須**:
 
 - `catalogId` は SPEC §4 で定義された ID のいずれか（カタログ整合性テストで担保）
-- `parentEventId` が指す親イベントが存在する（孤児マイルストーン禁止）
-- `parentEventId` の循環禁止（自分自身や子孫を親に指定できない）
-- `kind == "milestone"` のとき `parentEventId` は非null必須
 - `budgetYen` は非負整数
 
 ### 4.3. Storage ルール
@@ -177,7 +172,7 @@ service firebase.storage {
 ## 6. 既知の制限事項
 
 - **オーファンファイル**: Firestoreのイベント削除時、Storageファイルは自動削除されない。個人利用範囲ではコスト影響が軽微なため許容。Cloud Functions導入時に `onDocumentDeleted` トリガーで対応予定。
-- **孤児マイルストーン**: 親イベント削除時、子マイルストーンを連動削除するロジックはクライアント側で実装する（ADR-011）。
+- **マイルストーン残置データ**: 2026-05-19 にマイルストーン機能を廃止（ADR-011 Superseded）。既存ユーザーの Firestore に残る `kind == "milestone"` のドキュメントは `FirestoreEventRepository.fetchEvents` でロード時に除外しているため UI には現れないが、データ自体は将来の再設計に備えて削除していない。
 
 ## 7. デプロイ
 
@@ -197,3 +192,4 @@ firebase deploy
 | 5.0 | 2026-03-27 | ファイル名を FIREBASE_ARCHITECTURE.md にリネーム |
 | 6.0 | 2026-03-29 | Googleログイン専用、usersドキュメント追加 |
 | 7.0 | 2026-05-12 | 規定ライフイベントカタログD&D方式へのピボット（PDR-005）。events から `category` を削除し `catalogId` / `parentEventId` / `kind` / `budgetYen` を追加。dependencies に `strength` を追加。スキーマ変更でもセキュリティルールは変更不要 |
+| 7.1 | 2026-05-19 | マイルストーン機能廃止（ADR-011 Superseded）。events から `parentEventId` / `kind` を実質的に削除（既存データはロード時に無視）。スキーマ自体は破壊的変更を避けるため Firestore 上のドキュメントは残置 |

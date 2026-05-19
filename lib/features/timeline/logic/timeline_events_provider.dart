@@ -6,11 +6,9 @@ import '../domain/life_event.dart';
 
 const _uuid = Uuid();
 
-/// マイルストーンの日付を計算するヘルパー
-///
-/// parentDate（yyyy-MM）に offsetMonths を加算した yyyy-MM 文字列を返す。
-String _addMonths(String parentDate, int offsetMonths) {
-  final parts = parentDate.split('-');
+/// yyyy-MM 文字列に月数を加算した yyyy-MM 文字列を返す
+String _addMonths(String dateStr, int offsetMonths) {
+  final parts = dateStr.split('-');
   int year = int.parse(parts[0]);
   int month = int.parse(parts[1]) + offsetMonths;
   while (month > 12) {
@@ -53,11 +51,8 @@ class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
 
   /// カタログからイベントをドロップ追加する
   ///
-  /// 親イベント（kind: event）を生成し、catalog.milestoneTemplates が空でない場合は
-  /// 各テンプレートから子マイルストーン（kind: milestone）を自動生成して同時に追加する。
-  ///
   /// - [catalog]: ドロップされたカタログ定義
-  /// - [date]: 親イベントの開始日（yyyy-MM）
+  /// - [date]: 追加するイベントの開始日（yyyy-MM）
   Future<void> addEventFromCatalog(
     PredefinedLifeEvent catalog,
     String date,
@@ -67,12 +62,9 @@ class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
     try {
       final repository = ref.read(eventRepositoryProvider);
 
-      // 親イベントを生成
-      final parentId = _uuid.v4();
-      final parentEvent = LifeEvent(
-        id: parentId,
+      final event = LifeEvent(
+        id: _uuid.v4(),
         catalogId: catalog.id,
-        kind: EventKind.event,
         date: date,
         endDate: catalog.defaultDurationMonths != null
             ? _addMonths(date, catalog.defaultDurationMonths!)
@@ -82,25 +74,7 @@ class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
         status: EventStatus.planned,
         budgetYen: catalog.defaultBudgetYen,
       );
-      await repository.saveEvent(parentEvent);
-
-      // マイルストーンを自動生成
-      for (final template in catalog.milestoneTemplates) {
-        final milestoneDate =
-            _addMonths(date, template.offsetMonthsFromParent);
-        final milestone = LifeEvent(
-          id: _uuid.v4(),
-          catalogId: catalog.id,
-          parentEventId: parentId,
-          kind: EventKind.milestone,
-          date: milestoneDate,
-          title: template.label,
-          description: '',
-          status: EventStatus.planned,
-          budgetYen: template.defaultBudgetYen,
-        );
-        await repository.saveEvent(milestone);
-      }
+      await repository.saveEvent(event);
 
       final events = await repository.fetchEvents();
       state = AsyncData(events);
