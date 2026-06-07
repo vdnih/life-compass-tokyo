@@ -362,7 +362,7 @@ void main() {
     });
 
     test(
-        'addEventFromCatalog: defaultDurationMonths を持つカタログ（pregnancy=10ヶ月）をドロップすると endDate が設定されること',
+        'addEventFromCatalog: defaultDurationMonths を持つカタログ（childcare-leave=12ヶ月）をドロップすると endDate が設定されること',
         () async {
       when(() => mockRepository.fetchEvents()).thenAnswer((_) async => []);
       when(() => mockRepository.saveEvent(any())).thenAnswer((_) async {});
@@ -377,14 +377,14 @@ void main() {
       when(() => mockRepository.fetchEvents())
           .thenAnswer((_) async => List.unmodifiable(savedEvents));
 
-      // pregnancy は defaultDurationMonths: 10
-      final catalog = PredefinedCatalogRegistry.findById('pregnancy')!;
+      // childcare-leave は defaultDurationMonths: 12
+      final catalog = PredefinedCatalogRegistry.findById('childcare-leave')!;
       await container
           .read(timelineEventsProvider.notifier)
           .addEventFromCatalog(catalog, '2026-03');
 
-      // 2026-03 + 10ヶ月 = 2027-01
-      expect(savedEvents.single.endDate, equals('2027-01'));
+      // 2026-03 + 12ヶ月 = 2027-03
+      expect(savedEvents.single.endDate, equals('2027-03'));
     });
 
     test(

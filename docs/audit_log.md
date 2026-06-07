@@ -323,6 +323,12 @@
   - `lib/features/catalog/data/groups/travel_events.dart` — 海外旅行・長期休暇旅行・ワーケーションの defaultDurationMonths: 1 を削除
   - `lib/features/catalog/data/groups/career_events.dart` — start-side-job ラベルを '長期副業' に変更、side-job-preparation (3m) と side-job-short (3m) を追加
 
+## 2026-06-08 - [仕様変更] 妊活イベントのリネームと先行ルール追加
+
+- **判断内容**: `fertility-treatment-start`（妊活開始）を `fertility-treatment`（妊活）にリネーム。`pregnancy`（妊娠）の hardRules に `fertility-treatment` を追加（minMonthsAfter: 6）。`pregnancy` の `defaultDurationMonths: 10` を削除（時点イベントに統一）。`childbirth` の minMonthsAfter を 9→10 に修正。
+- **理由**: ユーザーフィードバック「妊活開始は使いづらい」に対応。妊活→妊娠→出産の連鎖をすべて▲時点イベントで表現し、先行ルール（赤フィードバック）で「妊活から6ヶ月後に妊娠」「妊娠から10ヶ月後に出産」の目安を可視化する。
+- **影響範囲**: `lib/features/catalog/data/groups/childbirth_events.dart`、`lib/features/timeline/data/goal_template_data.dart`、`docs/SPEC.md`、関連テスト4件
+
 ## 2026-05-19 - [機能削除] マイルストーン機能（F-31）を一旦廃止
 
 - **判断内容**: マイルストーン機能（親イベント直下に子イベントを `parentEventId` + `kind: milestone` で紐づける構造）を全面的に削除する。コード・カタログ定義・テスト・ドキュメントから milestone 関連の記述を除去し、ADR-011 のステータスを「Superseded」に変更する。
