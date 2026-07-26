@@ -113,16 +113,40 @@ class InMemoryEventRepository implements EventRepository {
   }
 }
 
+/// ゲストモードで使う [InMemoryEventRepository] を 1 インスタンスだけ保持する Provider。
+///
+/// [eventRepositoryProvider] の中で直接 `InMemoryEventRepository()` を生成すると、
+/// [authStateProvider] が emission するたび（トークンリフレッシュ等）に新品が作られ、
+/// ゲストの編集がサンプルデータへ巻き戻ってしまう。この Provider は依存を持たないため
+/// ProviderContainer の生存期間中に一度だけ生成される。
+///
+/// autoDispose にしてはいけない（listener が一時的に居なくなった時点で編集が消える）。
+final inMemoryEventRepositoryProvider = Provider<InMemoryEventRepository>(
+  (ref) => InMemoryEventRepository(),
+);
+
+/// uid ごとに同一の [FirestoreEventRepository] インスタンスを返す Provider。
+///
+/// [FirestoreEventRepository] は `==` を持たないため、family で束ねないと
+/// authStateProvider の emission ごとに別インスタンスと判定され、
+/// 無駄な再 fetch（TimelineEventsNotifier.build() の再実行）が発生する。
+final firestoreEventRepositoryProvider =
+    Provider.family<FirestoreEventRepository, String>(
+  (ref, userId) => FirestoreEventRepository(userId: userId),
+);
+
 /// [EventRepository] を提供するProvider
 ///
 /// 認証済みの場合は Firestore 実装、未認証（ゲストモード）の場合は
 /// サンプルデータ入りのインメモリ実装を返す。
-/// authStateProvider の変更により自動的に再構築される。
+/// authStateProvider の変更により自動的に再構築されるが、実体
+/// （[inMemoryEventRepositoryProvider] / [firestoreEventRepositoryProvider]）は
+/// 保持されるため、再構築されても中身は同じインスタンスのまま。
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
   final userAsync = ref.watch(authStateProvider);
   final user = userAsync.valueOrNull;
   if (user != null) {
-    return FirestoreEventRepository(userId: user.uid);
+    return ref.watch(firestoreEventRepositoryProvider(user.uid));
   }
-  return InMemoryEventRepository();
+  return ref.watch(inMemoryEventRepositoryProvider);
 });

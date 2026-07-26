@@ -1,6 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_career_app/features/auth/logic/auth_provider.dart';
 import 'package:my_career_app/features/timeline/data/dependency_repository.dart';
+import 'package:my_career_app/features/timeline/data/firestore_dependency_repository.dart';
 import 'package:my_career_app/features/timeline/domain/event_dependency.dart';
+
+import '../../../support/builders.dart';
+import '../../../support/pump.dart';
 
 void main() {
   group('InMemoryDependencyRepository', () {
@@ -182,6 +187,44 @@ void main() {
         );
         await expectLater(repository.updateDependency(dep), completes);
       });
+    });
+  });
+
+  group('dependencyRepositoryProvider', () {
+    test('未認証のときインメモリ実装を返すこと', () async {
+      final container = createContainer(overrides: [guestAuth()]);
+      await container.read(authStateProvider.future);
+
+      expect(
+        container.read(dependencyRepositoryProvider),
+        isA<InMemoryDependencyRepository>(),
+      );
+    });
+
+    test('認証済みのとき Firestore 実装を返すこと', () async {
+      final container = createContainer(overrides: [signedInAuth()]);
+      await container.read(authStateProvider.future);
+
+      expect(
+        container.read(dependencyRepositoryProvider),
+        isA<FirestoreDependencyRepository>(),
+      );
+    });
+
+    test('認証状態が再評価されてもゲストの編集が保持されること', () async {
+      final container = createContainer(overrides: [guestAuth()]);
+      await container.read(authStateProvider.future);
+
+      await container
+          .read(dependencyRepositoryProvider)
+          .saveDependency(buildDependency(id: 'guest-dep-1'));
+
+      container.invalidate(authStateProvider);
+      await pumpEventQueue();
+
+      final deps =
+          await container.read(dependencyRepositoryProvider).fetchDependencies();
+      expect(deps.map((d) => d.id), contains('guest-dep-1'));
     });
   });
 }

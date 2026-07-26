@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:my_career_app/features/auth/logic/auth_provider.dart';
 import 'package:my_career_app/features/timeline/data/event_repository.dart';
+import 'package:my_career_app/features/timeline/data/firestore_event_repository.dart';
 
 import '../../../support/builders.dart';
+import '../../../support/pump.dart';
 
 void main() {
   group('InMemoryEventRepository', () {
@@ -79,6 +82,47 @@ void main() {
         () => events.add(buildLifeEvent(id: 'x')),
         throwsUnsupportedError,
       );
+    });
+  });
+
+  group('eventRepositoryProvider', () {
+    test('未認証のときインメモリ実装を返すこと', () async {
+      final container = createContainer(overrides: [guestAuth()]);
+      await container.read(authStateProvider.future);
+
+      expect(
+        container.read(eventRepositoryProvider),
+        isA<InMemoryEventRepository>(),
+      );
+    });
+
+    test('認証済みのとき Firestore 実装を返すこと', () async {
+      final container = createContainer(overrides: [signedInAuth()]);
+      await container.read(authStateProvider.future);
+
+      expect(
+        container.read(eventRepositoryProvider),
+        isA<FirestoreEventRepository>(),
+      );
+    });
+
+    test('認証状態が再評価されてもゲストの編集が保持されること', () async {
+      // authStateProvider は AsyncLoading から始まる。await する前に read すると
+      // valueOrNull が null で「未認証」と区別できないので、必ず解決を待つ。
+      final container = createContainer(overrides: [guestAuth()]);
+      await container.read(authStateProvider.future);
+
+      await container
+          .read(eventRepositoryProvider)
+          .saveEvent(buildLifeEvent(id: 'guest-1'));
+
+      // guestAuth() は Stream.value(null) で 1 回きり emission して閉じるため、
+      // invalidate で override の create を再実行させてトークンリフレッシュ相当を再現する。
+      container.invalidate(authStateProvider);
+      await pumpEventQueue();
+
+      final events = await container.read(eventRepositoryProvider).fetchEvents();
+      expect(events.map((e) => e.id), contains('guest-1'));
     });
   });
 }
