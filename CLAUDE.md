@@ -55,7 +55,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 - **Freezed / json_serializable は導入していない。** ドメインモデルは手書きのイミュータブルクラス（`copyWith` / `==` / `hashCode` / `toJson` / `fromJson` を手書き）。`copyWith` で null をクリアする場合は既存の `_sentinel` パターンに倣う。
 - **Riverpod のコード生成はほぼ使っていない。** `@riverpod` アノテーションの使用箇所は1つだけ。新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifier` / `StateProvider` / `Provider`）。
 - **認証は `kIsWeb` で実行時に実装が分岐する**（Web は Firebase のポップアップ、モバイルは `google_sign_in`）。
-- **`firestore.rules` / `storage.rules` はリポジトリに無い。** セキュリティルールは Firebase コンソールで管理している。変更した場合は `docs/FIREBASE_ARCHITECTURE.md` に反映すること。
+- **Firestore のセキュリティルール・インデックスは `firestore.rules` / `firestore.indexes.json` がリポジトリの正。** `firebase deploy --only firestore:rules,firestore:indexes` で反映する（CI では自動デプロイされず手動運用。理由は ADR-015）。コンソールで直接編集するとリポジトリと乖離するため、変更は必ずこれらのファイル経由で行い、`docs/FIREBASE_ARCHITECTURE.md` にも反映すること。なお `storage.rules` は無い（Cloud Storage は未使用）。
 
 ## 5. 実装規約とテスト方針
 
