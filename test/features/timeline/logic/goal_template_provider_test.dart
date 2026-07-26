@@ -112,7 +112,7 @@ void main() {
       expect(allGoalIds, equals({goalEvent.id}));
     });
 
-    test('妊活開始イベントの日付がゴール-12ヶ月であること (2028-06 -> 2027-06)', () async {
+    test('妊活イベントの日付がゴール-12ヶ月であること (2028-06 -> 2027-06)', () async {
       final container = createContainer();
 
       final result = await container
@@ -124,7 +124,7 @@ void main() {
           );
 
       final nikkatsuEvent = result.generatedEvents
-          .firstWhere((e) => e.title == '妊活開始');
+          .firstWhere((e) => e.title == '妊活');
       expect(nikkatsuEvent.date, equals('2027-06'));
     });
 
@@ -175,7 +175,7 @@ void main() {
     });
 
     group('依存関係のoffsetMonthsの符号', () {
-      test('妊活開始(T-12) -> 出産(T) の offsetMonths が +12 であること', () async {
+      test('妊活(T-12) -> 出産(T) の offsetMonths が +12 であること', () async {
         final container = createContainer();
 
         final result = await container
@@ -188,12 +188,12 @@ void main() {
 
         final goalEvent = result.generatedEvents.firstWhere((e) => e.isGoal);
         final katsudoEvent =
-            result.generatedEvents.firstWhere((e) => e.title == '妊活開始');
+            result.generatedEvents.firstWhere((e) => e.title == '妊活');
         final dep = result.generatedDependencies
             .firstWhere((d) => d.sourceEventId == katsudoEvent.id);
 
         expect(dep.targetEventId, equals(goalEvent.id));
-        // 妊活開始(T-12) -> 出産(T): offsetMonths = targetDate - sourceDate = +12
+        // 妊活(T-12) -> 出産(T): offsetMonths = targetDate - sourceDate = +12
         expect(dep.offsetMonths, equals(12));
       });
 

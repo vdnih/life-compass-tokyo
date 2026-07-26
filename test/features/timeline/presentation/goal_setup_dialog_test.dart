@@ -105,14 +105,14 @@ void main() {
       expect(find.text('生成されるイベント'), findsOneWidget);
     });
 
-    testWidgets('プレビューに妊活開始が含まれること', (tester) async {
+    testWidgets('プレビューに妊活が含まれること', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('出産').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('妊活開始'), findsOneWidget);
+      expect(find.text('妊活'), findsOneWidget);
     });
 
     testWidgets('プレビューに転職タイミングの目安が含まれること', (tester) async {

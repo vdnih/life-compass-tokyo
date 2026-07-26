@@ -26,10 +26,10 @@ class GoalTemplateRegistry {
     description: '出産に向けたライフプランを逆算で設計します',
     goalCatalogId: 'childbirth',
     relatedEvents: [
-      // #1 妊活開始: T - 12ヶ月
+      // #1 妊活: T - 12ヶ月
       const TemplateEvent(
-        titleTemplate: '妊活開始',
-        catalogId: 'fertility-treatment-start',
+        titleTemplate: '妊活',
+        catalogId: 'fertility-treatment',
         offsetMonthsFromGoal: -12,
       ),
       // #2 転職タイミングの目安: T - 12ヶ月

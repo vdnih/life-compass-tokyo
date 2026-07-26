@@ -37,8 +37,8 @@ import '../../domain/predefined_life_event.dart';
 /// 出産グループの全カタログイベント（7件）
 const List<PredefinedLifeEvent> childbirthEvents = [
   PredefinedLifeEvent(
-    id: 'fertility-treatment-start',
-    label: '妊活開始',
+    id: 'fertility-treatment',
+    label: '妊活',
     group: LifeEventGroup.childbirth,
     icon: Icons.spa_outlined,
     color: Color(0xFFE87EA1),
@@ -51,8 +51,13 @@ const List<PredefinedLifeEvent> childbirthEvents = [
     group: LifeEventGroup.childbirth,
     icon: Icons.pregnant_woman,
     color: Color(0xFFE87EA1),
-    defaultDurationMonths: 10,
-    hardRules: [],
+    hardRules: [
+      HardPrecedence(
+        predecessorCatalogId: 'fertility-treatment',
+        minMonthsAfter: 6,
+        message: '妊活から6ヶ月後を目安に妊娠が始まります',
+      ),
+    ],
     softRules: [
       SoftPrecedence(
         predecessorCatalogId: 'job-change',
@@ -71,8 +76,8 @@ const List<PredefinedLifeEvent> childbirthEvents = [
     hardRules: [
       HardPrecedence(
         predecessorCatalogId: 'pregnancy',
-        minMonthsAfter: 9,
-        message: '妊娠から約9ヶ月後の出産が一般的な目安です',
+        minMonthsAfter: 10,
+        message: '妊娠から10ヶ月後の出産が一般的な目安です',
       ),
     ],
     softRules: [

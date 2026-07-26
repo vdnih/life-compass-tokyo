@@ -19,11 +19,13 @@ const _uuid = Uuid();
 class AddEventDialog extends ConsumerStatefulWidget {
   final DateTime? initialDate;
   final bool initialIsWork;
+  final String? initialCatalogId;
 
   const AddEventDialog({
     super.key,
     this.initialDate,
     this.initialIsWork = true,
+    this.initialCatalogId,
   });
 
   @override
@@ -49,8 +51,20 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
     _descriptionController = TextEditingController();
     _selectedDate = widget.initialDate ?? DateTime.now();
     _selectedEndDate = widget.initialDate ?? DateTime.now();
-    _isWork = widget.initialIsWork;
-    _selectedCatalogId = _isWork ? 'joining-company' : 'marriage-registration';
+    if (widget.initialCatalogId != null) {
+      final catalogItem =
+          PredefinedCatalogRegistry.findById(widget.initialCatalogId!);
+      if (catalogItem != null) {
+        _isWork = catalogItem.group == LifeEventGroup.career;
+        _selectedCatalogId = catalogItem.id;
+      } else {
+        _isWork = widget.initialIsWork;
+        _selectedCatalogId = _isWork ? 'joining-company' : 'marriage-registration';
+      }
+    } else {
+      _isWork = widget.initialIsWork;
+      _selectedCatalogId = _isWork ? 'joining-company' : 'marriage-registration';
+    }
   }
 
   @override

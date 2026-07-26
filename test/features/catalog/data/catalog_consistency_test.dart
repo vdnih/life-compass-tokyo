@@ -139,12 +139,12 @@ void main() {
       );
     });
 
-    test('pregnancy の softRules に job-change が含まれること', () {
+    test('pregnancy の hardRules に fertility-treatment が含まれること', () {
       final event = PredefinedCatalogRegistry.findById('pregnancy');
 
       expect(event, isNotNull);
       expect(
-        event!.softRules.any((r) => r.predecessorCatalogId == 'job-change'),
+        event!.hardRules.any((r) => r.predecessorCatalogId == 'fertility-treatment'),
         isTrue,
       );
     });

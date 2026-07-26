@@ -242,36 +242,59 @@ class _CatalogGroupSection extends StatelessWidget {
 }
 
 /// ドラッグ可能なカタログアイテムタイル
-class _CatalogItemTile extends StatelessWidget {
+class _CatalogItemTile extends ConsumerWidget {
   final PredefinedLifeEvent item;
   final bool isPlaced;
 
-  const _CatalogItemTile({
+  _CatalogItemTile({
     required this.item,
     required this.isPlaced,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Listener でトラックパッドの pan/zoom イベントを吸収し、
-    // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。
-    return Listener(
-      onPointerPanZoomStart: (_) {},
-      child: LongPressDraggable<PredefinedLifeEvent>(
-        data: item,
-        delay: const Duration(milliseconds: 400),
-        feedback: Material(
-          color: Colors.transparent,
-          child: Transform.scale(
-            scale: 0.85,
-            child: _buildItemCard(opacity: 1.0),
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 外側の GestureDetector でクイックタップを検知してダイアログを開く。
+    // LongPressDraggable（400ms）との競合はジェスチャーアリーナで解決される:
+    //   - タップ（< 400ms）→ TapRecognizer 勝利 → onTap 発火
+    //   - ロングプレス（≥ 400ms）→ LongPressRecognizer 勝利 → D&D 開始
+    return GestureDetector(
+      onTap: () {
+        final user = ref.read(authStateProvider).valueOrNull;
+        if (user == null) {
+          showDialog<void>(
+            context: context,
+            builder: (_) => const SignInDialog(),
+          );
+        } else {
+          showDialog<void>(
+            context: context,
+            builder: (_) => AddEventDialog(
+              initialCatalogId: item.id,
+              initialIsWork: item.group == LifeEventGroup.career,
+            ),
+          );
+        }
+      },
+      // Listener でトラックパッドの pan/zoom イベントを吸収し、
+      // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。
+      child: Listener(
+        onPointerPanZoomStart: (_) {},
+        child: LongPressDraggable<PredefinedLifeEvent>(
+          data: item,
+          delay: const Duration(milliseconds: 400),
+          feedback: Material(
+            color: Colors.transparent,
+            child: Transform.scale(
+              scale: 0.85,
+              child: _buildItemCard(opacity: 1.0),
+            ),
           ),
-        ),
-        childWhenDragging: Opacity(
-          opacity: 0.4,
+          childWhenDragging: Opacity(
+            opacity: 0.4,
+            child: _buildItemRow(),
+          ),
           child: _buildItemRow(),
         ),
-        child: _buildItemRow(),
       ),
     );
   }
