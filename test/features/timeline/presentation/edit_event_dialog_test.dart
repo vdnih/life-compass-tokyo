@@ -1,35 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/presentation/edit_event_dialog.dart';
 
-LifeEvent _sampleEvent() {
-  return const LifeEvent(
-    id: 'test-event-id',
-    catalogId: 'joining-company',
-    date: '2025-04',
-    title: 'テストイベント',
-    description: 'テスト説明',
-    status: EventStatus.planned,
-  );
-}
+import '../../../support/builders.dart';
+import '../../../support/pump.dart';
 
-Widget _buildTestWidget(LifeEvent event) {
-  return ProviderScope(
-    child: MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (_) => EditEventDialog(event: event),
-              );
-            },
-            child: const Text('ダイアログを開く'),
-          ),
-        ),
+LifeEvent _sampleEvent() => buildLifeEvent(
+      id: 'test-event-id',
+      date: '2025-04',
+      description: 'テスト説明',
+      status: EventStatus.planned,
+    );
+
+Future<void> _pumpDialogLauncher(WidgetTester tester, LifeEvent event) {
+  return pumpInScaffold(
+    tester,
+    Builder(
+      builder: (context) => ElevatedButton(
+        onPressed: () {
+          showDialog<void>(
+            context: context,
+            builder: (_) => EditEventDialog(event: event),
+          );
+        },
+        child: const Text('ダイアログを開く'),
       ),
     ),
   );
@@ -38,7 +33,7 @@ Widget _buildTestWidget(LifeEvent event) {
 void main() {
   group('EditEventDialog', () {
     testWidgets('予算入力欄が表示されること（タイトルが「予算（円）」のTextFieldが存在すること）', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(_sampleEvent()));
+      await _pumpDialogLauncher(tester, _sampleEvent());
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -49,7 +44,7 @@ void main() {
 
     testWidgets('既存のbudgetYenが入力欄に初期値として表示されること', (tester) async {
       final event = _sampleEvent().copyWith(budgetYen: 300000);
-      await tester.pumpWidget(_buildTestWidget(event));
+      await _pumpDialogLauncher(tester, event);
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -60,7 +55,7 @@ void main() {
     });
 
     testWidgets('予算欄に数値を入力して保存できること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(_sampleEvent()));
+      await _pumpDialogLauncher(tester, _sampleEvent());
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();

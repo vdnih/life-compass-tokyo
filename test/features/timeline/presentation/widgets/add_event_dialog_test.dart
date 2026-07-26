@@ -1,24 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_career_app/features/timeline/presentation/add_event_dialog.dart';
 
-Widget _buildTestWidget() {
-  return const ProviderScope(
-    child: MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: _dialogLauncher,
-        ),
-      ),
-    ),
-  );
+import '../../../../support/pump.dart';
+
+Future<void> _pumpDialogLauncher(WidgetTester tester) {
+  return pumpInScaffold(tester, const Builder(builder: _dialogLauncher));
 }
 
 Widget _dialogLauncher(BuildContext context) {
   return ElevatedButton(
     onPressed: () {
-      showDialog(
+      showDialog<void>(
         context: context,
         builder: (_) => const AddEventDialog(),
       );
@@ -30,7 +23,7 @@ Widget _dialogLauncher(BuildContext context) {
 void main() {
   group('AddEventDialog の機能一覧（仕様）', () {
     testWidgets('タイトルと詳細を入力して追加できること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await _pumpDialogLauncher(tester);
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -54,7 +47,7 @@ void main() {
     });
 
     testWidgets('仕事/プライベートをプライベートに切り替えてから追加できること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await _pumpDialogLauncher(tester);
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -75,7 +68,7 @@ void main() {
     });
 
     testWidgets('開始年月の選択UIが表示されること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await _pumpDialogLauncher(tester);
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -87,7 +80,7 @@ void main() {
     testWidgets('イベント名が空の場合は「追加」ボタンを押しても処理が実行されない(ダイアログが閉じない)こと', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await _pumpDialogLauncher(tester);
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -105,7 +98,7 @@ void main() {
     // 現在は CatalogPickerField 経由で選択するため、テスト整備フェーズで書き直す。
 
     testWidgets('ステータス選択（記録/予定/目標/検討中）が表示されること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await _pumpDialogLauncher(tester);
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();
@@ -115,7 +108,7 @@ void main() {
     });
 
     testWidgets('期間指定トグルをONにすると終了年月が入力可能になること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await _pumpDialogLauncher(tester);
 
       await tester.tap(find.text('ダイアログを開く'));
       await tester.pumpAndSettle();

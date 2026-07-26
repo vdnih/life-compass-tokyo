@@ -6,28 +6,23 @@ import 'package:my_career_app/features/timeline/data/event_repository.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/logic/timeline_events_provider.dart';
 
-class MockEventRepository extends Mock implements EventRepository {}
-
-class FakeLifeEvent extends Fake implements LifeEvent {}
+import '../../../support/mocks.dart';
+import '../../../support/pump.dart' as support;
 
 void main() {
-  setUpAll(() {
-    registerFallbackValue(FakeLifeEvent());
-  });
+  setUpAll(registerCommonFallbackValues);
 
   group('TimelineEventsProvider の機能一覧（仕様）', () {
     late MockEventRepository mockRepository;
 
     setUp(() {
-      mockRepository = MockEventRepository();
+      mockRepository = stubEventRepository();
     });
 
     ProviderContainer createContainer() {
-      final container = ProviderContainer(
+      return support.createContainer(
         overrides: [eventRepositoryProvider.overrideWithValue(mockRepository)],
       );
-      addTearDown(container.dispose);
-      return container;
     }
 
     test('初期状態: EventRepositoryからイベント一覧を取得し、AsyncDataとして状態を保持すること', () async {

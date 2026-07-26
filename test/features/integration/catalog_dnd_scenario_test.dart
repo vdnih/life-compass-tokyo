@@ -8,30 +8,25 @@ import 'package:my_career_app/features/timeline/logic/budget_summary_provider.da
 import 'package:my_career_app/features/timeline/logic/constraint_checker_provider.dart';
 import 'package:my_career_app/features/timeline/logic/timeline_events_provider.dart';
 
-class MockEventRepository extends Mock implements EventRepository {}
-
-class FakeLifeEvent extends Fake implements LifeEvent {}
+import '../../support/mocks.dart';
+import '../../support/pump.dart' as support;
 
 void main() {
-  setUpAll(() {
-    registerFallbackValue(FakeLifeEvent());
-  });
+  setUpAll(registerCommonFallbackValues);
 
   group('シナリオA: 結婚式を配置するとカタログから単一イベントが生成される', () {
     late MockEventRepository mockRepository;
 
     setUp(() {
-      mockRepository = MockEventRepository();
+      mockRepository = stubEventRepository();
     });
 
     ProviderContainer createContainer() {
-      final container = ProviderContainer(
+      return support.createContainer(
         overrides: [
           eventRepositoryProvider.overrideWithValue(mockRepository),
         ],
       );
-      addTearDown(container.dispose);
-      return container;
     }
 
     test('addEventFromCatalog(weddingCeremony) で1件のイベントが生成されること', () async {
@@ -131,21 +126,8 @@ void main() {
   });
 
   group('シナリオC: 合計予算計算', () {
-    late MockEventRepository mockRepository;
-
-    setUp(() {
-      mockRepository = MockEventRepository();
-    });
-
     ProviderContainer createContainer(List<LifeEvent> events) {
-      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => events);
-      final container = ProviderContainer(
-        overrides: [
-          eventRepositoryProvider.overrideWithValue(mockRepository),
-        ],
-      );
-      addTearDown(container.dispose);
-      return container;
+      return support.createContainerWithRepositories(events: events);
     }
 
     test('wedding-ceremony(¥300万)とhoneymoon(¥50万)を追加するとtotalBudgetProviderが3,500,000を返すこと',
