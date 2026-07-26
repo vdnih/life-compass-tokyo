@@ -381,8 +381,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
         onTap: () => setState(() => _linkingEventId = null),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(Icons.link, color: Colors.white, size: 18),
               SizedBox(width: 8),
               Expanded(
@@ -413,7 +413,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
             color: Colors.white,
             border: Border(right: BorderSide(color: Colors.grey.shade200)),
           ),
-          child: RotatedBox(
+          child: const RotatedBox(
             quarterTurns: 3,
             child: Text(
               '仕事',
@@ -437,7 +437,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
               right: BorderSide(color: Colors.grey.shade200),
             ),
           ),
-          child: RotatedBox(
+          child: const RotatedBox(
             quarterTurns: 3,
             child: Text(
               'プライベート',
@@ -559,7 +559,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                 if (ageAtDate != null)
                   Text(
                     '$ageAtDate歳',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.secondary,
@@ -568,7 +568,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                   ),
                 Text(
                   '${currentDate.year}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                     color: AppTheme.primary,
@@ -1314,7 +1314,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                         event.hasDuration
                             ? '${event.date} 〜 ${event.endDate}'
                             : event.date,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primary,
                           fontSize: 13,
@@ -1375,8 +1375,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                   if (relatedDeps.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     const Divider(),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8, top: 4),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8, top: 4),
                       child: Text(
                         '関連イベント',
                         style: TextStyle(

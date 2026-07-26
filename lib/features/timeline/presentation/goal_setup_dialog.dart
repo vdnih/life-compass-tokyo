@@ -313,7 +313,7 @@ class _TemplateCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
+              const Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
           ],
         ),
       ),

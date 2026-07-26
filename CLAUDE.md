@@ -1,175 +1,125 @@
-# ライフプランアプリ - 開発ワークフローと自律実行ルール
+# CLAUDE.md
+
+Claude Code がこのリポジトリで作業するためのガイド。
+
+**このファイルには「めったに変わらない構造の事実」と「守るべき少数のルール」だけを書く。**
+件数・行数・ファイル一覧のような増減する情報は書かない（コードが唯一の情報源）。
 
 ## 1. プロジェクト概要
 
 女性がキャリアとプライベートの両面からライフプランを考えるためのタイムラインアプリ。
-詳細は `docs/PRD.md` を参照。
+Flutter 製、Web が主要ターゲット（Firebase Hosting でデプロイ）。
 
-## 2. 自律実行ポリシー (Vibe Coding Policy)
+- なぜこのプロダクトか → `docs/PRODUCT_VISION.md`
+- 何の機能があるか → `docs/PRD.md`
+- ビジネスルール（カタログ定義・制約ルール・テンプレート） → `docs/SPEC.md`
+- **実装の詳細は常にコード（`lib/` と `test/`）を正とする。**
 
-### 2.1. 基本姿勢
-- 途中で人間に質問や承認を求めず、Sub Agentを駆使して可能な限り自己解決すること。
-- エラーが発生した場合も、ログを解析して修正ループを自律的に回すこと。
-- ただし**設計ドキュメントの変更**は必ず `docs/audit_log.md` に理由を記録すること。
+## 2. コマンド
 
-### 2.2. 監査ログ (Audit Log) の絶対義務
-- すべての重要な意思決定は `docs/audit_log.md` に時系列で追記すること。
-- 記録対象: アーキテクチャ判断、ファイル作成・削除、テスト失敗理由と修正内容、依存パッケージの追加。
-- フォーマット:
-  ```
-  ## YYYY-MM-DD HH:MM - [カテゴリ] タイトル
-  - **判断内容**: 何をしたか
-  - **理由**: なぜそうしたか
-  - **影響範囲**: どのファイルに影響するか
-  ```
+```bash
+flutter pub get                  # 依存取得（pubspec 変更後は必須）
+flutter run -d chrome            # アプリ起動
+flutter analyze                  # 静的解析（flutter_lints）
+flutter test                     # 全テスト
+flutter test path/to/x_test.dart # 単一ファイル
+flutter test --plain-name "..."  # テスト名で絞り込み
+flutter test --coverage          # coverage/lcov.info を生成
 
-### 2.3. 2フェーズ実行モデル
-- **Phase 1 (設計)**: PRD → アーキテクチャ設計 → テストシナリオ設計まで。ここで一旦停止し、人間のレビューを待つ。
-- **Phase 2 (実装)**: 人間の承認後、TDD実装 → QA検証を自律実行する。
-- 人間から「Phase 2を開始して」と指示があるまで、実装コードの生成に着手しないこと。
+# コード生成（riverpod_generator のみが対象。使用箇所は極めて少ない）
+dart run build_runner build --delete-conflicting-outputs
 
-## 3. 技術スタック（確定事項 - 判断不要）
+# デプロイ（main への push で GitHub Actions が自動実行）
+flutter build web --release
+firebase deploy --only hosting   # projectId: my-career-app-559fd
+```
 
-### フロントエンド (Flutter)
-- **言語**: Dart 3.x
-- **状態管理**: Riverpod v2 (`flutter_riverpod`, `riverpod_annotation`, `riverpod_generator`)
-- **コード生成**: `build_runner`, `freezed`, `freezed_annotation`, `json_serializable`
-- **ルーティング**: GoRouter (`go_router`)
-- **テスト**: `flutter_test`, `mocktail`
-- **画像圧縮**: `flutter_image_compress`
+## 3. アーキテクチャ
 
-### バックエンド (Firebase)
-- **認証**: Firebase Authentication（Google login）
-- **DB**: Cloud Firestore（`asia-northeast1`）
-- **ストレージ**: Cloud Storage for Firebase（`asia-northeast1`）
-- **ホスティング**: Firebase Hosting（Web版）
-- **Flutter SDK**: `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`
+3層レイヤードアーキテクチャ + feature 単位のディレクトリ分割。詳細は `docs/SOFTWARE_ARCHITECTURE.md`。
 
-### 開発ツール
-- **リント**: `flutter_lints` (デフォルト)
-- **CI**: GitHub Actions
-- **デプロイ**: Firebase CLI
+- **レイヤー**: `presentation/`（`ConsumerWidget`、UIのみ）→ `logic/`（Riverpod Provider、状態＋ビジネスロジック）→ `data/`（Repository、I/O）。ドメインモデルは `domain/`。
+- **feature 構成**: `lib/features/{timeline, catalog, user_profile, auth}/`。`catalog` は timeline / goal_template / budget などから参照される共有 feature のため、timeline の下ではなく並列に置いている（依存逆転を避けるため。ADR 参照）。
+  - **feature ごとに階層が揃っていない**（`domain/` が無い feature、ほぼフラットな feature がある）。新規ファイルは既存の並びを見て合わせること。階層の統一はリファクタリング課題。
+- **Repository の切替**: 認証状態に応じて Repository Provider が実装を選ぶ。**ゲスト（未ログイン）= InMemory 実装**（初期サンプルデータ入り）、**ログイン時 = Firestore 実装**。event / dependency / user すべて同じパターン。認証状態の変化で自動的にリポジトリを取り直す。
+- **静的データはハードコード**: 規定イベントカタログ（`lib/features/catalog/data/groups/` を `predefined_catalog_registry.dart` が集約）とゴールテンプレートは Firestore に置かずアプリ内定数。イベントは `catalogId`（kebab-case 文字列）でカタログを参照する。カタログの件数・整合性の正は `test/features/catalog/data/catalog_consistency_test.dart` のアサーション。
+- **依存関係と連動移動**: イベント間依存は `event_dependency.dart`（`strength: hard/soft`）。D&D 移動時は `cascade_move_provider.dart` が依存グラフを BFS で辿って連動移動する。**探索は双方向**（連結成分全体がずれる。後続だけではない）。
+- **制約チェック**: `constraint_checker_provider.dart` が違反を算出し `constraint_warning.dart` で可視化する。**ドロップ自体はブロックしない**（警告のみ）。
+- **ルーティング**: `GoRouter`。実質 `/`（`TimelineScreen`）のみ。認証やイベント編集はダイアログで処理するためルートを持たない。
+- **ローカライズ**: 日本語固定（`Locale('ja','JP')`）。
 
-## 4. 判断に迷ったときのデフォルト方針
+## 4. 実装上の注意（知らないと事故るもの）
 
-以下は、設計・実装中に判断が必要になった場合のデフォルトルール。迷ったらこちらに従うこと。
+- **`year_timeline.dart` と `year_month_timeline.dart` はほぼ重複した2実装。** D&D 周りの修正は原則**両方**に入れる必要がある。過去にこの2ファイル間でコンフリクトが起きている。この重複解消はリファクタリングの筆頭課題。
+- **`*_provider.dart` という名前でも Provider を含まない純関数ファイルがある**（例: `cascade_move_provider.dart`）。名前を信用せず中身を見ること。
+- **Freezed / json_serializable は導入していない。** ドメインモデルは手書きのイミュータブルクラス（`copyWith` / `==` / `hashCode` / `toJson` / `fromJson` を手書き）。`copyWith` で null をクリアする場合は既存の `_sentinel` パターンに倣う。
+- **Riverpod のコード生成はほぼ使っていない。** `@riverpod` アノテーションの使用箇所は1つだけ。新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifier` / `StateProvider` / `Provider`）。
+- **認証は `kIsWeb` で実行時に実装が分岐する**（Web は Firebase のポップアップ、モバイルは `google_sign_in`）。
+- **`firestore.rules` / `storage.rules` はリポジトリに無い。** セキュリティルールは Firebase コンソールで管理している。変更した場合は `docs/FIREBASE_ARCHITECTURE.md` に反映すること。
 
-| 判断ポイント | デフォルト方針 |
+## 5. 実装規約とテスト方針
+
+| 判断ポイント | 方針 |
 |---|---|
-| Widgetの分割粒度 | 1ファイル200行を超えたら分割 |
-| エラーハンドリング | `AsyncValue` の `loading` / `error` / `data` で3状態を必ず処理 |
-| null安全性 | `required` パラメータを優先。Optionalは明示的に `?` と `??` で処理 |
-| 命名規則 | Dart公式スタイルガイドに従う（lowerCamelCase / UpperCamelCase） |
-| コメント | 公開API（public method/class）には必ずdartdocコメントを付ける |
-| テストの粒度 | 1テストメソッド = 1アサーション を原則とする |
-| 新規パッケージの追加 | pub.dev のLike数500以上、最終更新6ヶ月以内を目安とする |
-| MVPスコープ外の機能 | 実装しない。TODOコメントを残して `audit_log.md` に記録する |
+| エラーハンドリング | `AsyncValue` の `loading` / `error` / `data` の3状態を必ず処理する |
+| null 安全性 | `required` パラメータを優先。Optional は明示的に `?` と `??` で処理 |
+| 命名規則 | Dart 公式スタイルガイド（lowerCamelCase / UpperCamelCase） |
+| コメント | 公開 API（public class / method）には dartdoc コメントを付ける |
+| 新規パッケージの追加 | pub.dev の Like 数 500 以上、最終更新 6ヶ月以内を目安とする |
+| 大きなウィジェットの分割 | タイムライン系ウィジェットは既に肥大化している。機能追加のついでに分割しない。分割は独立した PR で行う |
 
-## 5. エージェント体制
+**テスト方針**:
 
-### 5.1. ロール構成（3ロール + メイン）
+- `domain/` と `logic/` はユニットテスト、`presentation/` はウィジェットテスト。モックは `mocktail`。
+- `test/features/` は `lib/features/` と対称に置く。
+- 現状 `auth` / `user_profile` / `core` にはテストが無い。テストの拡充は今後まとめて行う課題であり、新規実装のテストを書かない口実にはしない。
+- **`flutter analyze` と `flutter test` は CI の必須ゲート**（`.github/workflows/ci.yml`）。PR を出す前にローカルで両方通すこと。
 
-| ロール | 定義ファイル | 責務 |
-|---|---|---|
-| **メインエージェント** (Project Manager) | _(Claude Code本体)_ | オーケストレーション、WBS管理、audit_log記録 |
-| **Architect** | `.claude/agents/architect.md` | PRD・インフラ・ソフトウェア設計の策定と更新 |
-| **Implementer** | `.claude/agents/implementer.md` | Flutter実装（TDD）、Firebase連携コード |
-| **QA** | `.claude/agents/qa.md` | テストシナリオ設計、テスト実行、品質レポート |
+## 6. Git と経緯の残し方
 
-### 5.2. ファイル所有権（ネガティブリスト方式）
+- feature ブランチを切って作業 → PR → `main` にマージ（GitHub Actions が自動デプロイ）。**`main` に直接コミットしない。**
+- ブランチ名: `claude/<内容がわかる名前>` または `<topic>/<内容>`
+- commit は論理的な作業単位ごとに。prefix は `feat:` / `fix:` / `refactor:` / `test:` / `docs:` / `chore:`
 
-各エージェントが**触ってはいけないファイル**を以下に定義する。
+### 経緯の記録（このリポジトリで唯一の必須ルール）
 
-- **Architect**: `lib/` 配下、`test/` 配下のコード全般（実装コードに触らない）。技術選択時はADRを作成すること
-- **Implementer**: `docs/PRD.md`, `docs/SPEC.md`, `docs/FIREBASE_ARCHITECTURE.md`, `docs/SOFTWARE_ARCHITECTURE.md`, `docs/adr/`（設計ドキュメントを書き換えない）
-- **QA**: `lib/` 配下のプロダクトコード（テストコードのみ触る。プロダクトコードの修正はImplementerに依頼）
+一人で開発しているため、**なぜそうしたかを残すことが最も重要**。以下を守れば他の運用ルールは不要。
 
-### 5.3. エージェント呼び出しの原則
+1. **PR 説明に必ず書く** — 以下のテンプレートに従う。
 
-- メインエージェントは、タスクの種類に応じて適切なSub Agentに委譲する。
-- Sub Agentに渡すプロンプトには、必ず「参照すべきドキュメントのパス」と「成果物の出力先」を明示する。
-- Sub Agentの作業完了後、メインエージェントは成果物を確認し、問題があれば再実行を指示する。
+   ```markdown
+   ## なぜ
+   （解決したい課題・きっかけとなったフィードバック）
 
-## 6. ドキュメント体系
+   ## 何をしたか
+   （変更の要点。ファイル一覧はコミット差分で足りるので書かない）
+
+   ## 検討したが採らなかった案
+   （あれば。なければ省略可）
+
+   ## 検証
+   （flutter analyze / flutter test の結果、実機で確認した挙動）
+   ```
+
+2. **後戻りしにくい技術判断は ADR に残す** — `docs/adr/NNN-kebab-case-title.md`
+   対象: データモデルの変更、永続化方式、外部依存の追加、レイヤー構成の変更。
+3. **機能の要否・優先順位の判断は PDR に残す** — `docs/pdr/PDR-NNN-kebab-case-title.md`
+4. **判断を覆したときは元の ADR / PDR に `Superseded by ADR-NNN` を追記する。**
+   消さずに、なぜ覆したかを併記する（`docs/adr/011-milestone-as-child-event.md` が良い前例）。
+
+## 7. ドキュメント体系
 
 ```
 docs/
-├── PRODUCT_VISION.md           # Mission・Vision・Values（プロダクトの憲法）
-├── PRD.md                      # ビジョン・ターゲット・フェーズ別機能一覧（スリム版）
-├── SPEC.md                     # ビジネスルール仕様（カテゴリ定義・制約ルール・テンプレート定義）
-├── adr/                        # Architecture Decision Records（なぜその設計にしたか）
+├── PRODUCT_VISION.md           # Mission・Vision・Values
+├── PRD.md                      # ターゲット・フェーズ別機能一覧
+├── SPEC.md                     # ビジネスルール仕様
+├── SOFTWARE_ARCHITECTURE.md    # レイヤー構成・Riverpod 規約
+├── FIREBASE_ARCHITECTURE.md    # Firestore スキーマ・セキュリティルール
+├── adr/                        # Architecture Decision Records（なぜその設計か）
 ├── pdr/                        # Product Decision Records（なぜこの機能・優先順位か）
-├── FIREBASE_ARCHITECTURE.md    # Firebaseインフラ・Firestoreスキーマ設計
-├── SOFTWARE_ARCHITECTURE.md    # ソフトウェアアーキテクチャ設計（レイヤー構成・Riverpod規約）
-├── TESTING_POLICY.md           # テスト方針
-├── feature_registry.md         # 機能IDとコード/テストパスの対応表
-└── audit_log.md                # 監査ログ（全行動の記録）
+└── archive/                    # 更新を停止した歴史的ドキュメント（参照のみ）
 ```
 
-### ドキュメントと情報源の対応
-
-| 「何を知りたいか」 | 参照先 |
-|---|---|
-| なぜこのプロダクトか（MVV） | `docs/PRODUCT_VISION.md` |
-| なぜこの機能・優先順位か | `docs/pdr/` |
-| なぜその技術設計か | `docs/adr/` |
-| 何がビジネスルールか | `docs/SPEC.md` |
-| 何の機能があるか（概要） | `docs/PRD.md` |
-| 実装の詳細・仕様 | コード（ソース・テスト）を正とする |
-| どう使うか | （将来）`docs/USER_MANUAL.md` |
-
-## 7. ディレクトリ構造（実装時の規約）
-
-```
-lib/
-├── main.dart
-├── core/
-│   ├── router/                 # GoRouter設定
-│   ├── theme/                  # アプリテーマ定義
-│   └── constants/              # 定数定義
-└── features/
-    ├── timeline/
-    │   ├── data/               # Repository
-    │   ├── domain/             # データモデル (freezed)
-    │   ├── logic/              # Riverpod Provider
-    │   └── presentation/       # Widget + 画面
-    ├── profile/
-    │   ├── data/
-    │   ├── domain/
-    │   ├── logic/
-    │   └── presentation/
-    └── auth/                   # Phase 3
-        ├── data/
-        ├── domain/
-        ├── logic/
-        └── presentation/
-
-test/
-└── features/                   # lib/features/ と対称構造
-    ├── timeline/
-    │   ├── data/
-    │   ├── logic/
-    │   └── presentation/
-    └── profile/
-```
-## 8. Git運用ルール
-
-- 作業ブランチ: `dev`（Claude Codeは常にこのブランチで作業する）
-- ブランチの作成・切替・マージは行わない（人間が管理する）
-- commitは論理的な作業単位ごとに行う（1機能 or 1修正 = 1 commit）
-- commitメッセージ規約:
-  - `feat: タイムラインにイベント追加機能を実装`
-  - `test: TimelineEventsProviderのユニットテストを追加`
-  - `docs: SOFTWARE_ARCHITECTURE.md を更新`
-  - `fix: イベント削除時の状態遷移バグを修正`
-- `main` ブランチへのpush・mergeは禁止（人間のみが実行する）
-
-## 9. Feature Registry の維持義務
-
-- Implementer Agent は機能の実装完了時に docs/feature_registry.md を更新すること。
-  - 状態を 🟢 RELEASED に変更
-  - 実装ファイルパスとテストファイルパスを記入
-- Architect Agent は設計変更時に、影響を受ける既存機能の状態を 🔵 MODIFY に変更し、
-  備考に変更内容を記載すること。
-- feature_registry.md は PRD.md と常に整合していること。
-  PRD に存在する機能が registry に存在しない場合はエラーとする。
+- `docs/archive/` の中身は**現状の仕様ではない**。仕様を知る目的で読まないこと。
+- 設計ドキュメントとコードが食い違っていたら、**コードが正**。気付いた時点でドキュメント側を直すか、直せない場合は PR 説明に食い違いを記録する。

@@ -10,9 +10,9 @@ import 'event_style.dart';
 String _formatBudget(int yen) {
   if (yen >= 100000) {
     final man = (yen / 10000).round();
-    return '¥${man}万';
+    return '¥$man万';
   }
-  return '¥${yen}円';
+  return '¥$yen円';
 }
 
 /// タイムライン上に表示するイベントカード

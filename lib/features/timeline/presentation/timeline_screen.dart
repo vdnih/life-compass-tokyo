@@ -45,13 +45,13 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     if (totalYen == 0) return '';
     if (totalYen >= 100000000) {
       final oku = (totalYen / 100000000).toStringAsFixed(1);
-      return '合計 ¥${oku}億';
+      return '合計 ¥$oku億';
     }
     if (totalYen >= 10000) {
       final man = (totalYen / 10000).round();
-      return '合計 ¥${man}万';
+      return '合計 ¥$man万';
     }
-    return '合計 ¥${totalYen}円';
+    return '合計 ¥$totalYen円';
   }
 
   @override
@@ -219,7 +219,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                     events: events,
                     constraints: ref.watch(constraintCheckerProvider),
                   ),
-            loading: () => Center(
+            loading: () => const Center(
               child: CircularProgressIndicator(color: AppTheme.primary),
             ),
             error: (e, _) => Center(

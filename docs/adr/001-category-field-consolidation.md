@@ -1,7 +1,10 @@
 # ADR-001: イベント種別を category 単一フィールドに統合
 
 **Date**: 2026-03-10
-**Status**: 採用済み
+**Status**: Superseded by [ADR-010](./010-remove-event-category-enum.md)（2026-05-12）
+
+> ここで導入した `EventCategory` enum は、規定ライフイベントカタログへのピボット（PDR-005）に伴い
+> ADR-010 で廃止され、`catalogId` による参照に置き換えられた。以下は当時の判断の記録である。
 
 ## 背景
 

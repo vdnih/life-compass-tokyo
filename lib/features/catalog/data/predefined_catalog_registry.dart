@@ -10,11 +10,12 @@ import 'groups/travel_events.dart';
 /// 規定ライフイベントカタログの全グループを集約するレジストリ
 ///
 /// アプリ内にハードコードされた静的データ。Firestore には保存しない（ADR-010）。
-/// 全40件のカタログをグループ別ファイルから集約し、統一的なアクセス手段を提供する。
+/// グループ別ファイルからカタログを集約し、統一的なアクセス手段を提供する。
+/// 件数の正は `test/features/catalog/data/catalog_consistency_test.dart` のアサーション。
 class PredefinedCatalogRegistry {
   PredefinedCatalogRegistry._();
 
-  /// 全グループのカタログイベントリスト（44件）
+  /// 全グループのカタログイベントリスト
   static List<PredefinedLifeEvent> get all => [
         ...marriageEvents,
         ...childbirthEvents,
