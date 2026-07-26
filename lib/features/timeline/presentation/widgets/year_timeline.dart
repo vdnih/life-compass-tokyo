@@ -174,12 +174,12 @@ class _YearTimelineState extends ConsumerState<YearTimeline> {
     // イベントがある場合は範囲を必要に応じて拡張
     if (events.isNotEmpty) {
       final sortedEvents = List<LifeEvent>.from(events)
-        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-      final firstEventYear = sortedEvents.first.dateTime.year;
-      int lastEventYear = sortedEvents.last.dateTime.year;
+        ..sort((a, b) => a.yearMonth.compareTo(b.yearMonth));
+      final firstEventYear = sortedEvents.first.yearMonth.year;
+      int lastEventYear = sortedEvents.last.yearMonth.year;
       for (final e in events) {
-        if (e.hasDuration && e.endDateTime!.year > lastEventYear) {
-          lastEventYear = e.endDateTime!.year;
+        if (e.hasDuration && e.endYearMonth!.year > lastEventYear) {
+          lastEventYear = e.endYearMonth!.year;
         }
       }
       if (firstEventYear < startYear) startYear = firstEventYear - 2;

@@ -35,26 +35,26 @@ List<ConstraintResult> _checkC01(List<LifeEvent> events) {
   final jobEvents = events
       .where((e) => jobCatalogIds.contains(e.catalogId))
       .toList()
-    ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    ..sort((a, b) => a.yearMonth.compareTo(b.yearMonth));
 
   final birthOrLeaveEvents =
       events.where((e) => birthCatalogIds.contains(e.catalogId));
 
   for (final birthEvent in birthOrLeaveEvents) {
-    final birthDate = birthEvent.dateTime;
+    final birthDate = birthEvent.yearMonth;
 
     // 出産日より前の転職イベントのうち、最も直近のものを探す
     LifeEvent? closestJob;
     for (final job in jobEvents) {
-      if (job.dateTime.isBefore(birthDate)) {
+      if (job.yearMonth.isBefore(birthDate)) {
         closestJob = job;
       }
     }
 
     if (closestJob == null) continue;
 
-    final jobDate = closestJob.dateTime;
-    final twelveMonthsLater = DateTime(jobDate.year, jobDate.month + 12);
+    final jobDate = closestJob.yearMonth;
+    final twelveMonthsLater = jobDate.addMonths(12);
 
     // 出産日が転職日+12ヶ月より前（ちょうど12ヶ月はOK）
     if (birthDate.isBefore(twelveMonthsLater)) {
@@ -86,13 +86,12 @@ List<ConstraintResult> _checkC02(List<LifeEvent> events) {
       events.where((e) => e.catalogId == childbirthCatalogId);
 
   for (final birth in childbirthEvents) {
-    final birthDate = birth.dateTime;
-    final twelveMonthsBefore =
-        DateTime(birthDate.year, birthDate.month - 12);
+    final birthDate = birth.yearMonth;
+    final twelveMonthsBefore = birthDate.addMonths(-12);
 
     // 出産日の12ヶ月以上前に転職/入社があるか
     final hasEarlyEnoughJob = jobEvents.any((job) {
-      final jobDate = job.dateTime;
+      final jobDate = job.yearMonth;
       return !jobDate.isAfter(twelveMonthsBefore);
     });
 

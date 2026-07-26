@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
+import 'package:my_career_app/features/timeline/domain/year_month.dart';
 
 void main() {
   group('EventStatus の仕様', () {
@@ -90,7 +91,7 @@ void main() {
       expect(restored.catalogId, 'job-change');
     });
 
-    test('date文字列 ("yyyy-MM") から正しい DateTime を取得できること', () {
+    test('date文字列 ("yyyy-MM") から YearMonth を取得できること', () {
       const event = LifeEvent(
         id: 'test-id',
         date: '2023-08',
@@ -99,8 +100,7 @@ void main() {
         catalogId: 'joining-company',
       );
 
-      expect(event.dateTime.year, 2023);
-      expect(event.dateTime.month, 8);
+      expect(event.yearMonth, const YearMonth(2023, 8));
     });
 
     test('endDate が設定されている場合、hasDuration は true を返すこと', () {

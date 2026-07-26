@@ -73,7 +73,7 @@ void main() {
       expect(captured, hasLength(1), reason: 'ドロップで1件だけ更新されること');
       expect(captured.single.id, 'e1');
       expect(
-        captured.single.dateTime.isAfter(event.dateTime),
+        captured.single.yearMonth.isAfter(event.yearMonth),
         isTrue,
         reason: '右方向へのドラッグなので日付は後ろにずれること',
       );

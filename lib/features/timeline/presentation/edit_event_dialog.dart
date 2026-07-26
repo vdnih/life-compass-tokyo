@@ -41,10 +41,9 @@ class _EditEventDialogState extends ConsumerState<EditEventDialog> {
           ? widget.event.budgetYen.toString()
           : '',
     );
-    _selectedDate = widget.event.dateTime;
+    _selectedDate = widget.event.yearMonth.toDateTime();
     _hasEndDate = widget.event.endDate != null;
-    _selectedEndDate =
-        widget.event.endDate != null ? widget.event.endDateTime : null;
+    _selectedEndDate = widget.event.endYearMonth?.toDateTime();
     _status = widget.event.status;
   }
 
