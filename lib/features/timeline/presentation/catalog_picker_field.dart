@@ -244,7 +244,7 @@ class _CatalogPickerSheetState extends State<_CatalogPickerSheet> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppTheme.primary),
+                        borderSide: const BorderSide(color: AppTheme.primary),
                       ),
                       filled: true,
                       fillColor: Colors.grey[50],

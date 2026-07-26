@@ -60,11 +60,11 @@ class CatalogPanel extends ConsumerWidget {
                     color: AppTheme.primary.withValues(alpha: 0.25),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
                     Icon(Icons.add_circle_outline,
                         size: 15, color: AppTheme.primary),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'カスタムイベントの追加',
@@ -106,7 +106,7 @@ class CatalogPanel extends ConsumerWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppTheme.primary),
+                  borderSide: const BorderSide(color: AppTheme.primary),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -206,7 +206,7 @@ class _CatalogGroupSection extends StatelessWidget {
       leading: Icon(groupIcon, size: 16, color: AppTheme.primary),
       title: Text(
         group.label,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppTheme.primary,
@@ -246,7 +246,7 @@ class _CatalogItemTile extends ConsumerWidget {
   final PredefinedLifeEvent item;
   final bool isPlaced;
 
-  _CatalogItemTile({
+  const _CatalogItemTile({
     required this.item,
     required this.isPlaced,
   });

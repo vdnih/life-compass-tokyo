@@ -100,34 +100,9 @@ void main() {
       expect(find.text('イベントを追加'), findsOneWidget);
     });
 
-    testWidgets('仕事を選択した場合にカテゴリ選択（仕事系カテゴリ）が表示されること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
-
-      await tester.tap(find.text('ダイアログを開く'));
-      await tester.pumpAndSettle();
-
-      // 仕事はデフォルト選択なのでカテゴリが表示されているはず
-      expect(find.text('入社'), findsOneWidget);
-      expect(find.text('転職'), findsOneWidget);
-      expect(find.text('昇進'), findsOneWidget);
-    });
-
-    testWidgets('プライベートを選択した場合にプライベート系カテゴリが表示されること', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
-
-      await tester.tap(find.text('ダイアログを開く'));
-      await tester.pumpAndSettle();
-
-      await tester.ensureVisible(find.text('プライベート'));
-      await tester.tap(find.text('プライベート'));
-      await tester.pumpAndSettle();
-
-      // 仕事系カテゴリは非表示
-      expect(find.text('入社'), findsNothing);
-      // プライベート系カタログが表示される（結婚グループ等）
-      expect(find.text('入籍'), findsOneWidget);
-      expect(find.text('出産'), findsOneWidget);
-    });
+    // NOTE: カタログ選択UIのテストは未整備。
+    // 旧UI（カテゴリチップを直接表示）前提のテストがカタログ pivot 後も残っていたため削除した。
+    // 現在は CatalogPickerField 経由で選択するため、テスト整備フェーズで書き直す。
 
     testWidgets('ステータス選択（記録/予定/目標/検討中）が表示されること', (tester) async {
       await tester.pumpWidget(_buildTestWidget());

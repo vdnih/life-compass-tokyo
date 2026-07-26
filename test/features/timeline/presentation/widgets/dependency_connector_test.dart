@@ -7,15 +7,15 @@ void main() {
   group('DependencyConnector', () {
     testWidgets('依存関係がない場合でもエラーなく描画されること', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 800,
               height: 400,
               child: DependencyConnector(
-                dependencies: const [],
-                eventPositions: const {},
-                eventLanes: const {},
+                dependencies: [],
+                eventPositions: {},
+                eventLanes: {},
                 totalHeight: 400,
                 totalWidth: 800,
                 axisHeight: 60,
@@ -38,18 +38,18 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 800,
               height: 400,
               child: DependencyConnector(
-                dependencies: const [dep],
-                eventPositions: const {
+                dependencies: [dep],
+                eventPositions: {
                   'event-1': 100.0,
                   'event-2': 300.0,
                 },
-                eventLanes: const {'event-1': true, 'event-2': true},
+                eventLanes: {'event-1': true, 'event-2': true},
                 totalHeight: 400,
                 totalWidth: 800,
                 axisHeight: 60,
@@ -65,15 +65,15 @@ void main() {
 
     testWidgets('ウィジェットが正しいサイズで描画されること', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 800,
               height: 400,
               child: DependencyConnector(
-                dependencies: const [],
-                eventPositions: const {},
-                eventLanes: const {},
+                dependencies: [],
+                eventPositions: {},
+                eventLanes: {},
                 totalHeight: 400,
                 totalWidth: 800,
                 axisHeight: 60,
@@ -99,13 +99,13 @@ void main() {
         offsetMonths: 3,
       );
 
-      final painter = DependencyLinePainter(
-        dependencies: const [dep],
-        eventPositions: const {
+      const painter = DependencyLinePainter(
+        dependencies: [dep],
+        eventPositions: {
           'event-1': 100.0,
           'event-2': 300.0,
         },
-        eventLanes: const {'event-1': true, 'event-2': true},
+        eventLanes: {'event-1': true, 'event-2': true},
         axisHeight: 60,
         rowHeight: 160,
       );
@@ -114,17 +114,17 @@ void main() {
     });
 
     test('shouldRepaintが正しく動作すること', () {
-      final painter1 = DependencyLinePainter(
-        dependencies: const [],
-        eventPositions: const {},
-        eventLanes: const {},
+      const painter1 = DependencyLinePainter(
+        dependencies: [],
+        eventPositions: {},
+        eventLanes: {},
         axisHeight: 60,
         rowHeight: 160,
       );
-      final painter2 = DependencyLinePainter(
-        dependencies: const [],
-        eventPositions: const {},
-        eventLanes: const {},
+      const painter2 = DependencyLinePainter(
+        dependencies: [],
+        eventPositions: {},
+        eventLanes: {},
         axisHeight: 60,
         rowHeight: 160,
       );
@@ -133,10 +133,10 @@ void main() {
     });
 
     test('依存関係が変わるとshouldRepaintがtrueを返すこと', () {
-      final painter1 = DependencyLinePainter(
-        dependencies: const [],
-        eventPositions: const {},
-        eventLanes: const {},
+      const painter1 = DependencyLinePainter(
+        dependencies: [],
+        eventPositions: {},
+        eventLanes: {},
         axisHeight: 60,
         rowHeight: 160,
       );
@@ -146,10 +146,10 @@ void main() {
         targetEventId: 'event-2',
         offsetMonths: 3,
       );
-      final painter2 = DependencyLinePainter(
-        dependencies: const [dep],
-        eventPositions: const {},
-        eventLanes: const {},
+      const painter2 = DependencyLinePainter(
+        dependencies: [dep],
+        eventPositions: {},
+        eventLanes: {},
         axisHeight: 60,
         rowHeight: 160,
       );

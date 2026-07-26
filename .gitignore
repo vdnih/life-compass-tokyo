@@ -46,3 +46,7 @@ app.*.map.json
 
 # Firebase
 .firebase/
+
+# Claude Code（settings.json は共有、local はマシン固有のため除外）
+.claude/settings.local.json
+.claude/worktrees/

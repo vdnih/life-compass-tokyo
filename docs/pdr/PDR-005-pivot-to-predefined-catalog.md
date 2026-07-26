@@ -27,7 +27,7 @@
      項目をタイムラインへドラッグして配置する。
    - 既存16カテゴリは廃止し、カタログのID（`catalogId`）で各イベントを識別する。
 2. ~~**マイルストーンを LifeEvent の子要素** として表現する（`parentEventId`）。~~
-   - **2026-05-19 廃止**（ADR-011 Superseded / audit_log 2026-05-19 参照）。実装後の運用検証で十分な価値を提供できず、親子整合性のバグ温床になっていたためマイルストーン機能ごと一旦廃止した。再度必要になった際は要件定義からやり直す。
+   - **2026-05-19 廃止**（ADR-011 Superseded / `docs/archive/audit_log.md` 2026-05-19 参照）。実装後の運用検証で十分な価値を提供できず、親子整合性のバグ温床になっていたためマイルストーン機能ごと一旦廃止した。再度必要になった際は要件定義からやり直す。
 3. **規定イベントごとに hard 先行 / soft 先行を事前定義** する。
    - hard = 物理的・法的に成立しない順序（入籍はプロポーズの後 / 育休は出産の後 など）。
    - soft = 慣習・準備期間として推奨（結婚式は式場決定から半年以上 など）。
@@ -79,7 +79,7 @@
 - `docs/FIREBASE_ARCHITECTURE.md`: events スキーマ刷新、dependencies に `strength` 追加
 - `docs/SOFTWARE_ARCHITECTURE.md`: `lib/features/catalog/` 新設
 - `docs/adr/ADR-010〜013`: 設計判断の根拠を分割記録
-- `docs/feature_registry.md`: F-02 / F-21 を 🔵 MODIFY、F-30〜F-33 を ⚪ PLANNED に追加
+- `docs/archive/feature_registry.md`: F-02 / F-21 を 🔵 MODIFY、F-30〜F-33 を ⚪ PLANNED に追加（当時。registry は現在アーカイブ済み）
 
 ## 関連ドキュメント
 

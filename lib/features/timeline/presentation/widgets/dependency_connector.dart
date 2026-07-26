@@ -153,7 +153,7 @@ class DependencyLinePainter extends CustomPainter {
     final unitY = dy / distance;
 
     // 矢印の左右の羽
-    final angle = math.pi / 6; // 30度
+    const angle = math.pi / 6; // 30度
     final cos = math.cos(angle);
     final sin = math.sin(angle);
 

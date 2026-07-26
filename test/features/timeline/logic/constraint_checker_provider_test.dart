@@ -209,10 +209,10 @@ void main() {
         _event(date: '2025-01', title: '転職タイミングの目安', catalogId: 'job-change'),
         _event(date: '2025-06', title: '出産', catalogId: 'childbirth'),
       ];
-      final sourceId = 'test-202501-job-change';
-      final targetId = 'test-202506-childbirth';
+      const sourceId = 'test-202501-job-change';
+      const targetId = 'test-202506-childbirth';
       final dependencies = [
-        EventDependency(
+        const EventDependency(
           id: 'dep-1',
           sourceEventId: sourceId,
           targetEventId: targetId,
@@ -234,10 +234,10 @@ void main() {
         _event(date: '2025-01', title: '転職タイミングの目安', catalogId: 'job-change'),
         _event(date: '2025-04', title: '出産', catalogId: 'childbirth'),
       ];
-      final sourceId = 'test-202501-job-change';
-      final targetId = 'test-202504-childbirth';
+      const sourceId = 'test-202501-job-change';
+      const targetId = 'test-202504-childbirth';
       final dependencies = [
-        EventDependency(
+        const EventDependency(
           id: 'dep-1',
           sourceEventId: sourceId,
           targetEventId: targetId,
@@ -273,10 +273,10 @@ void main() {
         _event(date: '2025-11', title: 'イベントA', catalogId: 'job-change'),
         _event(date: '2026-01', title: 'イベントB', catalogId: 'childbirth'),
       ];
-      final sourceId = 'test-202511-job-change';
-      final targetId = 'test-202601-childbirth';
+      const sourceId = 'test-202511-job-change';
+      const targetId = 'test-202601-childbirth';
       final dependencies = [
-        EventDependency(
+        const EventDependency(
           id: 'dep-1',
           sourceEventId: sourceId,
           targetEventId: targetId,
@@ -298,10 +298,10 @@ void main() {
         _event(date: '2025-01', title: '転職タイミングの目安', catalogId: 'job-change'),
         _event(date: '2025-06', title: '出産予定', catalogId: 'childbirth'),
       ];
-      final sourceId = 'test-202501-job-change';
-      final targetId = 'test-202506-childbirth';
+      const sourceId = 'test-202501-job-change';
+      const targetId = 'test-202506-childbirth';
       final dependencies = [
-        EventDependency(
+        const EventDependency(
           id: 'dep-1',
           sourceEventId: sourceId,
           targetEventId: targetId,

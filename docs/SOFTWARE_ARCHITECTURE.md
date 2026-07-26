@@ -19,14 +19,16 @@
 
 ## 3. 技術スタック
 
-> 詳細は `CLAUDE.md` セクション3を参照。
+> 実際に導入されている依存の正は `pubspec.yaml`。
 
 | 技術 | 選定理由 |
 |---|---|
-| Riverpod v2 + Generator | コンパイル時のProvider型安全性。AIエージェントがコード生成しやすいアノテーションベース |
+| Riverpod v2 | Provider の型安全性と依存の明示。※コード生成（`@riverpod`）はほぼ使っておらず、Provider は手書きが主 |
 | GoRouter | 宣言的ルーティング。Deep Link対応。Web対応が容易 |
-| Freezed | イミュータブルなデータモデル。copyWith / == / toString の自動生成 |
 | mocktail | コード生成不要のモックライブラリ |
+
+> **注**: Freezed / json_serializable は導入していない。ドメインモデルは手書きのイミュータブルクラス
+> （`copyWith` / `==` / `hashCode` / `toJson` / `fromJson` を手書き）で実装している。
 
 ## 4. レイヤー定義
 
@@ -61,7 +63,7 @@
 | 選択肢 | Pros | Cons | 採否 |
 |---|---|---|---|
 | `lib/features/timeline/data/` 内に置く | Timeline機能との一体感 | カタログは timeline 以外（goal_template / budget_summary 等）からも参照される。timeline の中に置くと依存逆転が起きる | 不採用 |
-| `lib/core/catalog/` に置く | アプリ横断的な静的データとして配置 | core はインフラ寄り（router/theme/constants）の場所。ドメイン色の強いカタログは合わない | 不採用 |
+| `lib/core/catalog/` に置く | アプリ横断的な静的データとして配置 | core はインフラ寄り（router/theme/widgets）の場所。ドメイン色の強いカタログは合わない | 不採用 |
 | **`lib/features/catalog/` を新設** | feature 単位で domain / data / logic / presentation のレイヤーが揃う。timeline と並列のため依存方向が明確 | feature が一つ増える | **採用** |
 
 ## 5. ディレクトリ構造
@@ -72,7 +74,7 @@ lib/
 ├── core/
 │   ├── router/
 │   ├── theme/
-│   └── constants/
+│   └── widgets/
 └── features/
     ├── catalog/                                   # ★v6.0 新設
     │   ├── domain/
@@ -83,13 +85,13 @@ lib/
     │   ├── data/
     │   │   ├── predefined_catalog_registry.dart   # 全グループ集約レジストリ
     │   │   └── groups/                            # ★グループ別ファイル分割
-    │   │       ├── marriage_events.dart           # 結婚 11件
-    │   │       ├── childbirth_events.dart         # 出産 7件
-    │   │       ├── career_events.dart             # キャリア 7件
-    │   │       ├── lifestyle_events.dart          # 住まい 5件
-    │   │       ├── travel_events.dart             # 旅行 4件
-    │   │       ├── learning_events.dart           # 学び 3件
-    │   │       └── money_events.dart              # お金 3件
+    │   │       ├── marriage_events.dart           # 結婚
+    │   │       ├── childbirth_events.dart         # 出産
+    │   │       ├── career_events.dart             # キャリア
+    │   │       ├── lifestyle_events.dart          # 住まい
+    │   │       ├── travel_events.dart             # 旅行
+    │   │       ├── learning_events.dart           # 学び
+    │   │       └── money_events.dart              # お金
     │   ├── logic/
     │   │   ├── catalog_provider.dart              # グループ別取得・検索Provider
     │   │   └── catalog_lookup_provider.dart       # catalogId → PredefinedLifeEvent 引き当て
@@ -121,7 +123,9 @@ lib/
     │   └── presentation/
     │       ├── timeline_screen.dart                        # ★v6.0: 左パネル統合
     │       ├── goal_setup_dialog.dart
-    │       ├── edit_event_dialog.dart                      # ★v6.0: 旧 AddEventDialog を編集専用に縮約
+    │       ├── add_event_dialog.dart
+    │       ├── catalog_picker_field.dart                   # ★v6.0: カタログ選択フィールド
+    │       ├── edit_event_dialog.dart                      # ★v6.0: 編集専用ダイアログ
     │       └── widgets/
     │           ├── year_timeline.dart                      # ★v6.0: カタログからのドロップ受付
     │           ├── year_month_timeline.dart                # ★v6.0: 同上
