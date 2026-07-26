@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/year_month_picker.dart';
 import '../data/goal_template_data.dart';
 import '../domain/goal_template.dart';
+import '../domain/year_month.dart';
 import '../logic/goal_template_provider.dart';
 import 'widgets/event_style.dart';
 
@@ -44,8 +45,10 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
     ));
 
     // 関連イベント
+    final goalYearMonth = YearMonth.parse(goalDateStr);
     for (final te in template.relatedEvents) {
-      final date = addMonthsToDate(goalDateStr, te.offsetMonthsFromGoal);
+      final date =
+          goalYearMonth.addMonths(te.offsetMonthsFromGoal).toString();
       events.add(_PreviewEvent(
         title: te.titleTemplate,
         catalogId: te.catalogId,

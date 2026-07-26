@@ -4,6 +4,7 @@ import '../data/goal_template_data.dart';
 import '../domain/event_dependency.dart';
 import '../domain/goal_template.dart';
 import '../domain/life_event.dart';
+import '../domain/year_month.dart';
 import 'dependency_provider.dart';
 import 'timeline_events_provider.dart';
 
@@ -19,26 +20,6 @@ class GoalExpansionResult {
     required this.generatedEvents,
     required this.generatedDependencies,
   });
-}
-
-/// ゴール日付文字列に月数を加算した文字列を返す
-///
-/// 年境界を正しく処理する（例: 2028-01 - 2 = 2027-11）。
-String addMonthsToDate(String dateStr, int months) {
-  final parts = dateStr.split('-');
-  int year = int.parse(parts[0]);
-  int month = int.parse(parts[1]) + months;
-
-  while (month > 12) {
-    year++;
-    month -= 12;
-  }
-  while (month < 1) {
-    year--;
-    month += 12;
-  }
-
-  return '$year-${month.toString().padLeft(2, '0')}';
 }
 
 /// ゴールテンプレート選択→イベント群一括生成を管理するNotifier
@@ -79,12 +60,13 @@ class GoalTemplateNotifier extends Notifier<List<GoalTemplate>> {
     );
 
     // 関連イベントを生成
+    final goal = YearMonth.parse(goalDate);
     final relatedEvents = <LifeEvent>[];
     for (final templateEvent in template.relatedEvents) {
-      final eventDate =
-          addMonthsToDate(goalDate, templateEvent.offsetMonthsFromGoal);
+      final eventYearMonth = goal.addMonths(templateEvent.offsetMonthsFromGoal);
+      final eventDate = eventYearMonth.toString();
       final endDate = templateEvent.durationMonths != null
-          ? addMonthsToDate(eventDate, templateEvent.durationMonths!)
+          ? eventYearMonth.addMonths(templateEvent.durationMonths!).toString()
           : null;
 
       relatedEvents.add(LifeEvent(

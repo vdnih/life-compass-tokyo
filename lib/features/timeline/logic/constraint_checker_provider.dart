@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/constraint_result.dart';
 import '../domain/event_dependency.dart';
 import '../domain/life_event.dart';
+import '../domain/year_month.dart';
 import 'dependency_provider.dart';
 import 'timeline_events_provider.dart';
 
@@ -125,20 +126,10 @@ List<ConstraintResult> _checkC03(
     if (source == null || target == null) continue;
 
     // source の日付に offsetMonths を加算した期待日付
-    final sourceParts = source.date.split('-');
-    int year = int.parse(sourceParts[0]);
-    int month = int.parse(sourceParts[1]) + dep.offsetMonths;
-    while (month > 12) {
-      year++;
-      month -= 12;
-    }
-    while (month < 1) {
-      year--;
-      month += 12;
-    }
-    final expectedDate = '$year-${month.toString().padLeft(2, '0')}';
+    final expected =
+        YearMonth.parse(source.date).addMonths(dep.offsetMonths);
 
-    if (expectedDate != target.date) {
+    if (expected != YearMonth.parse(target.date)) {
       results.add(ConstraintResult(
         ruleId: 'C-03',
         targetEventTitle: target.title,
