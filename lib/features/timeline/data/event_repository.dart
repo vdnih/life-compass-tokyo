@@ -99,7 +99,9 @@ class InMemoryEventRepository implements EventRepository {
 
   @override
   Future<void> deleteEvent(LifeEvent event) async {
-    _events.remove(event);
+    // id 基準。値等価（_events.remove）で消すと、編集済みの古いインスタンスを
+    // 渡されたとき無言で失敗する（依存だけ消えてイベントが残るデータ不整合になる）。
+    _events.removeWhere((e) => e.id == event.id);
   }
 
   @override
