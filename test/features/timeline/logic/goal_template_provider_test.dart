@@ -3,50 +3,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:my_career_app/features/timeline/data/dependency_repository.dart';
 import 'package:my_career_app/features/timeline/data/event_repository.dart';
-import 'package:my_career_app/features/timeline/domain/event_dependency.dart';
-import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/logic/goal_template_provider.dart';
 
-class MockEventRepository extends Mock implements EventRepository {}
-
-class MockDependencyRepository extends Mock implements DependencyRepository {}
-
-class FakeLifeEvent extends Fake implements LifeEvent {}
-
-class FakeEventDependency extends Fake implements EventDependency {}
+import '../../../support/mocks.dart';
+import '../../../support/pump.dart' as support;
 
 void main() {
-  setUpAll(() {
-    registerFallbackValue(FakeLifeEvent());
-    registerFallbackValue(FakeEventDependency());
-  });
+  setUpAll(registerCommonFallbackValues);
 
   group('GoalTemplateNotifier', () {
     late MockEventRepository mockEventRepository;
     late MockDependencyRepository mockDependencyRepository;
 
     setUp(() {
-      mockEventRepository = MockEventRepository();
-      mockDependencyRepository = MockDependencyRepository();
+      mockEventRepository = stubEventRepository();
+      mockDependencyRepository = stubDependencyRepository();
     });
 
     ProviderContainer createContainer() {
-      when(() => mockEventRepository.fetchEvents()).thenAnswer((_) async => []);
-      when(() => mockEventRepository.saveEvent(any())).thenAnswer((_) async {});
-      when(() => mockDependencyRepository.fetchDependencies())
-          .thenAnswer((_) async => []);
-      when(() => mockDependencyRepository.saveDependency(any()))
-          .thenAnswer((_) async {});
-
-      final container = ProviderContainer(
+      return support.createContainer(
         overrides: [
           eventRepositoryProvider.overrideWithValue(mockEventRepository),
           dependencyRepositoryProvider
               .overrideWithValue(mockDependencyRepository),
         ],
       );
-      addTearDown(container.dispose);
-      return container;
     }
 
     test('出産テンプレートを適用すると7件のイベントが生成されること', () async {

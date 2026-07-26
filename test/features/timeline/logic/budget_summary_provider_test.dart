@@ -1,36 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-import 'package:my_career_app/features/timeline/data/event_repository.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/logic/budget_summary_provider.dart';
 import 'package:my_career_app/features/timeline/logic/timeline_events_provider.dart';
 
-class MockEventRepository extends Mock implements EventRepository {}
-
-class FakeLifeEvent extends Fake implements LifeEvent {}
+import '../../../support/mocks.dart';
+import '../../../support/pump.dart';
 
 void main() {
-  setUpAll(() {
-    registerFallbackValue(FakeLifeEvent());
-  });
+  setUpAll(registerCommonFallbackValues);
 
   group('budgetSummaryProvider', () {
-    late MockEventRepository mockRepository;
-
-    setUp(() {
-      mockRepository = MockEventRepository();
-    });
-
     ProviderContainer createContainer(List<LifeEvent> events) {
-      when(() => mockRepository.fetchEvents()).thenAnswer((_) async => events);
-      final container = ProviderContainer(
-        overrides: [
-          eventRepositoryProvider.overrideWithValue(mockRepository),
-        ],
-      );
-      addTearDown(container.dispose);
-      return container;
+      return createContainerWithRepositories(events: events);
     }
 
     test('budgetSummaryProvider が複数イベントの合計を正しく返すこと', () async {

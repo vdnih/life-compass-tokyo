@@ -5,20 +5,17 @@ import 'package:my_career_app/features/timeline/data/dependency_repository.dart'
 import 'package:my_career_app/features/timeline/domain/event_dependency.dart';
 import 'package:my_career_app/features/timeline/logic/dependency_provider.dart';
 
-class MockDependencyRepository extends Mock implements DependencyRepository {}
-
-class FakeEventDependency extends Fake implements EventDependency {}
+import '../../../support/mocks.dart';
+import '../../../support/pump.dart' as support;
 
 void main() {
-  setUpAll(() {
-    registerFallbackValue(FakeEventDependency());
-  });
+  setUpAll(registerCommonFallbackValues);
 
   group('DependencyNotifier', () {
     late MockDependencyRepository mockRepository;
 
     setUp(() {
-      mockRepository = MockDependencyRepository();
+      mockRepository = stubDependencyRepository();
     });
 
     ProviderContainer createContainer({
@@ -26,13 +23,11 @@ void main() {
     }) {
       when(() => mockRepository.fetchDependencies())
           .thenAnswer((_) async => List.of(initialDeps));
-      final container = ProviderContainer(
+      return support.createContainer(
         overrides: [
           dependencyRepositoryProvider.overrideWithValue(mockRepository),
         ],
       );
-      addTearDown(container.dispose);
-      return container;
     }
 
     test('初期状態: リポジトリから依存関係一覧を取得すること', () async {

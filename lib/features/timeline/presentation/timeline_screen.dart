@@ -12,6 +12,7 @@ import '../logic/constraint_checker_provider.dart';
 import 'widgets/year_month_timeline.dart';
 import 'widgets/year_timeline.dart';
 import 'goal_setup_dialog.dart';
+import 'timeline_keys.dart';
 
 enum TimelineViewMode { yearMonth, year }
 
@@ -212,10 +213,12 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           final timelineBody = eventsAsync.when(
             data: (events) => _viewMode == TimelineViewMode.yearMonth
                 ? YearMonthTimeline(
+                    key: TimelineKeys.timelineYearMonth,
                     events: events,
                     constraints: ref.watch(constraintCheckerProvider),
                   )
                 : YearTimeline(
+                    key: TimelineKeys.timelineYear,
                     events: events,
                     constraints: ref.watch(constraintCheckerProvider),
                   ),

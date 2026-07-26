@@ -9,7 +9,7 @@
 |---|---|
 | `audit_log.md` | 開発の経緯は PR 説明と `docs/adr/` に一本化したため（ADR-014）。2026-05 までの記録を保持 |
 | `feature_registry.md` | 更新義務が守られず実装と乖離した。機能の一覧は `docs/PRD.md`、実装の所在はコード検索で足りる |
-| `TESTING_POLICY.md` | 要点を `CLAUDE.md` に統合した。テスト方針の整備は今後リファクタリング後に改めて行う |
+| `TESTING_POLICY.md` | 要点を `CLAUDE.md` に統合した。**現行の方針は ADR-019**。本ファイルが実運用に耐えなかった理由も ADR-019 に分解して記録している |
 | `qa_report.md` | 2026-03 時点の品質レポート。廃止済みの `EventCategory` / `WorkSubCategory` 前提で書かれている |
 | `test_scenarios.md` | 2026-03 時点のテストシナリオ。実施されなかった `WorkSubCategory` 移行を前提としている |
 | `WBS.md` | 2026-03 時点のタスク分解。カタログ pivot（PDR-005）以降の作業を反映していない |

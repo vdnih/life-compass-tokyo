@@ -17,6 +17,7 @@ import '../../logic/dependency_provider.dart';
 import '../../logic/timeline_events_provider.dart';
 import '../add_event_dialog.dart';
 import '../edit_event_dialog.dart';
+import '../timeline_keys.dart';
 import 'dependency_connector.dart';
 import 'duration_event_bar.dart';
 import 'event_card.dart';
@@ -406,6 +407,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
       children: [
         const SizedBox(height: axisHeight),
         Container(
+          key: TimelineKeys.workLane,
           height: _rowHeight,
           width: double.infinity,
           alignment: Alignment.center,
@@ -427,6 +429,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           ),
         ),
         Container(
+          key: TimelineKeys.privateLane,
           height: _rowHeight,
           width: double.infinity,
           alignment: Alignment.center,
