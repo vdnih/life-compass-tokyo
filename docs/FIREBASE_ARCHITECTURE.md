@@ -1,7 +1,7 @@
 # Firebase アーキテクチャ設計書
 
-**Version**: 7.0
-**Last Updated**: 2026-05-12
+**Version**: 7.2
+**Last Updated**: 2026-07-26
 **Owner**: Architect Agent
 
 ## 1. 概要
@@ -41,7 +41,10 @@ graph LR
 
 ### 3.2. Cloud Firestore
 - **目的**: ユーザープロフィール・イベントデータの永続化
-- **ロケーション**: `asia-northeast1`（東京）
+- **ロケーション**: `nam5`（北米マルチリージョン）。作成後変更不可のため東京リージョンへの移行は不可
+- **削除保護**: 有効（`DELETE_PROTECTION_ENABLED`）。誤操作でのデータベース削除を防止
+- **Point-in-Time Recovery**: 無効（費用が発生するため個人開発の現段階では未導入。ADR-015参照）
+- **複合インデックス**: `firestore.indexes.json` で管理。現状、単純クエリのみのため0件
 
 #### users ドキュメント
 ```
@@ -106,11 +109,12 @@ v6.0 以前のドキュメントに `strength` が無い場合、Repository 層�
 例: `wedding-ceremony`, `propose`, `pregnancy`, `job-change`, `purchase-home` など。
 完全な一覧は `docs/SPEC.md` §4.2〜§4.8、または `lib/features/catalog/data/groups/` 配下のコードを参照。
 
-### 3.4. Cloud Storage for Firebase
-- **目的**: 画像・証明書ファイルの実体保存（将来構想）
-- **ロケーション**: `asia-northeast1`（東京）
-- **フォルダ構成**: `users/{userId}/events/{eventId}/{timestamp}.jpg`
-- **クライアント制約**: アップロード前に `flutter_image_compress` で1MB以下に圧縮
+### 3.4. Cloud Storage for Firebase（未導入）
+- **状態**: 未使用・未プロビジョニング。`storage.rules` はリポジトリに存在せず、Firebase プロジェクト側にも
+  Storage バケットの設定は無い（`firebase_get_security_rules` で確認済み）
+- **目的（将来構想）**: 画像・証明書ファイルの実体保存
+- **フォルダ構成（案）**: `users/{userId}/events/{eventId}/{timestamp}.jpg`
+- **クライアント制約（案）**: アップロード前に `flutter_image_compress` で1MB以下に圧縮
 
 ### 3.5. Firebase Hosting
 - **目的**: Flutter Web版の公開
@@ -122,20 +126,16 @@ v6.0 以前のドキュメントに `strength` が無い場合、Repository 層�
 
 ### 4.1. Firestore ルール
 
-v7.0 のスキーマ変更（`catalogId` / `budgetYen` / `strength` 追加）でも、
-**セキュリティルールに変更は不要**。既存の `users/{userId}/{document=**}` レベルの owner-only ルールが
-追加フィールドも自動的にカバーする。
+**`firestore.rules`（リポジトリ直下）が正**。変更は必ずこのファイル経由で行い、
+`firebase deploy --only firestore:rules` で反映する（CI では自動デプロイされない。§7 参照）。
+**Firebase コンソールでの直接編集は行わない**（2026-07、コンソールのみの管理になっていたルールを
+リポジトリへ復旧した経緯がある。ADR-015参照）。ルール内容をこの文書へ複製すると
+実ファイルとの二重管理になり乖離の原因になるため、要約のみ記載する:
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
+`users/{userId}/{document=**}` 配下は、認証済み本人（`request.auth.uid == userId`）のみ
+読み書き可能な owner-only ルール（deny-by-default）。v7.0 のスキーマ変更
+（`catalogId` / `budgetYen` / `strength` 追加）はドキュメント配下のフィールド追加のため、
+このルールの変更は不要だった。
 
 ### 4.2. クライアント側バリデーション（必須）
 
@@ -144,7 +144,11 @@ service cloud.firestore {
 - `catalogId` は SPEC §4 で定義された ID のいずれか（カタログ整合性テストで担保）
 - `budgetYen` は非負整数
 
-### 4.3. Storage ルール
+### 4.3. Storage ルール（未実装・将来構想のドラフト）
+
+§3.4 の通り Cloud Storage 自体が未導入のため、`storage.rules` はリポジトリに存在しない。
+以下は導入時に参考にする想定のドラフトであり、実際にデプロイされたルールではない。
+
 ```javascript
 rules_version = '2';
 service firebase.storage {
@@ -165,8 +169,8 @@ service firebase.storage {
 
 ## 5. EDoS対策（クラウド破産防止）
 
-1. **Hard Limit**: Storage Rules で5MB上限
-2. **Soft Limit**: アプリ側で画像圧縮（1MB以下）
+1. **Hard Limit**: Storage Rules で5MB上限（Storage 導入時に設定。現状 Storage 未使用のため未設定）
+2. **Soft Limit**: アプリ側で画像圧縮（1MB以下、Storage 導入時）
 3. **Monitoring**: GCPコンソールで予算アラート設定
 
 ## 6. 既知の制限事項
@@ -176,9 +180,16 @@ service firebase.storage {
 
 ## 7. デプロイ
 
-```bash
-firebase deploy
-```
+- **Hosting**: `main` への push で GitHub Actions（`.github/workflows/firebase-hosting-merge.yml`）が
+  自動デプロイする。PR では preview チャンネルへ自動デプロイ（`firebase-hosting-pull-request.yml`）。
+- **Firestore rules / indexes**: **CI では自動デプロイされない**。`firestore.rules` または
+  `firestore.indexes.json` を変更した場合、変更者が手動で以下を実行して反映する:
+
+  ```bash
+  firebase deploy --only firestore:rules,firestore:indexes
+  ```
+
+  **Firebase コンソールでの直接編集は行わない**（リポジトリとの乖離の原因になる。ADR-015参照）。
 
 ## 変更履歴
 
@@ -193,3 +204,4 @@ firebase deploy
 | 6.0 | 2026-03-29 | Googleログイン専用、usersドキュメント追加 |
 | 7.0 | 2026-05-12 | 規定ライフイベントカタログD&D方式へのピボット（PDR-005）。events から `category` を削除し `catalogId` / `parentEventId` / `kind` / `budgetYen` を追加。dependencies に `strength` を追加。スキーマ変更でもセキュリティルールは変更不要 |
 | 7.1 | 2026-05-19 | マイルストーン機能廃止（ADR-011 Superseded）。events から `parentEventId` / `kind` を実質的に削除（既存データはロード時に無視）。スキーマ自体は破壊的変更を避けるため Firestore 上のドキュメントは残置 |
+| 7.2 | 2026-07-26 | `firestore.rules` のコンソール管理からリポジトリ管理への復旧（ADR-015）に伴いドキュメントを実態に合わせて修正。ルール本文のベタ書き（実ファイルとの二重管理）を解消、未実装の Storage ルールを「ドラフト」と明記、Firestore ロケーションの誤記（東京→実際は`nam5`）を修正、`firestore.indexes.json`・削除保護（有効化済み）・デプロイ手順（rules/indexes は手動デプロイ）を追記 |
