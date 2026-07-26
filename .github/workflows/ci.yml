@@ -14,8 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # ローカル開発環境と同じバージョンに固定する。
+      # `channel: stable` にすると Flutter の更新で CI だけが落ちる（実際に 3.44.x の
+      # ListTile 関連アサーションでウィジェットテスト18件が失敗した）。
+      # Flutter 本体の更新は独立したタスクとして行い、その際にここも更新する。
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.38.5
           channel: stable
           cache: true
       - run: flutter pub get
