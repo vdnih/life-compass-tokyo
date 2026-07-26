@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/constraint_result.dart';
 import '../domain/event_dependency.dart';
 import '../domain/life_event.dart';
+import '../domain/year_month.dart';
 import 'dependency_provider.dart';
 import 'timeline_events_provider.dart';
 
@@ -34,26 +35,26 @@ List<ConstraintResult> _checkC01(List<LifeEvent> events) {
   final jobEvents = events
       .where((e) => jobCatalogIds.contains(e.catalogId))
       .toList()
-    ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    ..sort((a, b) => a.yearMonth.compareTo(b.yearMonth));
 
   final birthOrLeaveEvents =
       events.where((e) => birthCatalogIds.contains(e.catalogId));
 
   for (final birthEvent in birthOrLeaveEvents) {
-    final birthDate = birthEvent.dateTime;
+    final birthDate = birthEvent.yearMonth;
 
     // 出産日より前の転職イベントのうち、最も直近のものを探す
     LifeEvent? closestJob;
     for (final job in jobEvents) {
-      if (job.dateTime.isBefore(birthDate)) {
+      if (job.yearMonth.isBefore(birthDate)) {
         closestJob = job;
       }
     }
 
     if (closestJob == null) continue;
 
-    final jobDate = closestJob.dateTime;
-    final twelveMonthsLater = DateTime(jobDate.year, jobDate.month + 12);
+    final jobDate = closestJob.yearMonth;
+    final twelveMonthsLater = jobDate.addMonths(12);
 
     // 出産日が転職日+12ヶ月より前（ちょうど12ヶ月はOK）
     if (birthDate.isBefore(twelveMonthsLater)) {
@@ -85,13 +86,12 @@ List<ConstraintResult> _checkC02(List<LifeEvent> events) {
       events.where((e) => e.catalogId == childbirthCatalogId);
 
   for (final birth in childbirthEvents) {
-    final birthDate = birth.dateTime;
-    final twelveMonthsBefore =
-        DateTime(birthDate.year, birthDate.month - 12);
+    final birthDate = birth.yearMonth;
+    final twelveMonthsBefore = birthDate.addMonths(-12);
 
     // 出産日の12ヶ月以上前に転職/入社があるか
     final hasEarlyEnoughJob = jobEvents.any((job) {
-      final jobDate = job.dateTime;
+      final jobDate = job.yearMonth;
       return !jobDate.isAfter(twelveMonthsBefore);
     });
 
@@ -125,20 +125,10 @@ List<ConstraintResult> _checkC03(
     if (source == null || target == null) continue;
 
     // source の日付に offsetMonths を加算した期待日付
-    final sourceParts = source.date.split('-');
-    int year = int.parse(sourceParts[0]);
-    int month = int.parse(sourceParts[1]) + dep.offsetMonths;
-    while (month > 12) {
-      year++;
-      month -= 12;
-    }
-    while (month < 1) {
-      year--;
-      month += 12;
-    }
-    final expectedDate = '$year-${month.toString().padLeft(2, '0')}';
+    final expected =
+        YearMonth.parse(source.date).addMonths(dep.offsetMonths);
 
-    if (expectedDate != target.date) {
+    if (expected != YearMonth.parse(target.date)) {
       results.add(ConstraintResult(
         ruleId: 'C-03',
         targetEventTitle: target.title,

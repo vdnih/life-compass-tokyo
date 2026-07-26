@@ -180,12 +180,13 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     // イベントがある場合は範囲を必要に応じて拡張
     if (events.isNotEmpty) {
       final sortedEvents = List<LifeEvent>.from(events)
-        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-      final firstEventDate = sortedEvents.first.dateTime;
-      DateTime lastEventDate = sortedEvents.last.dateTime;
+        ..sort((a, b) => a.yearMonth.compareTo(b.yearMonth));
+      final firstEventDate = sortedEvents.first.yearMonth.toDateTime();
+      DateTime lastEventDate = sortedEvents.last.yearMonth.toDateTime();
       for (final e in events) {
-        if (e.hasDuration && e.endDateTime!.isAfter(lastEventDate)) {
-          lastEventDate = e.endDateTime!;
+        final endDateTime = e.endYearMonth?.toDateTime();
+        if (e.hasDuration && endDateTime!.isAfter(lastEventDate)) {
+          lastEventDate = endDateTime;
         }
       }
       if (firstEventDate.isBefore(startDate)) {
@@ -214,8 +215,9 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     final eventPositions = <String, double>{};
     final eventLanes = <String, bool>{};
     for (final event in events) {
-      final monthOffset = ((event.dateTime.year - startDate.year) * 12) +
-          (event.dateTime.month - startDate.month);
+      final monthOffset =
+          ((event.yearMonth.year - startDate.year) * 12) +
+              (event.yearMonth.month - startDate.month);
       eventPositions[event.id] = 20.0 + (monthOffset * monthWidth);
       eventLanes[event.id] = event.isWork;
     }
@@ -1052,8 +1054,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     }
 
     for (final event in events) {
-      final monthOffset = ((event.dateTime.year - startDate.year) * 12) +
-          (event.dateTime.month - startDate.month);
+      final monthOffset = ((event.yearMonth.year - startDate.year) * 12) +
+          (event.yearMonth.month - startDate.month);
       final xPos = 20.0 + (monthOffset * monthWidth);
       final rowTop =
           event.isWork ? axisHeight : axisHeight + _rowHeight;
@@ -1062,8 +1064,9 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
 
       double barWidth = 0;
       if (event.hasDuration) {
-        final endOffset = ((event.endDateTime!.year - startDate.year) * 12) +
-            (event.endDateTime!.month - startDate.month);
+        final endYearMonth = event.endYearMonth!;
+        final endOffset = ((endYearMonth.year - startDate.year) * 12) +
+            (endYearMonth.month - startDate.month);
         barWidth = ((endOffset - monthOffset) * monthWidth)
             .clamp(30.0, double.infinity);
       }

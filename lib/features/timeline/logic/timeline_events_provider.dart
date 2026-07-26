@@ -3,24 +3,9 @@ import 'package:uuid/uuid.dart';
 import '../../catalog/domain/predefined_life_event.dart';
 import '../data/event_repository.dart';
 import '../domain/life_event.dart';
+import '../domain/year_month.dart';
 
 const _uuid = Uuid();
-
-/// yyyy-MM 文字列に月数を加算した yyyy-MM 文字列を返す
-String _addMonths(String dateStr, int offsetMonths) {
-  final parts = dateStr.split('-');
-  int year = int.parse(parts[0]);
-  int month = int.parse(parts[1]) + offsetMonths;
-  while (month > 12) {
-    year++;
-    month -= 12;
-  }
-  while (month < 1) {
-    year--;
-    month += 12;
-  }
-  return '$year-${month.toString().padLeft(2, '0')}';
-}
 
 /// タイムラインイベントの状態を管理するNotifier
 class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
@@ -67,7 +52,9 @@ class TimelineEventsNotifier extends AsyncNotifier<List<LifeEvent>> {
         catalogId: catalog.id,
         date: date,
         endDate: catalog.defaultDurationMonths != null
-            ? _addMonths(date, catalog.defaultDurationMonths!)
+            ? YearMonth.parse(date)
+                .addMonths(catalog.defaultDurationMonths!)
+                .toString()
             : null,
         title: catalog.label,
         description: '',

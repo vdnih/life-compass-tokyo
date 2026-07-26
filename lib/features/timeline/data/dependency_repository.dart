@@ -66,15 +66,32 @@ class InMemoryDependencyRepository implements DependencyRepository {
   }
 }
 
+/// ゲストモードで使う [InMemoryDependencyRepository] を 1 インスタンスだけ保持する Provider。
+///
+/// [dependencyRepositoryProvider] の中で直接生成すると [authStateProvider] の
+/// emission ごとに新品が作られ、ゲストの編集が消えてしまう
+/// （event_repository.dart の同名 Provider と同じ理由）。
+final inMemoryDependencyRepositoryProvider =
+    Provider<InMemoryDependencyRepository>(
+  (ref) => InMemoryDependencyRepository(),
+);
+
+/// uid ごとに同一の [FirestoreDependencyRepository] インスタンスを返す Provider。
+final firestoreDependencyRepositoryProvider =
+    Provider.family<FirestoreDependencyRepository, String>(
+  (ref, userId) => FirestoreDependencyRepository(userId: userId),
+);
+
 /// [DependencyRepository] を提供するProvider
 ///
 /// 認証済みの場合は Firestore 実装、未認証（ゲストモード）の場合は
-/// インメモリ実装を返す。
+/// インメモリ実装を返す。実体は保持されるため、Provider が再構築されても
+/// 中身は同じインスタンスのまま。
 final dependencyRepositoryProvider = Provider<DependencyRepository>((ref) {
   final userAsync = ref.watch(authStateProvider);
   final user = userAsync.valueOrNull;
   if (user != null) {
-    return FirestoreDependencyRepository(userId: user.uid);
+    return ref.watch(firestoreDependencyRepositoryProvider(user.uid));
   }
-  return InMemoryDependencyRepository();
+  return ref.watch(inMemoryDependencyRepositoryProvider);
 });

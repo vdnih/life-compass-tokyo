@@ -1,5 +1,6 @@
 import '../domain/event_dependency.dart';
 import '../domain/life_event.dart';
+import '../domain/year_month.dart';
 
 /// イベントの日付変更を表すモデル
 class EventDateChange {
@@ -27,32 +28,6 @@ class EventDateChange {
   });
 }
 
-/// 日付文字列に月数を加算した文字列を返す
-///
-/// 年境界を正しく処理する（例: 2025-11 + 3 = 2026-02）。
-String _addMonths(String dateStr, int months) {
-  final parts = dateStr.split('-');
-  int year = int.parse(parts[0]);
-  int month = int.parse(parts[1]) + months;
-
-  while (month > 12) {
-    year++;
-    month -= 12;
-  }
-  while (month < 1) {
-    year--;
-    month += 12;
-  }
-
-  return '$year-${month.toString().padLeft(2, '0')}';
-}
-
-/// yyyy-MM 形式の日付文字列を月数に変換する
-int _dateToMonths(String dateStr) {
-  final parts = dateStr.split('-');
-  return int.parse(parts[0]) * 12 + int.parse(parts[1]);
-}
-
 /// イベントを移動したときに連動して変更すべき日付の一覧を計算する純粋関数
 ///
 /// 移動差分（deltaMonths）を BFS で依存グラフを辿り、
@@ -67,9 +42,8 @@ List<EventDateChange> computeCascadeUpdates({
 }) {
   // 移動対象のイベントを取得
   final movedEvent = allEvents.firstWhere((e) => e.id == movedEventId);
-  final oldMonths = _dateToMonths(movedEvent.date);
-  final newMonths = _dateToMonths(newDate);
-  final deltaMonths = newMonths - oldMonths;
+  final deltaMonths = YearMonth.parse(newDate)
+      .differenceInMonths(YearMonth.parse(movedEvent.date));
 
   // 0ヶ月移動は変更なし
   if (deltaMonths == 0) return [];
@@ -101,9 +75,11 @@ List<EventDateChange> computeCascadeUpdates({
     final event = eventMap[eventId];
     if (event == null) continue;
 
-    final updatedDate = _addMonths(event.date, deltaMonths);
-    final updatedEndDate =
-        event.endDate != null ? _addMonths(event.endDate!, deltaMonths) : null;
+    final updatedDate =
+        YearMonth.parse(event.date).addMonths(deltaMonths).toString();
+    final updatedEndDate = event.endDate != null
+        ? YearMonth.parse(event.endDate!).addMonths(deltaMonths).toString()
+        : null;
 
     changes.add(EventDateChange(
       eventId: eventId,

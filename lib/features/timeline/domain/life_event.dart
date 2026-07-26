@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'year_month.dart';
+
 /// イベントステータス
 /// 過去の記録か、将来の計画かを区別する
 enum EventStatus {
@@ -64,17 +66,13 @@ class LifeEvent {
     this.budgetYen,
   });
 
-  /// date フィールドを DateTime に変換する
-  DateTime get dateTime {
-    final parts = date.split('-');
-    return DateTime(int.parse(parts[0]), int.parse(parts[1]));
-  }
+  /// date フィールドを [YearMonth] として返す
+  YearMonth get yearMonth => YearMonth.parse(date);
 
-  /// endDate フィールドを DateTime に変換する。endDate が null の場合は null を返す
-  DateTime? get endDateTime {
-    if (endDate == null) return null;
-    final parts = endDate!.split('-');
-    return DateTime(int.parse(parts[0]), int.parse(parts[1]));
+  /// endDate フィールドを [YearMonth] として返す。endDate が null の場合は null
+  YearMonth? get endYearMonth {
+    final value = endDate;
+    return value == null ? null : YearMonth.parse(value);
   }
 
   /// 期間が設定されているか

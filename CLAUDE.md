@@ -56,6 +56,9 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 - **Riverpod のコード生成はほぼ使っていない。** `@riverpod` アノテーションの使用箇所は1つだけ。新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifier` / `StateProvider` / `Provider`）。
 - **認証は `kIsWeb` で実行時に実装が分岐する**（Web は Firebase のポップアップ、モバイルは `google_sign_in`）。
 - **Firestore のセキュリティルール・インデックスは `firestore.rules` / `firestore.indexes.json` がリポジトリの正。** `firebase deploy --only firestore:rules,firestore:indexes` で反映する（CI では自動デプロイされず手動運用。理由は ADR-015）。コンソールで直接編集するとリポジトリと乖離するため、変更は必ずこれらのファイル経由で行い、`docs/FIREBASE_ARCHITECTURE.md` にも反映すること。なお `storage.rules` は無い（Cloud Storage は未使用）。
+- **`yyyy-MM` の日付計算は `timeline/domain/year_month.dart` の `YearMonth` に集約している。** 月加算・月差分・比較を自分で書かないこと（過去に同一アルゴリズムが4重実装されていた）。**永続化フィールド（`LifeEvent.date` / `endDate`）は `String` のまま**で、境界は `LifeEvent.yearMonth` / `endYearMonth` getter と `toJson` / `fromJson` だけ（ADR-020）。`toString()` は Firestore 形式（`2025-03`）、UI 表示は `japaneseLabel`（`2025年3月`）。`Text('$ym')` と書くと保存形式が画面に出る。
+- **ゲスト用の InMemory 実装は `inMemory*RepositoryProvider` が保持している。** `eventRepositoryProvider` / `dependencyRepositoryProvider` の中で直接 `InMemoryEventRepository()` 等を生成すると、`authStateProvider` の emission ごと（トークンリフレッシュ等）に作り直されてゲストの編集が消える（一度やらかしている）。この Provider を autoDispose にしても同じことが起きる。
+- **`authStateProvider` は `AsyncLoading` から始まる。** `valueOrNull == null` は「未認証」と「まだ解決していない」の両方を意味するため、ログイン済みユーザーも初回フレームだけゲスト（サンプルデータ）扱いになる。未修正（ADR-020 に記録）。
 
 ## 5. 実装規約とテスト方針
 

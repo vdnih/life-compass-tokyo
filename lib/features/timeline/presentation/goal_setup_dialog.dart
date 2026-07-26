@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/year_month_picker.dart';
 import '../data/goal_template_data.dart';
 import '../domain/goal_template.dart';
+import '../domain/year_month.dart';
 import '../logic/goal_template_provider.dart';
 import 'widgets/event_style.dart';
 
@@ -20,7 +21,7 @@ class GoalSetupDialog extends ConsumerStatefulWidget {
 
 class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
   GoalTemplate? _selectedTemplate;
-  DateTime _goalDate = DateTime.now();
+  YearMonth _goalDate = YearMonth.fromDateTime(DateTime.now());
   bool _isApplying = false;
 
   List<GoalTemplate> get _templates => GoalTemplateRegistry.templates;
@@ -30,22 +31,19 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
     final template = _selectedTemplate;
     if (template == null) return [];
 
-    final goalDateStr =
-        '${_goalDate.year}-${_goalDate.month.toString().padLeft(2, '0')}';
-
     final events = <_PreviewEvent>[];
 
     // ゴールイベント自体
     events.add(_PreviewEvent(
       title: template.name,
       catalogId: template.goalCatalogId,
-      date: goalDateStr,
+      date: _goalDate,
       isGoal: true,
     ));
 
     // 関連イベント
     for (final te in template.relatedEvents) {
-      final date = addMonthsToDate(goalDateStr, te.offsetMonthsFromGoal);
+      final date = _goalDate.addMonths(te.offsetMonthsFromGoal);
       events.add(_PreviewEvent(
         title: te.titleTemplate,
         catalogId: te.catalogId,
@@ -64,16 +62,17 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
   Future<void> _selectGoalDate(BuildContext context) async {
     final picked = await showYearMonthPicker(
       context: context,
-      initialDate: _goalDate,
+      initialDate: _goalDate.toDateTime(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2040),
       title: 'ゴール年月を選択',
     );
-    if (picked != null && picked != _goalDate) {
-      setState(() {
-        _goalDate = picked;
-      });
-    }
+    if (picked == null) return;
+    final pickedYearMonth = YearMonth.fromDateTime(picked);
+    if (pickedYearMonth == _goalDate) return;
+    setState(() {
+      _goalDate = pickedYearMonth;
+    });
   }
 
   Future<void> _applyTemplate() async {
@@ -83,11 +82,9 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
     setState(() => _isApplying = true);
 
     try {
-      final goalDateStr =
-          '${_goalDate.year}-${_goalDate.month.toString().padLeft(2, '0')}';
       await ref.read(goalTemplateProvider.notifier).applyTemplate(
             templateId: template.id,
-            goalDate: goalDateStr,
+            goalDate: _goalDate.toString(),
             goalTitle: template.name,
           );
       if (mounted) {
@@ -192,7 +189,7 @@ class _GoalSetupDialogState extends ConsumerState<GoalSetupDialog> {
                               ),
                             ),
                             Text(
-                              '${_goalDate.year}年${_goalDate.month}月',
+                              _goalDate.japaneseLabel,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -325,7 +322,7 @@ class _TemplateCard extends StatelessWidget {
 class _PreviewEvent {
   final String title;
   final String catalogId;
-  final String date;
+  final YearMonth date;
   final bool isGoal;
   final int offsetMonths;
 
@@ -347,7 +344,7 @@ class _PreviewEventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = catalogColor(event.catalogId);
-    final dateStr = _formatDate(event.date);
+    final dateStr = event.date.japaneseLabel;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -445,10 +442,5 @@ class _PreviewEventTile extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatDate(String dateStr) {
-    final parts = dateStr.split('-');
-    return '${parts[0]}年${int.parse(parts[1])}月';
   }
 }

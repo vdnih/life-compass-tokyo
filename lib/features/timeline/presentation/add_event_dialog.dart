@@ -8,6 +8,7 @@ import '../../catalog/domain/predefined_life_event.dart';
 import 'catalog_picker_field.dart';
 import '../logic/timeline_events_provider.dart';
 import '../domain/life_event.dart';
+import '../domain/year_month.dart';
 
 /// UUID生成ユーティリティ
 const _uuid = Uuid();
@@ -36,8 +37,8 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late DateTime _selectedDate;
-  DateTime? _selectedEndDate;
+  late YearMonth _selectedDate;
+  YearMonth? _selectedEndDate;
   bool _hasEndDate = false;
   EventStatus _status = EventStatus.recorded;
 
@@ -49,8 +50,9 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
     super.initState();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
-    _selectedDate = widget.initialDate ?? DateTime.now();
-    _selectedEndDate = widget.initialDate ?? DateTime.now();
+    _selectedDate =
+        YearMonth.fromDateTime(widget.initialDate ?? DateTime.now());
+    _selectedEndDate = _selectedDate;
     if (widget.initialCatalogId != null) {
       final catalogItem =
           PredefinedCatalogRegistry.findById(widget.initialCatalogId!);
@@ -103,34 +105,35 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showYearMonthPicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDate.toDateTime(),
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
       title: '開始年月を選択',
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        if (_hasEndDate &&
-            _selectedEndDate != null &&
-            _selectedEndDate!.isBefore(picked)) {
-          _selectedEndDate = picked;
-        }
-      });
-    }
+    if (picked == null) return;
+    final pickedYearMonth = YearMonth.fromDateTime(picked);
+    if (pickedYearMonth == _selectedDate) return;
+    setState(() {
+      _selectedDate = pickedYearMonth;
+      if (_hasEndDate &&
+          _selectedEndDate != null &&
+          _selectedEndDate!.isBefore(pickedYearMonth)) {
+        _selectedEndDate = pickedYearMonth;
+      }
+    });
   }
 
   Future<void> _selectEndDate(BuildContext context) async {
     final DateTime? picked = await showYearMonthPicker(
       context: context,
-      initialDate: _selectedEndDate ?? _selectedDate,
-      firstDate: _selectedDate,
+      initialDate: (_selectedEndDate ?? _selectedDate).toDateTime(),
+      firstDate: _selectedDate.toDateTime(),
       lastDate: DateTime(2100),
       title: '終了年月を選択',
     );
     if (picked != null) {
       setState(() {
-        _selectedEndDate = picked;
+        _selectedEndDate = YearMonth.fromDateTime(picked);
       });
     }
   }
@@ -313,7 +316,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                             ),
                           ),
                           Text(
-                            '${_selectedDate.year}年${_selectedDate.month}月',
+                            _selectedDate.japaneseLabel,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -378,7 +381,7 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
                               ),
                             ),
                             Text(
-                              '${_selectedEndDate?.year ?? _selectedDate.year}年${_selectedEndDate?.month ?? _selectedDate.month}月',
+                              (_selectedEndDate ?? _selectedDate).japaneseLabel,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -406,13 +409,11 @@ class _AddEventDialogState extends ConsumerState<AddEventDialog> {
             if (_formKey.currentState!.validate()) {
               String? endDateStr;
               if (_hasEndDate && _selectedEndDate != null) {
-                endDateStr =
-                    '${_selectedEndDate!.year}-${_selectedEndDate!.month.toString().padLeft(2, '0')}';
+                endDateStr = _selectedEndDate!.toString();
               }
               final newEvent = LifeEvent(
                 id: _uuid.v4(),
-                date:
-                    '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}',
+                date: _selectedDate.toString(),
                 endDate: endDateStr,
                 title: _titleController.text,
                 description: _descriptionController.text,
