@@ -50,7 +50,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 
 ## 4. 実装上の注意（知らないと事故るもの）
 
-- **`year_timeline.dart` と `year_month_timeline.dart` はほぼ重複した2実装。** D&D 周りの修正は原則**両方**に入れる必要がある。過去にこの2ファイル間でコンフリクトが起きている。この重複解消はリファクタリングの筆頭課題（#34。座標変換の切り出しは#35）。
+- **年ビュー・月ビューは `presentation/widgets/timeline_view.dart` に統合済み**（ADR-021）。`TimelineViewMode` enum で表示単位（1スロットが何ヶ月か）を切り替える。表示部品は `timeline_lane_labels.dart` / `timeline_axis.dart` / `catalog_drop_preview.dart` / `event_detail_dialog.dart` に分割している。
 - **`*_provider.dart` という名前でも Provider を含まない純関数ファイルがある**（例: `cascade_move_provider.dart`）。名前を信用せず中身を見ること。
 - **Freezed / json_serializable は導入していない。** ドメインモデルは手書きのイミュータブルクラス（`copyWith` / `==` / `hashCode` / `toJson` / `fromJson` を手書き）。`copyWith` で null をクリアする場合は既存の `_sentinel` パターンに倣う。
 - **Riverpod のコード生成はほぼ使っていない。** `@riverpod` アノテーションの使用箇所は1つだけ。新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifier` / `StateProvider` / `Provider`）。
@@ -69,7 +69,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 | 命名規則 | Dart 公式スタイルガイド（lowerCamelCase / UpperCamelCase） |
 | コメント | 公開 API（public class / method）には dartdoc コメントを付ける |
 | 新規パッケージの追加 | pub.dev の Like 数 500 以上、最終更新 6ヶ月以内を目安とする |
-| 大きなウィジェットの分割 | タイムライン系ウィジェットは既に肥大化している。機能追加のついでに分割しない。分割は独立した PR で行う（#38） |
+| 大きなウィジェットの分割 | `timeline_view.dart` は ADR-021 で表示部品を分割済み（#38 大半解消）。それでも肥大化するようなら機能追加のついでに分割しない。分割は独立した PR で行う |
 
 **テスト方針**:
 

@@ -9,12 +9,11 @@ import '../../user_profile/profile_settings_dialog.dart';
 import '../logic/budget_summary_provider.dart';
 import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
-import 'widgets/year_month_timeline.dart';
-import 'widgets/year_timeline.dart';
+import 'widgets/timeline_view.dart';
 import 'goal_setup_dialog.dart';
 import 'timeline_keys.dart';
 
-enum TimelineViewMode { yearMonth, year }
+export 'widgets/timeline_view.dart' show TimelineViewMode;
 
 class TimelineScreen extends ConsumerStatefulWidget {
   const TimelineScreen({super.key});
@@ -211,17 +210,14 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           final isDesktop = constraints.maxWidth >= 600;
 
           final timelineBody = eventsAsync.when(
-            data: (events) => _viewMode == TimelineViewMode.yearMonth
-                ? YearMonthTimeline(
-                    key: TimelineKeys.timelineYearMonth,
-                    events: events,
-                    constraints: ref.watch(constraintCheckerProvider),
-                  )
-                : YearTimeline(
-                    key: TimelineKeys.timelineYear,
-                    events: events,
-                    constraints: ref.watch(constraintCheckerProvider),
-                  ),
+            data: (events) => TimelineView(
+              key: _viewMode == TimelineViewMode.yearMonth
+                  ? TimelineKeys.timelineYearMonth
+                  : TimelineKeys.timelineYear,
+              mode: _viewMode,
+              events: events,
+              constraints: ref.watch(constraintCheckerProvider),
+            ),
             loading: () => const Center(
               child: CircularProgressIndicator(color: AppTheme.primary),
             ),
