@@ -12,6 +12,8 @@ import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/event_dependency.dart';
 import '../../domain/life_event.dart';
+import '../../domain/timeline_scale.dart';
+import '../../domain/year_month.dart';
 import '../../logic/cascade_move_provider.dart';
 import '../../logic/dependency_provider.dart';
 import '../../logic/timeline_events_provider.dart';
@@ -85,10 +87,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     if (_hasScrolledToNow) return;
     if (!_horizontalScrollController.hasClients) return;
     final now = DateTime.now();
-    final startDate = DateTime(now.year - 5, now.month);
-    final nowOffset =
-        ((now.year - startDate.year) * 12) + (now.month - startDate.month);
-    final nowXPos = 20.0 + (nowOffset * monthWidth);
+    final scale = _scaleFrom(YearMonth.fromDateTime(now).addMonths(-60), 0);
+    final nowXPos = scale.xOf(YearMonth.fromDateTime(now));
     final viewportWidth =
         _horizontalScrollController.position.viewportDimension;
     final targetOffset =
@@ -100,10 +100,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   void _animateToNow() {
     if (!_horizontalScrollController.hasClients) return;
     final now = DateTime.now();
-    final startDate = DateTime(now.year - 5, now.month);
-    final nowOffset =
-        ((now.year - startDate.year) * 12) + (now.month - startDate.month);
-    final nowXPos = 20.0 + (nowOffset * monthWidth);
+    final scale = _scaleFrom(YearMonth.fromDateTime(now).addMonths(-60), 0);
+    final nowXPos = scale.xOf(YearMonth.fromDateTime(now));
     final viewportWidth =
         _horizontalScrollController.position.viewportDimension;
     final targetOffset =
@@ -115,27 +113,31 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     );
   }
 
+  // ---- scale helpers ----
+
+  /// [origin] を起点に月単位（1スロット=1ヶ月、幅 [monthWidth]）の [TimelineScale] を組み立てる
+  TimelineScale _scaleFrom(YearMonth origin, int slotCount) => TimelineScale(
+        origin: origin,
+        pixelsPerSlot: monthWidth,
+        monthsPerSlot: 1,
+        slotCount: slotCount,
+      );
+
   // ---- stacking helpers ----
 
-  /// Returns a map of eventId → stack index within its (date, lane) slot.
-  double _colIdx(String yyyyMM, DateTime startDate) {
-    final p = yyyyMM.split('-');
-    return ((int.parse(p[0]) - startDate.year) * 12 +
-        (int.parse(p[1]) - startDate.month)).toDouble();
-  }
-
   Map<String, int> _computeStackIndices(
-      List<LifeEvent> events, DateTime startDate) {
+      List<LifeEvent> events, TimelineScale scale) {
     final indices = <String, int>{};
     for (final isWork in [true, false]) {
       final lane = events.where((e) => e.isWork == isWork).toList()
-        ..sort((a, b) =>
-            _colIdx(a.date, startDate).compareTo(_colIdx(b.date, startDate)));
+        ..sort((a, b) => scale
+            .offsetSlots(a.yearMonth)
+            .compareTo(scale.offsetSlots(b.yearMonth)));
       final stackEndAt = <double>[];
       for (final event in lane) {
-        final start = _colIdx(event.date, startDate);
+        final start = scale.offsetSlots(event.yearMonth);
         final end = event.hasDuration
-            ? _colIdx(event.endDate!, startDate) + 1.0
+            ? scale.offsetSlots(event.endYearMonth!) + 1.0
             : start + 1.0;
         int level = stackEndAt.indexWhere((e) => e <= start);
         if (level == -1) {
@@ -150,9 +152,9 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     return indices;
   }
 
-  double _computeRowHeight(List<LifeEvent> events, DateTime startDate) {
+  double _computeRowHeight(List<LifeEvent> events, TimelineScale scale) {
     if (events.isEmpty) return _minRowHeight;
-    final indices = _computeStackIndices(events, startDate);
+    final indices = _computeStackIndices(events, scale);
     int workMax = 0, privateMax = 0;
     for (final e in events) {
       final lvl = (indices[e.id] ?? 0) + 1;
@@ -199,30 +201,27 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
 
     final totalMonths = ((endDate.year - startDate.year) * 12) +
         (endDate.month - startDate.month);
+    final scale =
+        _scaleFrom(YearMonth.fromDateTime(startDate), totalMonths);
 
     final profile = ref.watch(userProfileNotifierProvider).valueOrNull;
     final dependenciesAsync = ref.watch(dependencyProvider);
 
-    _rowHeight = _computeRowHeight(events, startDate);
+    _rowHeight = _computeRowHeight(events, scale);
     final stackIndices = events.isNotEmpty
-        ? _computeStackIndices(events, startDate)
+        ? _computeStackIndices(events, scale)
         : <String, int>{};
 
-    final nowOffset =
-        ((now.year - startDate.year) * 12) + (now.month - startDate.month);
-    final nowXPos = 20.0 + (nowOffset * monthWidth);
+    final nowXPos = scale.xOf(YearMonth.fromDateTime(now));
 
     final eventPositions = <String, double>{};
     final eventLanes = <String, bool>{};
     for (final event in events) {
-      final monthOffset =
-          ((event.yearMonth.year - startDate.year) * 12) +
-              (event.yearMonth.month - startDate.month);
-      eventPositions[event.id] = 20.0 + (monthOffset * monthWidth);
+      eventPositions[event.id] = scale.xOf(event.yearMonth);
       eventLanes[event.id] = event.isWork;
     }
 
-    final totalWidth = totalMonths * monthWidth + 100;
+    final totalWidth = scale.totalWidth;
     final totalHeight = axisHeight + _rowHeight * 2;
 
     final timelineContent = SingleChildScrollView(
@@ -246,8 +245,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                 behavior: HitTestBehavior.translucent,
                 onTapUp: (details) => _handleTap(
                   details,
-                  startDate,
-                  totalMonths,
+                  scale,
                   context,
                 ),
                 child: SizedBox(
@@ -256,10 +254,9 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      _buildGridLines(totalHeight, totalMonths, startDate),
+                      _buildGridLines(totalHeight, scale),
                       _buildNowMarker(nowXPos, totalHeight),
-                      ..._buildMonthTicks(
-                          totalMonths, startDate, profile, axisHeight),
+                      ..._buildMonthTicks(scale, profile, axisHeight),
                       if (events.isNotEmpty) ...[
                         dependenciesAsync.when(
                           data: (deps) => DependencyConnector(
@@ -278,15 +275,14 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
                       _buildDropTarget(
                         totalWidth,
                         totalHeight,
-                        startDate,
-                        totalMonths,
+                        scale,
                         events,
                       ),
                       if (_previewCatalogId != null && _previewDate != null)
-                        _buildDropPreview(startDate, totalMonths),
+                        _buildDropPreview(scale),
                       if (events.isNotEmpty)
                         ..._buildEventCards(
-                            events, startDate, stackIndices, context),
+                            events, scale, stackIndices, context),
                     ],
                   ),
                 ),
@@ -460,15 +456,14 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   }
 
   Widget _buildGridLines(
-      double totalHeight, int totalMonths, DateTime startDate) {
+      double totalHeight, TimelineScale scale) {
     final children = <Widget>[];
 
     // 月ごとの縦ガイド線（1月はやや濃く、他月は非常に薄く）
     final gridHeight = totalHeight - axisHeight;
-    for (int i = 0; i <= totalMonths; i++) {
-      final xPos = 20.0 + (i * monthWidth);
-      final monthAt = DateTime(startDate.year, startDate.month + i).month;
-      final isJan = monthAt == 1;
+    for (int i = 0; i <= scale.slotCount; i++) {
+      final xPos = scale.xOfSlot(i);
+      final isJan = scale.dateAtSlot(i).month == 1;
       children.add(
         Positioned(
           left: xPos - 0.5,
@@ -541,15 +536,15 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   }
 
   List<Widget> _buildMonthTicks(
-    int totalMonths,
-    DateTime startDate,
+    TimelineScale scale,
     UserProfile? profile,
     double axisH,
   ) {
-    return List.generate(totalMonths + 1, (index) {
-      final currentDate = DateTime(startDate.year, startDate.month + index);
-      final xPos = 20.0 + (index * monthWidth);
-      final isJan = currentDate.month == 1;
+    return List.generate(scale.slotCount + 1, (index) {
+      final currentYearMonth = scale.dateAtSlot(index);
+      final currentDate = currentYearMonth.toDateTime();
+      final xPos = scale.xOfSlot(index);
+      final isJan = currentYearMonth.month == 1;
       final ageAtDate = profile?.calculateAgeAt(currentDate);
 
       return Positioned(
@@ -607,17 +602,14 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   }
 
   /// カタログドラッグ中のプレビューゴーストカードを構築する
-  Widget _buildDropPreview(DateTime startDate, int totalMonths) {
+  Widget _buildDropPreview(TimelineScale scale) {
     final catalog = PredefinedCatalogRegistry.findById(_previewCatalogId!);
     if (catalog == null) return const SizedBox.shrink();
 
-    final parts = _previewDate!.split('-');
-    final previewDate = DateTime(int.parse(parts[0]), int.parse(parts[1]));
-    final offset = ((previewDate.year - startDate.year) * 12) +
-        (previewDate.month - startDate.month);
-    if (offset < 0 || offset >= totalMonths) return const SizedBox.shrink();
+    final previewYearMonth = YearMonth.parse(_previewDate!);
+    if (!scale.contains(previewYearMonth)) return const SizedBox.shrink();
 
-    final xPos = 20.0 + (offset * monthWidth);
+    final xPos = scale.xOf(previewYearMonth);
     // カタログ項目はプライベートレーン（非work）に配置するプレビュー
     final rowTop = axisHeight + _rowHeight;
 
@@ -637,11 +629,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
         break;
       }
       if (hardRule.minMonthsAfter != null) {
-        final predParts = predecessor.date.split('-');
-        final predDate =
-            DateTime(int.parse(predParts[0]), int.parse(predParts[1]));
-        final diffMonths = ((previewDate.year - predDate.year) * 12) +
-            (previewDate.month - predDate.month);
+        final diffMonths =
+            previewYearMonth.differenceInMonths(predecessor.yearMonth);
         if (diffMonths < hardRule.minMonthsAfter!) {
           borderColor = Colors.red.shade400;
           violationMessage = hardRule.message;
@@ -661,11 +650,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           violationMessage = softRule.message;
           break;
         }
-        final predParts = predecessor.date.split('-');
-        final predDate =
-            DateTime(int.parse(predParts[0]), int.parse(predParts[1]));
-        final diffMonths = ((previewDate.year - predDate.year) * 12) +
-            (previewDate.month - predDate.month);
+        final diffMonths =
+            previewYearMonth.differenceInMonths(predecessor.yearMonth);
         if (diffMonths < softRule.recommendedMinMonthsAfter) {
           borderColor = Colors.amber.shade400;
           violationMessage = softRule.message;
@@ -815,8 +801,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
   Widget _buildDropTarget(
     double totalWidth,
     double totalHeight,
-    DateTime startDate,
-    int totalMonths,
+    TimelineScale scale,
     List<LifeEvent> events,
   ) {
     return Positioned(
@@ -832,14 +817,10 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
               _dropTargetKey.currentContext?.findRenderObject() as RenderBox?;
           if (renderBox == null) return;
           final localOffset = renderBox.globalToLocal(details.offset);
-          final monthIndex =
-              ((localOffset.dx - 20.0) / monthWidth).floor();
-          if (monthIndex < 0 || monthIndex >= totalMonths) return;
+          final monthIndex = scale.slotIndexAt(localOffset.dx);
+          if (!scale.containsSlot(monthIndex)) return;
 
-          final newDate = DateTime(
-              startDate.year, startDate.month + monthIndex);
-          final newDateStr =
-              '${newDate.year}-${newDate.month.toString().padLeft(2, '0')}';
+          final newDateStr = scale.dateAtSlot(monthIndex).toString();
 
           if (mounted && _snapMonthIndex != monthIndex) {
             setState(() => _snapMonthIndex = monthIndex);
@@ -881,14 +862,10 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           final renderBox =
               _dropTargetKey.currentContext!.findRenderObject() as RenderBox;
           final localOffset = renderBox.globalToLocal(details.offset);
-          final monthIndex =
-              ((localOffset.dx - 20.0) / monthWidth).floor();
-          if (monthIndex < 0 || monthIndex >= totalMonths) return;
+          final monthIndex = scale.slotIndexAt(localOffset.dx);
+          if (!scale.containsSlot(monthIndex)) return;
 
-          final newDate = DateTime(
-              startDate.year, startDate.month + monthIndex);
-          final newDateStr =
-              '${newDate.year}-${newDate.month.toString().padLeft(2, '0')}';
+          final newDateStr = scale.dateAtSlot(monthIndex).toString();
 
           if (mounted) setState(() => _snapMonthIndex = null);
 
@@ -909,7 +886,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
           if (candidateData.isEmpty || _snapMonthIndex == null) {
             return const SizedBox.shrink();
           }
-          final xPos = 20.0 + (_snapMonthIndex! * monthWidth);
+          final xPos = scale.xOfSlot(_snapMonthIndex!);
           return Stack(
             children: [
               // 全体を薄く敷く（既存挙動の踏襲）
@@ -1016,7 +993,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
 
   List<Widget> _buildEventCards(
     List<LifeEvent> events,
-    DateTime startDate,
+    TimelineScale scale,
     Map<String, int> stackIndices,
     BuildContext context,
   ) {
@@ -1031,12 +1008,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
             orElse: () => null);
         if (event == null) continue;
 
-        final parts = change.newDate.split('-');
-        final previewDate =
-            DateTime(int.parse(parts[0]), int.parse(parts[1]));
-        final offset = ((previewDate.year - startDate.year) * 12) +
-            (previewDate.month - startDate.month);
-        final previewX = 20.0 + (offset * monthWidth);
+        final previewX = scale.xOf(YearMonth.parse(change.newDate));
         final rowTop =
             event.isWork ? axisHeight : axisHeight + _rowHeight;
 
@@ -1054,9 +1026,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     }
 
     for (final event in events) {
-      final monthOffset = ((event.yearMonth.year - startDate.year) * 12) +
-          (event.yearMonth.month - startDate.month);
-      final xPos = 20.0 + (monthOffset * monthWidth);
+      final xPos = scale.xOf(event.yearMonth);
       final rowTop =
           event.isWork ? axisHeight : axisHeight + _rowHeight;
       final stackIdx = stackIndices[event.id] ?? 0;
@@ -1064,10 +1034,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
 
       double barWidth = 0;
       if (event.hasDuration) {
-        final endYearMonth = event.endYearMonth!;
-        final endOffset = ((endYearMonth.year - startDate.year) * 12) +
-            (endYearMonth.month - startDate.month);
-        barWidth = ((endOffset - monthOffset) * monthWidth)
+        barWidth = (scale.xOf(event.endYearMonth!) - xPos)
             .clamp(30.0, double.infinity);
       }
 
@@ -1174,8 +1141,7 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
 
   void _handleTap(
     TapUpDetails details,
-    DateTime startDate,
-    int totalMonths,
+    TimelineScale scale,
     BuildContext context,
   ) {
     // Cancel link mode on background tap
@@ -1189,10 +1155,10 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
 
     if (tapY < axisHeight || tapY >= axisHeight + _rowHeight * 2) return;
 
-    final monthIndex = ((tapX - 20.0) / monthWidth).floor();
-    if (monthIndex < 0 || monthIndex >= totalMonths) return;
+    final monthIndex = scale.slotIndexAt(tapX);
+    if (!scale.containsSlot(monthIndex)) return;
 
-    final tappedDate = DateTime(startDate.year, startDate.month + monthIndex);
+    final tappedDate = scale.dateAtSlot(monthIndex).toDateTime();
     final isWork = tapY < axisHeight + _rowHeight;
 
     if (ref.read(authStateProvider).valueOrNull == null) {
@@ -1237,11 +1203,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
         .firstWhere((e) => e!.id == _linkingEventId, orElse: () => null);
     if (sourceEvent == null) return;
 
-    final srcParts = sourceEvent.date.split('-');
-    final tgtParts = targetEvent.date.split('-');
     final offsetMonths =
-        (int.parse(tgtParts[0]) * 12 + int.parse(tgtParts[1])) -
-            (int.parse(srcParts[0]) * 12 + int.parse(srcParts[1]));
+        targetEvent.yearMonth.differenceInMonths(sourceEvent.yearMonth);
 
     final dep = EventDependency(
       id: _uuid.v4(),
@@ -1724,17 +1687,8 @@ class _YearMonthTimelineState extends ConsumerState<YearMonthTimeline> {
     LifeEvent sourceEvent,
     LifeEvent targetEvent,
   ) async {
-    final tgtParts = targetEvent.date.split('-');
-    final targetTotalMonths =
-        int.parse(tgtParts[0]) * 12 + int.parse(tgtParts[1]);
-
-    final newSourceTotalMonths = targetTotalMonths - newOffsetMonths;
-    final rawYear = newSourceTotalMonths ~/ 12;
-    final rawMonth = newSourceTotalMonths % 12;
-
-    final newYear = rawMonth == 0 ? rawYear - 1 : rawYear;
-    final newMonth = rawMonth == 0 ? 12 : rawMonth;
-    final newSourceDate = '$newYear-${newMonth.toString().padLeft(2, '0')}';
+    final newSourceDate =
+        targetEvent.yearMonth.addMonths(-newOffsetMonths).toString();
 
     await ref
         .read(timelineEventsProvider.notifier)

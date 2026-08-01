@@ -83,7 +83,9 @@
 本 ADR は方針のみを扱った。以下はリファクタリングの各段階で実施する。
 
 1. **既存テストの棚卸し** — 全26ファイルを本方針に照らして 維持 / 縮小 / 削除 に分類する。
-   `predefined_life_event_test.dart` は削除候補。
-2. **構造テストの追加** — `domain/` `logic/` の 1 lib : 1 test を検証する。
-3. **カバレッジ計測の CI 追加** — 現状値を計測してから `domain/` `logic/` の閾値を確定する。
-4. **未テスト feature の解消** — `auth` / `user_profile` / `core`。
+   `predefined_life_event_test.dart` は削除候補。 → #40
+2. **構造テストの追加** — `domain/` `logic/` の 1 lib : 1 test を検証する。 → #41
+3. **カバレッジ計測の CI 追加** — 現状値を計測してから `domain/` `logic/` の閾値を確定する。 → #42
+4. **未テスト feature の解消** — `auth` / `user_profile` / `core`。 → #43
+
+以降の残課題は本節を追記せず GitHub Issue で管理する（CLAUDE.md §6）。

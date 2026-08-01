@@ -40,7 +40,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 
 - **レイヤー**: `presentation/`（`ConsumerWidget`、UIのみ）→ `logic/`（Riverpod Provider、状態＋ビジネスロジック）→ `data/`（Repository、I/O）。ドメインモデルは `domain/`。
 - **feature 構成**: `lib/features/{timeline, catalog, user_profile, auth}/`。`catalog` は timeline / goal_template / budget などから参照される共有 feature のため、timeline の下ではなく並列に置いている（依存逆転を避けるため。ADR 参照）。
-  - **feature ごとに階層が揃っていない**（`domain/` が無い feature、ほぼフラットな feature がある）。新規ファイルは既存の並びを見て合わせること。階層の統一はリファクタリング課題。
+  - **feature ごとに階層が揃っていない**（`domain/` が無い feature、ほぼフラットな feature がある）。新規ファイルは既存の並びを見て合わせること。階層の統一はリファクタリング課題（#37）。
 - **Repository の切替**: 認証状態に応じて Repository Provider が実装を選ぶ。**ゲスト（未ログイン）= InMemory 実装**（初期サンプルデータ入り）、**ログイン時 = Firestore 実装**。event / dependency / user すべて同じパターン。認証状態の変化で自動的にリポジトリを取り直す。
 - **静的データはハードコード**: 規定イベントカタログ（`lib/features/catalog/data/groups/` を `predefined_catalog_registry.dart` が集約）とゴールテンプレートは Firestore に置かずアプリ内定数。イベントは `catalogId`（kebab-case 文字列）でカタログを参照する。カタログの件数・整合性の正は `test/features/catalog/data/catalog_consistency_test.dart` のアサーション。
 - **依存関係と連動移動**: イベント間依存は `event_dependency.dart`（`strength: hard/soft`）。D&D 移動時は `cascade_move_provider.dart` が依存グラフを BFS で辿って連動移動する。**探索は双方向**（連結成分全体がずれる。後続だけではない）。
@@ -50,7 +50,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 
 ## 4. 実装上の注意（知らないと事故るもの）
 
-- **`year_timeline.dart` と `year_month_timeline.dart` はほぼ重複した2実装。** D&D 周りの修正は原則**両方**に入れる必要がある。過去にこの2ファイル間でコンフリクトが起きている。この重複解消はリファクタリングの筆頭課題。
+- **`year_timeline.dart` と `year_month_timeline.dart` はほぼ重複した2実装。** D&D 周りの修正は原則**両方**に入れる必要がある。過去にこの2ファイル間でコンフリクトが起きている。この重複解消はリファクタリングの筆頭課題（#34。座標変換の切り出しは#35）。
 - **`*_provider.dart` という名前でも Provider を含まない純関数ファイルがある**（例: `cascade_move_provider.dart`）。名前を信用せず中身を見ること。
 - **Freezed / json_serializable は導入していない。** ドメインモデルは手書きのイミュータブルクラス（`copyWith` / `==` / `hashCode` / `toJson` / `fromJson` を手書き）。`copyWith` で null をクリアする場合は既存の `_sentinel` パターンに倣う。
 - **Riverpod のコード生成はほぼ使っていない。** `@riverpod` アノテーションの使用箇所は1つだけ。新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifier` / `StateProvider` / `Provider`）。
@@ -58,7 +58,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 - **Firestore のセキュリティルール・インデックスは `firestore.rules` / `firestore.indexes.json` がリポジトリの正。** `firebase deploy --only firestore:rules,firestore:indexes` で反映する（CI では自動デプロイされず手動運用。理由は ADR-015）。コンソールで直接編集するとリポジトリと乖離するため、変更は必ずこれらのファイル経由で行い、`docs/FIREBASE_ARCHITECTURE.md` にも反映すること。なお `storage.rules` は無い（Cloud Storage は未使用）。
 - **`yyyy-MM` の日付計算は `timeline/domain/year_month.dart` の `YearMonth` に集約している。** 月加算・月差分・比較を自分で書かないこと（過去に同一アルゴリズムが4重実装されていた）。**永続化フィールド（`LifeEvent.date` / `endDate`）は `String` のまま**で、境界は `LifeEvent.yearMonth` / `endYearMonth` getter と `toJson` / `fromJson` だけ（ADR-020）。`toString()` は Firestore 形式（`2025-03`）、UI 表示は `japaneseLabel`（`2025年3月`）。`Text('$ym')` と書くと保存形式が画面に出る。
 - **ゲスト用の InMemory 実装は `inMemory*RepositoryProvider` が保持している。** `eventRepositoryProvider` / `dependencyRepositoryProvider` の中で直接 `InMemoryEventRepository()` 等を生成すると、`authStateProvider` の emission ごと（トークンリフレッシュ等）に作り直されてゲストの編集が消える（一度やらかしている）。この Provider を autoDispose にしても同じことが起きる。
-- **`authStateProvider` は `AsyncLoading` から始まる。** `valueOrNull == null` は「未認証」と「まだ解決していない」の両方を意味するため、ログイン済みユーザーも初回フレームだけゲスト（サンプルデータ）扱いになる。未修正（ADR-020 に記録）。
+- **`authStateProvider` は `AsyncLoading` から始まる。** `valueOrNull == null` は「未認証」と「まだ解決していない」の両方を意味するため、ログイン済みユーザーも初回フレームだけゲスト（サンプルデータ）扱いになる。未修正（ADR-020 に記録、#39）。
 
 ## 5. 実装規約とテスト方針
 
@@ -69,7 +69,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 | 命名規則 | Dart 公式スタイルガイド（lowerCamelCase / UpperCamelCase） |
 | コメント | 公開 API（public class / method）には dartdoc コメントを付ける |
 | 新規パッケージの追加 | pub.dev の Like 数 500 以上、最終更新 6ヶ月以内を目安とする |
-| 大きなウィジェットの分割 | タイムライン系ウィジェットは既に肥大化している。機能追加のついでに分割しない。分割は独立した PR で行う |
+| 大きなウィジェットの分割 | タイムライン系ウィジェットは既に肥大化している。機能追加のついでに分割しない。分割は独立した PR で行う（#38） |
 
 **テスト方針**:
 
@@ -136,6 +136,12 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 3. **機能の要否・優先順位の判断は PDR に残す** — `docs/pdr/PDR-NNN-kebab-case-title.md`
 4. **判断を覆したときは元の ADR / PDR に `Superseded by ADR-NNN` を追記する。**
    消さずに、なぜ覆したかを併記する（`docs/adr/011-milestone-as-child-event.md` が良い前例）。
+5. **残課題・後続タスク・スコープアウト事項は GitHub Issue で管理する。** ADR / PDR は
+   「なぜそうしたか」の確定した記録であり、後から書き換えない。「まだ終わっていないこと」は
+   Issue を立て、ADR / PDR 側からは `→ #N` の形で番号だけ参照する（例: `docs/adr/020-*.md`）。
+   **ADR に「Follow-up（別タスク）」節を新設しない。** Issue の粒度は雑でよく、
+   タイトルと出典（どの ADR/PDR/ファイルから来たか）が書いてあれば十分。
+   PR 説明の `## なぜ` は `Closes #N` で代替してよい。
 
 ## 7. ドキュメント体系
 

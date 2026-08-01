@@ -34,7 +34,7 @@
 1 クラスのためだけに `core/domain/` を新設しなかった。
 
 **2 つ目の feature が参照するようになったら `lib/core/` への移動を検討する**
-（dartdoc にも明記）。
+（dartdoc にも明記）。 → #46
 
 ### 2. 永続化フィールドはこの型に置き換えない
 
@@ -76,7 +76,7 @@
 理由: `.dateTime` の呼び出しは型が変わるため全箇所がビルドエラーとして検出され漏らせないが、
 `.split('-')` は型が変わらないため間違えてもコンパイルが通り、しかもテストが無い状態で
 2 ファイルに意味的な書き換えを入れることになる。それを次の PR で TimelineAxis の
-ユニットテスト付きで書き直す方が検証が厚い。
+ユニットテスト付きで書き直す方が検証が厚い。 → #35
 
 ## このコミットのコード量について
 
@@ -97,14 +97,17 @@
 `MobileAuthRepository` → `FirebaseAuth.instance` に到達して失敗するため、影響範囲の調査を
 含めて別 PR（Repository Provider を `logic/` に移す PR）で対処する。症状もデータ損失ではなく
 「一瞬サンプルが見える＋余分な fetch 1 回」であり、本 PR の2つのバグ修正
-（ゲストの削除失敗・ゲストの編集消失）とは性質が異なる。
+（ゲストの削除失敗・ゲストの編集消失）とは性質が異なる。 → #39
 
 ### `core/util/sentinel.dart` への共通化は見送った
 
 現時点の消費者は `LifeEvent.copyWith` の1箇所のみ。2個目の消費者
 （`UserProfile.copyWith` の `birthDate` クリア）が現れる PR で共通化する。
 1 消費者のうちに共通化すると、命名（`sentinel` / `kSentinel` / `Sentinel.instance`）や
-public API としての露出形態を決着させる材料が乏しい。
+public API としての露出形態を決着させる材料が乏しい。 → #46（`YearMonth` の `core/` 移動・
+`tryParse` の見送りとあわせて記録）
+
+以降の残課題は本節を追記せず GitHub Issue で管理する（CLAUDE.md §6）。
 
 ## 検討したが採らなかった案
 

@@ -83,16 +83,18 @@
 本 ADR ではドキュメントとプロセスのみを扱った。以下はコード側の課題として残っている。
 
 1. **タイムラインウィジェットの重複解消** — `year_timeline.dart` と `year_month_timeline.dart` が
-   ほぼ同一実装で並存しており、D&D の修正を常に両方へ入れる必要がある。
-2. **feature ディレクトリ階層の統一** — `domain/` を持たない feature や、ほぼフラットな feature がある。
+   ほぼ同一実装で並存しており、D&D の修正を常に両方へ入れる必要がある。 → #34
+2. **feature ディレクトリ階層の統一** — `domain/` を持たない feature や、ほぼフラットな feature がある。 → #37
 3. **テストの整備** — `auth` / `user_profile` / `core` にテストが無い。また本 ADR の作業に伴い、
-   カタログ pivot 前の UI を前提にした `add_event_dialog_test.dart` の2件を削除した（代替は未作成）。
+   カタログ pivot 前の UI を前提にした `add_event_dialog_test.dart` の2件を削除した（代替は未作成）。 → #43
 4. **Flutter 本体のバージョン更新** — ローカル開発環境は 3.38.5、GitHub Actions の `channel: stable` は
    3.44.8 で、両者が乖離していた。CI ゲートを追加したことで、新しい Flutter ではウィジェットテスト18件が
    `ListTile background color or ink splashes may be invisible`（`ListTile` を `ColoredBox` で
    囲んでいることに対する新しいアサーション。`catalog_panel.dart` の `Container(color:)` が該当）で
    失敗することが判明した。リリースビルドはデバッグ専用アサーションのため影響を受けない。
    暫定対応として CI の Flutter バージョンをローカルと同じ 3.38.5 に固定した。
-   Flutter の更新と該当コードの修正は独立したタスクとして行う。
+   Flutter の更新と該当コードの修正は独立したタスクとして行う。 → #45
+
+以降の残課題は本節を追記せず GitHub Issue で管理する（CLAUDE.md §6）。
 
 1〜4 の完了後に `docs/SOFTWARE_ARCHITECTURE.md` と `CLAUDE.md` の該当箇所を改めて整備する。
