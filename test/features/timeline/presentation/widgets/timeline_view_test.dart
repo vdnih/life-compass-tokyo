@@ -7,7 +7,7 @@ import 'package:my_career_app/features/timeline/data/event_repository.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/presentation/timeline_keys.dart';
 import 'package:my_career_app/features/timeline/presentation/timeline_screen.dart';
-import 'package:my_career_app/features/timeline/presentation/widgets/year_month_timeline.dart';
+import 'package:my_career_app/features/timeline/presentation/widgets/timeline_view.dart';
 
 import '../../../../support/builders.dart';
 import '../../../../support/mocks.dart';
@@ -56,7 +56,12 @@ void main() {
 
       await pumpApp(
         tester,
-        Scaffold(body: YearMonthTimeline(events: [event])),
+        Scaffold(
+          body: TimelineView(
+            mode: TimelineViewMode.yearMonth,
+            events: [event],
+          ),
+        ),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
           dependencyRepositoryProvider
@@ -77,6 +82,34 @@ void main() {
         isTrue,
         reason: '右方向へのドラッグなので日付は後ろにずれること',
       );
+    });
+
+    testWidgets('年ビューでも同様にドラッグ移動でリポジトリが更新されること', (tester) async {
+      // TimelineScale 切り出し（#35）・2実装統合（#34, #36）で年ビューにも
+      // 座標変換・D&D の配線が共有されたことを確認する（#44）。
+      final event = buildLifeEvent(id: 'e1', date: monthFromNow(0));
+      final eventRepo = stubEventRepository(events: [event]);
+
+      await pumpApp(
+        tester,
+        Scaffold(
+          body: TimelineView(mode: TimelineViewMode.year, events: [event]),
+        ),
+        overrides: [
+          eventRepositoryProvider.overrideWithValue(eventRepo),
+          dependencyRepositoryProvider
+              .overrideWithValue(stubDependencyRepository()),
+          signedInAuth(),
+        ],
+      );
+
+      await dragHorizontally(tester, find.text(event.title), 200);
+
+      final captured = verify(() => eventRepo.updateEvent(captureAny()))
+          .captured
+          .cast<LifeEvent>();
+      expect(captured, hasLength(1));
+      expect(captured.single.id, 'e1');
     });
   });
 
@@ -99,7 +132,9 @@ void main() {
 
       await pumpApp(
         tester,
-        Scaffold(body: YearMonthTimeline(events: events)),
+        Scaffold(
+          body: TimelineView(mode: TimelineViewMode.yearMonth, events: events),
+        ),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
           dependencyRepositoryProvider.overrideWithValue(
@@ -162,7 +197,8 @@ void main() {
             matching: find.byType(LongPressDraggable<PredefinedLifeEvent>),
           )
           .first;
-      final timelineRect = tester.getRect(find.byType(YearMonthTimeline));
+      final timelineRect =
+          tester.getRect(find.byKey(TimelineKeys.timelineYearMonth));
       final laneRect = tester.getRect(find.byKey(TimelineKeys.workLane));
       final dropTarget = Offset(timelineRect.center.dx, laneRect.center.dy);
 
