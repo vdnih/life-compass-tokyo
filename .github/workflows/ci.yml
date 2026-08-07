@@ -15,12 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # ローカル開発環境と同じバージョンに固定する。
-      # `channel: stable` にすると Flutter の更新で CI だけが落ちる（実際に 3.44.x の
-      # ListTile 関連アサーションでウィジェットテスト18件が失敗した）。
-      # Flutter 本体の更新は独立したタスクとして行い、その際にここも更新する。
+      # `channel: stable` にすると Flutter の更新で CI だけが予告なく落ちる
+      # （実際に 3.38.5 → 3.44.x 移行時に ListTile 関連アサーションでウィジェットテスト
+      # 18件が失敗した。#45 で解消済み）。Flutter 本体の更新は独立したタスクとして行い、
+      # その際にここも更新する。
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.38.5
+          flutter-version: 3.44.9
           channel: stable
           cache: true
       - run: flutter pub get
