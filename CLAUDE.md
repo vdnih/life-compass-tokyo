@@ -26,9 +26,6 @@ flutter test path/to/x_test.dart # 単一ファイル
 flutter test --plain-name "..."  # テスト名で絞り込み
 flutter test --coverage          # coverage/lcov.info を生成
 
-# コード生成（riverpod_generator のみが対象。使用箇所は極めて少ない）
-dart run build_runner build --delete-conflicting-outputs
-
 # デプロイ（main への push で GitHub Actions が自動実行）
 flutter build web --release
 firebase deploy --only hosting   # projectId: my-career-app-559fd
