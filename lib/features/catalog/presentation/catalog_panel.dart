@@ -27,7 +27,7 @@ class CatalogPanel extends ConsumerWidget {
       orElse: () => <String>{},
     );
 
-    return Container(
+    return Material(
       color: Colors.grey.shade50,
       child: Column(
         children: [
