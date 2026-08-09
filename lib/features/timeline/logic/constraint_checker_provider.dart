@@ -149,10 +149,10 @@ final constraintCheckerProvider = Provider<List<ConstraintResult>>((ref) {
   final depsAsync = ref.watch(dependencyProvider);
   return eventsAsync.when(
     loading: () => [],
-    error: (_, __) => [],
+    error: (_, _) => [],
     data: (events) => depsAsync.when(
       loading: () => checkAllConstraints(events),
-      error: (_, __) => checkAllConstraints(events),
+      error: (_, _) => checkAllConstraints(events),
       data: (deps) => checkAllConstraints(events, deps),
     ),
   );

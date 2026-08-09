@@ -323,7 +323,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                             rowHeight: _rowHeight,
                           ),
                           loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
                       ],
                       _buildDropTarget(totalWidth, totalHeight, scale, events),
@@ -715,7 +715,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
             onDragStarted: () {
               setState(() => _draggingEventId = event.id);
             },
-            onDraggableCanceled: (_, __) {
+            onDraggableCanceled: (_, _) {
               setState(() {
                 _draggingEventId = null;
                 _cascadePreviewChanges = [];
