@@ -76,7 +76,7 @@ class DependencyNotifier extends AsyncNotifier<List<EventDependency>> {
     state = const AsyncLoading();
     try {
       final repo = ref.read(dependencyRepositoryProvider);
-      final deps = previousState.valueOrNull ?? [];
+      final deps = previousState.value ?? [];
       final target = deps.firstWhere((d) => d.id == dependencyId);
       final updated = target.copyWith(offsetMonths: newOffsetMonths);
       await repo.updateDependency(updated);
@@ -98,7 +98,7 @@ class DependencyNotifier extends AsyncNotifier<List<EventDependency>> {
   bool wouldCreateCycle(String sourceEventId, String targetEventId) {
     if (sourceEventId == targetEventId) return true;
 
-    final currentDeps = state.valueOrNull ?? [];
+    final currentDeps = state.value ?? [];
 
     // BFS: targetEventId から source に到達できるか探索する
     final visited = <String>{};

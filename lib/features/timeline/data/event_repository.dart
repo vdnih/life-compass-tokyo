@@ -144,7 +144,7 @@ final firestoreEventRepositoryProvider =
 /// 保持されるため、再構築されても中身は同じインスタンスのまま。
 final eventRepositoryProvider = Provider<EventRepository>((ref) {
   final userAsync = ref.watch(authStateProvider);
-  final user = userAsync.valueOrNull;
+  final user = userAsync.value;
   if (user != null) {
     return ref.watch(firestoreEventRepositoryProvider(user.uid));
   }

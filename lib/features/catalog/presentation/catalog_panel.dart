@@ -37,7 +37,7 @@ class CatalogPanel extends ConsumerWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: () {
-                final user = ref.read(authStateProvider).valueOrNull;
+                final user = ref.read(authStateProvider).value;
                 if (user == null) {
                   showDialog<void>(
                     context: context,
@@ -114,7 +114,7 @@ class CatalogPanel extends ConsumerWidget {
               ),
               style: const TextStyle(fontSize: 12),
               onChanged: (value) {
-                ref.read(catalogSearchQueryProvider.notifier).state = value;
+                ref.read(catalogSearchQueryProvider.notifier).setQuery(value);
               },
             ),
           ),
@@ -259,7 +259,7 @@ class _CatalogItemTile extends ConsumerWidget {
     //   - ロングプレス（≥ 400ms）→ LongPressRecognizer 勝利 → D&D 開始
     return GestureDetector(
       onTap: () {
-        final user = ref.read(authStateProvider).valueOrNull;
+        final user = ref.read(authStateProvider).value;
         if (user == null) {
           showDialog<void>(
             context: context,

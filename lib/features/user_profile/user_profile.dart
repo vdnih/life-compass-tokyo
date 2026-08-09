@@ -35,7 +35,7 @@ class UserProfile {
 ///
 /// 認証状態を監視し、ログイン時は Firestore からプロフィールをロードする。
 /// 未認証の場合は null を返す（ゲストモード）。
-class UserProfileNotifier extends AutoDisposeAsyncNotifier<UserProfile?> {
+class UserProfileNotifier extends AsyncNotifier<UserProfile?> {
   @override
   Future<UserProfile?> build() async {
     final user = await ref.watch(authStateProvider.future);
@@ -47,10 +47,10 @@ class UserProfileNotifier extends AutoDisposeAsyncNotifier<UserProfile?> {
 
   /// 既存ユーザーのプロフィールを更新し Firestore に保存する
   Future<void> updateProfile({String? name, DateTime? birthDate}) async {
-    final user = ref.read(authStateProvider).valueOrNull;
+    final user = ref.read(authStateProvider).value;
     if (user == null) return;
 
-    final current = state.valueOrNull;
+    final current = state.value;
     final updated = UserProfile(
       name: name ?? current?.name ?? '',
       birthDate: birthDate ?? current?.birthDate,
@@ -67,7 +67,7 @@ class UserProfileNotifier extends AutoDisposeAsyncNotifier<UserProfile?> {
     required String name,
     DateTime? birthDate,
   }) async {
-    final user = ref.read(authStateProvider).valueOrNull;
+    final user = ref.read(authStateProvider).value;
     if (user == null) return;
 
     final profile = UserProfile(name: name, birthDate: birthDate);

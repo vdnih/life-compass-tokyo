@@ -243,7 +243,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final now = DateTime.now();
     final scale = _buildScale(events, now);
 
-    final profile = ref.watch(userProfileNotifierProvider).valueOrNull;
+    final profile = ref.watch(userProfileNotifierProvider).value;
     final dependenciesAsync = ref.watch(dependencyProvider);
 
     final stackIndices = computeStackIndices(events, scale);
@@ -486,7 +486,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           final data = details.data;
           if (data is String) {
             if (_draggingEventId == null) return;
-            final deps = ref.read(dependencyProvider).valueOrNull ?? [];
+            final deps = ref.read(dependencyProvider).value ?? [];
             final changes = computeCascadeUpdates(
               movedEventId: _draggingEventId!,
               newDate: newDateStr,
@@ -530,7 +530,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           } else if (data is PredefinedLifeEvent) {
             // 認証チェック（タップ追加と同じパターン）
             if (!mounted) return;
-            if (ref.read(authStateProvider).valueOrNull == null) {
+            if (ref.read(authStateProvider).value == null) {
               showDialog<void>(context: context, builder: (_) => const SignInDialog());
               return;
             }
@@ -603,7 +603,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     String newDateStr,
     List<LifeEvent> events,
   ) async {
-    final deps = ref.read(dependencyProvider).valueOrNull ?? [];
+    final deps = ref.read(dependencyProvider).value ?? [];
     final changes = computeCascadeUpdates(
       movedEventId: eventId,
       newDate: newDateStr,
@@ -824,7 +824,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final tappedDate = scale.dateAtSlot(slotIndex).toDateTime();
     final isWork = tapY < axisHeight + _rowHeight;
 
-    if (ref.read(authStateProvider).valueOrNull == null) {
+    if (ref.read(authStateProvider).value == null) {
       showDialog<void>(context: context, builder: (_) => const SignInDialog());
       return;
     }

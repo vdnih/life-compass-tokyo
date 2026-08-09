@@ -58,7 +58,7 @@ void showEventDetailDialog({
       ),
       content: Consumer(
         builder: (ctx, ref, _) {
-          final deps = ref.watch(dependencyProvider).valueOrNull ?? [];
+          final deps = ref.watch(dependencyProvider).value ?? [];
           final relatedDeps = deps
               .where((d) =>
                   d.sourceEventId == event.id || d.targetEventId == event.id)
@@ -168,7 +168,7 @@ void showEventDetailDialog({
           style: TextButton.styleFrom(foregroundColor: Colors.red),
           onPressed: () {
             Navigator.pop(dialogCtx);
-            if (ref.read(authStateProvider).valueOrNull == null) {
+            if (ref.read(authStateProvider).value == null) {
               showDialog<void>(
                 context: context,
                 builder: (_) => const SignInDialog(),
@@ -182,7 +182,7 @@ void showEventDetailDialog({
         TextButton(
           onPressed: () {
             Navigator.pop(dialogCtx);
-            if (ref.read(authStateProvider).valueOrNull == null) {
+            if (ref.read(authStateProvider).value == null) {
               showDialog<void>(
                 context: context,
                 builder: (_) => const SignInDialog(),
