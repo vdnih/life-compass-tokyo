@@ -104,7 +104,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 ## 6. Git と経緯の残し方
 
 - feature ブランチを切って作業 → PR → `main` にマージ（GitHub Actions が自動デプロイ）。**`main` に直接コミットしない。**
-- **マージは regular merge（squash しない）。** コミット粒度を `main` の履歴にそのまま残す。ADR が過去のコミットハッシュ（例: `docs/adr/015-firebase-config-as-code.md` の `07b4c15`）を直接参照する慣習があり、squash すると参照先が潰れる。
+- **マージは Squash and merge。** GitHub 設定で squash コミットメッセージは `COMMIT_MESSAGES` になっており、個々の commit メッセージは squash コミットの本文にそのまま残るため、コミット粒度の記録は失われない（[ADR-023](docs/adr/023-squash-merge-policy.md)）。ADR など経緯を残す文書からコミットハッシュを参照する場合は、squash で潰れないよう **PR 番号**（例: `#42`）を使う。
 - ブランチ名: `claude/<内容がわかる名前>` または `<topic>/<内容>`
 - commit は論理的な作業単位ごとに。prefix は `feat:` / `fix:` / `refactor:` / `test:` / `docs:` / `chore:`
 
