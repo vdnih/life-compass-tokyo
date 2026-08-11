@@ -193,7 +193,7 @@ void main() {
   group('dependencyRepositoryProvider', () {
     test('未認証のときインメモリ実装を返すこと', () async {
       final container = createContainer(overrides: [guestAuth()]);
-      await container.read(authStateProvider.future);
+      await awaitAuthState(container);
 
       expect(
         container.read(dependencyRepositoryProvider),
@@ -203,7 +203,7 @@ void main() {
 
     test('認証済みのとき Firestore 実装を返すこと', () async {
       final container = createContainer(overrides: [signedInAuth()]);
-      await container.read(authStateProvider.future);
+      await awaitAuthState(container);
 
       expect(
         container.read(dependencyRepositoryProvider),
@@ -213,7 +213,7 @@ void main() {
 
     test('認証状態が再評価されてもゲストの編集が保持されること', () async {
       final container = createContainer(overrides: [guestAuth()]);
-      await container.read(authStateProvider.future);
+      await awaitAuthState(container);
 
       await container
           .read(dependencyRepositoryProvider)

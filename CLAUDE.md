@@ -26,9 +26,6 @@ flutter test path/to/x_test.dart # 単一ファイル
 flutter test --plain-name "..."  # テスト名で絞り込み
 flutter test --coverage          # coverage/lcov.info を生成
 
-# コード生成（riverpod_generator のみが対象。使用箇所は極めて少ない）
-dart run build_runner build --delete-conflicting-outputs
-
 # デプロイ（main への push で GitHub Actions が自動実行）
 flutter build web --release
 firebase deploy --only hosting   # projectId: my-career-app-559fd
@@ -53,12 +50,13 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 - **年ビュー・月ビューは `presentation/widgets/timeline_view.dart` に統合済み**（ADR-021）。`TimelineViewMode` enum で表示単位（1スロットが何ヶ月か）を切り替える。表示部品は `timeline_lane_labels.dart` / `timeline_axis.dart` / `catalog_drop_preview.dart` / `event_detail_dialog.dart` に分割している。
 - **`*_provider.dart` という名前でも Provider を含まない純関数ファイルがある**（例: `cascade_move_provider.dart`）。名前を信用せず中身を見ること。
 - **Freezed / json_serializable は導入していない。** ドメインモデルは手書きのイミュータブルクラス（`copyWith` / `==` / `hashCode` / `toJson` / `fromJson` を手書き）。`copyWith` で null をクリアする場合は既存の `_sentinel` パターンに倣う。
-- **Riverpod のコード生成はほぼ使っていない。** `@riverpod` アノテーションの使用箇所は1つだけ。新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifier` / `StateProvider` / `Provider`）。
+- **Riverpod のコード生成（riverpod_generator / build_runner）は導入していない。** 新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifierProvider` / `Provider`）。riverpod 3 系（ADR-022）で `StateProvider` は legacy 扱いのため、単純な状態は `Notifier` + `NotifierProvider` を使う。
 - **認証は `kIsWeb` で実行時に実装が分岐する**（Web は Firebase のポップアップ、モバイルは `google_sign_in`）。
 - **Firestore のセキュリティルール・インデックスは `firestore.rules` / `firestore.indexes.json` がリポジトリの正。** `firebase deploy --only firestore:rules,firestore:indexes` で反映する（CI では自動デプロイされず手動運用。理由は ADR-015）。コンソールで直接編集するとリポジトリと乖離するため、変更は必ずこれらのファイル経由で行い、`docs/FIREBASE_ARCHITECTURE.md` にも反映すること。なお `storage.rules` は無い（Cloud Storage は未使用）。
 - **`yyyy-MM` の日付計算は `timeline/domain/year_month.dart` の `YearMonth` に集約している。** 月加算・月差分・比較を自分で書かないこと（過去に同一アルゴリズムが4重実装されていた）。**永続化フィールド（`LifeEvent.date` / `endDate`）は `String` のまま**で、境界は `LifeEvent.yearMonth` / `endYearMonth` getter と `toJson` / `fromJson` だけ（ADR-020）。`toString()` は Firestore 形式（`2025-03`）、UI 表示は `japaneseLabel`（`2025年3月`）。`Text('$ym')` と書くと保存形式が画面に出る。
 - **ゲスト用の InMemory 実装は `inMemory*RepositoryProvider` が保持している。** `eventRepositoryProvider` / `dependencyRepositoryProvider` の中で直接 `InMemoryEventRepository()` 等を生成すると、`authStateProvider` の emission ごと（トークンリフレッシュ等）に作り直されてゲストの編集が消える（一度やらかしている）。この Provider を autoDispose にしても同じことが起きる。
-- **`authStateProvider` は `AsyncLoading` から始まる。** `valueOrNull == null` は「未認証」と「まだ解決していない」の両方を意味するため、ログイン済みユーザーも初回フレームだけゲスト（サンプルデータ）扱いになる。未修正（ADR-020 に記録、#39）。
+- **`authStateProvider` は `AsyncLoading` から始まる。** `.value == null` は「未認証」と「まだ解決していない」の両方を意味するため、ログイン済みユーザーも初回フレームだけゲスト（サンプルデータ）扱いになる。未修正（ADR-020 に記録、#39）。
+- **riverpod 3 では listener の無い `StreamProvider` の購読が一時停止される。** `ProviderContainer` を直接使うテストで `container.read(provider.future)` を単独で呼ぶと、購読開始前に一時停止されて永遠に解決しないことがある（ADR-022）。`container.listen` で能動的な listener を張ってから待つこと。`authStateProvider` については `test/support/pump.dart` の `awaitAuthState()` を使う。
 
 ## 5. 実装規約とテスト方針
 
@@ -68,7 +66,6 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 | null 安全性 | `required` パラメータを優先。Optional は明示的に `?` と `??` で処理 |
 | 命名規則 | Dart 公式スタイルガイド（lowerCamelCase / UpperCamelCase） |
 | コメント | 公開 API（public class / method）には dartdoc コメントを付ける |
-| 新規パッケージの追加 | pub.dev の Like 数 500 以上、最終更新 6ヶ月以内を目安とする |
 | 大きなウィジェットの分割 | `timeline_view.dart` は ADR-021 で表示部品を分割済み（#38 大半解消）。それでも肥大化するようなら機能追加のついでに分割しない。分割は独立した PR で行う |
 
 **テスト方針**:

@@ -24,8 +24,22 @@ final catalogByGroupProvider =
   return map;
 });
 
+/// カタログ検索クエリの状態を管理するNotifier
+class CatalogSearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  /// 検索クエリを更新する
+  void setQuery(String query) {
+    state = query;
+  }
+}
+
 /// カタログ検索クエリの状態Provider
-final catalogSearchQueryProvider = StateProvider<String>((ref) => '');
+final catalogSearchQueryProvider =
+    NotifierProvider<CatalogSearchQueryNotifier, String>(
+  CatalogSearchQueryNotifier.new,
+);
 
 /// 検索クエリで絞り込んだカタログイベントを提供するProvider
 ///

@@ -88,7 +88,7 @@ void main() {
   group('eventRepositoryProvider', () {
     test('未認証のときインメモリ実装を返すこと', () async {
       final container = createContainer(overrides: [guestAuth()]);
-      await container.read(authStateProvider.future);
+      await awaitAuthState(container);
 
       expect(
         container.read(eventRepositoryProvider),
@@ -98,7 +98,7 @@ void main() {
 
     test('認証済みのとき Firestore 実装を返すこと', () async {
       final container = createContainer(overrides: [signedInAuth()]);
-      await container.read(authStateProvider.future);
+      await awaitAuthState(container);
 
       expect(
         container.read(eventRepositoryProvider),
@@ -108,9 +108,9 @@ void main() {
 
     test('認証状態が再評価されてもゲストの編集が保持されること', () async {
       // authStateProvider は AsyncLoading から始まる。await する前に read すると
-      // valueOrNull が null で「未認証」と区別できないので、必ず解決を待つ。
+      // .value が null で「未認証」と区別できないので、必ず解決を待つ。
       final container = createContainer(overrides: [guestAuth()]);
-      await container.read(authStateProvider.future);
+      await awaitAuthState(container);
 
       await container
           .read(eventRepositoryProvider)

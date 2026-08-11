@@ -29,7 +29,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
   ///
   /// 未認証の場合は [SignInDialog] を表示し、認証済みの場合は [action] を実行する。
   void _withAuth(VoidCallback action) {
-    final user = ref.read(authStateProvider).valueOrNull;
+    final user = ref.read(authStateProvider).value;
     if (user == null) {
       showDialog<void>(
         context: context,
@@ -61,7 +61,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     final authAsync = ref.watch(authStateProvider);
     final totalBudget = ref.watch(budgetSummaryProvider);
 
-    final isLoggedIn = authAsync.valueOrNull != null;
+    final isLoggedIn = authAsync.value != null;
 
     // AppBar に表示するユーザー名テキストを構築
     final displayName = profileAsync.maybeWhen(

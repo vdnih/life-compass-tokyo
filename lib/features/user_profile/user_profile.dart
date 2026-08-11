@@ -1,8 +1,6 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/logic/auth_provider.dart';
 import 'data/user_repository.dart';
-
-part 'user_profile.g.dart';
 
 /// ユーザープロフィールを表すデータクラス
 class UserProfile {
@@ -37,8 +35,7 @@ class UserProfile {
 ///
 /// 認証状態を監視し、ログイン時は Firestore からプロフィールをロードする。
 /// 未認証の場合は null を返す（ゲストモード）。
-@riverpod
-class UserProfileNotifier extends _$UserProfileNotifier {
+class UserProfileNotifier extends AsyncNotifier<UserProfile?> {
   @override
   Future<UserProfile?> build() async {
     final user = await ref.watch(authStateProvider.future);
@@ -50,10 +47,10 @@ class UserProfileNotifier extends _$UserProfileNotifier {
 
   /// 既存ユーザーのプロフィールを更新し Firestore に保存する
   Future<void> updateProfile({String? name, DateTime? birthDate}) async {
-    final user = ref.read(authStateProvider).valueOrNull;
+    final user = ref.read(authStateProvider).value;
     if (user == null) return;
 
-    final current = state.valueOrNull;
+    final current = state.value;
     final updated = UserProfile(
       name: name ?? current?.name ?? '',
       birthDate: birthDate ?? current?.birthDate,
@@ -70,7 +67,7 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     required String name,
     DateTime? birthDate,
   }) async {
-    final user = ref.read(authStateProvider).valueOrNull;
+    final user = ref.read(authStateProvider).value;
     if (user == null) return;
 
     final profile = UserProfile(name: name, birthDate: birthDate);
@@ -79,3 +76,9 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     state = AsyncData(profile);
   }
 }
+
+/// ユーザープロフィールの状態を提供するProvider
+final userProfileNotifierProvider =
+    AsyncNotifierProvider.autoDispose<UserProfileNotifier, UserProfile?>(
+  UserProfileNotifier.new,
+);

@@ -89,7 +89,7 @@ final firestoreDependencyRepositoryProvider =
 /// 中身は同じインスタンスのまま。
 final dependencyRepositoryProvider = Provider<DependencyRepository>((ref) {
   final userAsync = ref.watch(authStateProvider);
-  final user = userAsync.valueOrNull;
+  final user = userAsync.value;
   if (user != null) {
     return ref.watch(firestoreDependencyRepositoryProvider(user.uid));
   }

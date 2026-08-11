@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:my_career_app/features/auth/logic/auth_provider.dart';
@@ -41,6 +42,17 @@ ProviderContainer createContainerWithRepositories({
       ...overrides,
     ],
   );
+}
+
+/// [authStateProvider] を能動的に購読しつつ解決を待つ。
+///
+/// riverpod 3 では listener のいない [StreamProvider] の購読は一時停止されるため、
+/// `container.read(provider.future)` を単独で呼ぶだけだと override した
+/// Stream（`Stream.value` など）が配信されずハングする。テストで解決を待つ場合は
+/// この関数を使い、能動的な listener を張ってから解決を待つこと。
+Future<void> awaitAuthState(ProviderContainer container) {
+  container.listen(authStateProvider, (_, _) {});
+  return container.read(authStateProvider.future);
 }
 
 /// 未認証（ゲストモード）を表す [authStateProvider] の override。

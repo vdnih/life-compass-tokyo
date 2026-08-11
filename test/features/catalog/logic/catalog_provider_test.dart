@@ -72,7 +72,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(catalogSearchQueryProvider.notifier).state = '';
+      container.read(catalogSearchQueryProvider.notifier).setQuery('');
       final results = container.read(catalogSearchProvider);
 
       expect(results.length, 46);
@@ -82,7 +82,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(catalogSearchQueryProvider.notifier).state = '結婚';
+      container.read(catalogSearchQueryProvider.notifier).setQuery('結婚');
       final results = container.read(catalogSearchProvider);
 
       expect(results, isNotEmpty);
@@ -98,7 +98,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(catalogSearchQueryProvider.notifier).state = '転職';
+      container.read(catalogSearchQueryProvider.notifier).setQuery('転職');
       final results = container.read(catalogSearchProvider);
 
       expect(results, isNotEmpty);
@@ -109,7 +109,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(catalogSearchQueryProvider.notifier).state = 'xxxxxxxxxxx';
+      container.read(catalogSearchQueryProvider.notifier).setQuery('xxxxxxxxxxx');
       final results = container.read(catalogSearchProvider);
 
       expect(results, isEmpty);
