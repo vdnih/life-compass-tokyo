@@ -33,30 +33,23 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 
 ## 3. アーキテクチャ
 
-3層レイヤードアーキテクチャ + feature 単位のディレクトリ分割。詳細は `docs/SOFTWARE_ARCHITECTURE.md`。
+3層レイヤードアーキテクチャ（`presentation/` → `logic/` → `data/`、ドメインモデルは `domain/`）+ feature 単位のディレクトリ分割（`lib/features/{timeline, catalog, user_profile, auth}/`）。詳細は `docs/SOFTWARE_ARCHITECTURE.md`。
 
-- **レイヤー**: `presentation/`（`ConsumerWidget`、UIのみ）→ `logic/`（Riverpod Provider、状態＋ビジネスロジック）→ `data/`（Repository、I/O）。ドメインモデルは `domain/`。
-- **feature 構成**: `lib/features/{timeline, catalog, user_profile, auth}/`。`catalog` は timeline / goal_template / budget などから参照される共有 feature のため、timeline の下ではなく並列に置いている（依存逆転を避けるため。ADR 参照）。
-  - **feature ごとに階層が揃っていない**（`domain/` が無い feature、ほぼフラットな feature がある）。新規ファイルは既存の並びを見て合わせること。階層の統一はリファクタリング課題（#37）。
-- **Repository の切替**: 認証状態に応じて Repository Provider が実装を選ぶ。**ゲスト（未ログイン）= InMemory 実装**（初期サンプルデータ入り）、**ログイン時 = Firestore 実装**。event / dependency / user すべて同じパターン。認証状態の変化で自動的にリポジトリを取り直す。
-- **静的データはハードコード**: 規定イベントカタログ（`lib/features/catalog/data/groups/` を `predefined_catalog_registry.dart` が集約）とゴールテンプレートは Firestore に置かずアプリ内定数。イベントは `catalogId`（kebab-case 文字列）でカタログを参照する。カタログの件数・整合性の正は `test/features/catalog/data/catalog_consistency_test.dart` のアサーション。
-- **依存関係と連動移動**: イベント間依存は `event_dependency.dart`（`strength: hard/soft`）。D&D 移動時は `cascade_move_provider.dart` が依存グラフを BFS で辿って連動移動する。**探索は双方向**（連結成分全体がずれる。後続だけではない）。
-- **制約チェック**: `constraint_checker_provider.dart` が違反を算出し `constraint_warning.dart` で可視化する。**ドロップ自体はブロックしない**（警告のみ）。
-- **ルーティング**: `GoRouter`。実質 `/`（`TimelineScreen`）のみ。認証やイベント編集はダイアログで処理するためルートを持たない。
-- **ローカライズ**: 日本語固定（`Locale('ja','JP')`）。
+## 4. 知らないと事故るもの
 
-## 4. 実装上の注意（知らないと事故るもの）
-
-- **年ビュー・月ビューは `presentation/widgets/timeline_view.dart` に統合済み**（ADR-021）。`TimelineViewMode` enum で表示単位（1スロットが何ヶ月か）を切り替える。表示部品は `timeline_lane_labels.dart` / `timeline_axis.dart` / `catalog_drop_preview.dart` / `event_detail_dialog.dart` に分割している。
-- **`*_provider.dart` という名前でも Provider を含まない純関数ファイルがある**（例: `cascade_move_provider.dart`）。名前を信用せず中身を見ること。
-- **Freezed / json_serializable は導入していない。** ドメインモデルは手書きのイミュータブルクラス（`copyWith` / `==` / `hashCode` / `toJson` / `fromJson` を手書き）。`copyWith` で null をクリアする場合は既存の `_sentinel` パターンに倣う。
-- **Riverpod のコード生成（riverpod_generator / build_runner）は導入していない。** 新規 Provider は周囲に合わせて手書きする（`NotifierProvider` / `AsyncNotifierProvider` / `Provider`）。riverpod 3 系（ADR-022）で `StateProvider` は legacy 扱いのため、単純な状態は `Notifier` + `NotifierProvider` を使う。
-- **認証は `kIsWeb` で実行時に実装が分岐する**（Web は Firebase のポップアップ、モバイルは `google_sign_in`）。
-- **Firestore のセキュリティルール・インデックスは `firestore.rules` / `firestore.indexes.json` がリポジトリの正。** `firebase deploy --only firestore:rules,firestore:indexes` で反映する（CI では自動デプロイされず手動運用。理由は ADR-015）。コンソールで直接編集するとリポジトリと乖離するため、変更は必ずこれらのファイル経由で行い、`docs/FIREBASE_ARCHITECTURE.md` にも反映すること。なお `storage.rules` は無い（Cloud Storage は未使用）。
-- **`yyyy-MM` の日付計算は `timeline/domain/year_month.dart` の `YearMonth` に集約している。** 月加算・月差分・比較を自分で書かないこと（過去に同一アルゴリズムが4重実装されていた）。**永続化フィールド（`LifeEvent.date` / `endDate`）は `String` のまま**で、境界は `LifeEvent.yearMonth` / `endYearMonth` getter と `toJson` / `fromJson` だけ（ADR-020）。`toString()` は Firestore 形式（`2025-03`）、UI 表示は `japaneseLabel`（`2025年3月`）。`Text('$ym')` と書くと保存形式が画面に出る。
-- **ゲスト用の InMemory 実装は `inMemory*RepositoryProvider` が保持している。** `eventRepositoryProvider` / `dependencyRepositoryProvider` の中で直接 `InMemoryEventRepository()` 等を生成すると、`authStateProvider` の emission ごと（トークンリフレッシュ等）に作り直されてゲストの編集が消える（一度やらかしている）。この Provider を autoDispose にしても同じことが起きる。
-- **`authStateProvider` は `AsyncLoading` から始まる。** `.value == null` は「未認証」と「まだ解決していない」の両方を意味するため、ログイン済みユーザーも初回フレームだけゲスト（サンプルデータ）扱いになる。未修正（ADR-020 に記録、#39）。
-- **riverpod 3 では listener の無い `StreamProvider` の購読が一時停止される。** `ProviderContainer` を直接使うテストで `container.read(provider.future)` を単独で呼ぶと、購読開始前に一時停止されて永遠に解決しないことがある（ADR-022）。`container.listen` で能動的な listener を張ってから待つこと。`authStateProvider` については `test/support/pump.dart` の `awaitAuthState()` を使う。
+- **`catalog` は `timeline` と並列に置いている**（timeline の下ではない）。goal_template / budget など他 feature からも参照される共有 feature のため、依存逆転を避ける設計判断（詳細は ADR）。
+- **feature ごとにディレクトリ階層が揃っていない**（`domain/` が無い feature もある）。新規ファイルは既存の並びに合わせること。
+- **Repository は認証状態で自動的に切り替わる**: ゲスト = InMemory 実装（サンプルデータ入り）、ログイン時 = Firestore 実装。event / dependency / user 共通パターン。
+- **規定イベントカタログとゴールテンプレートはアプリ内定数**（Firestore には置かない）。カタログの件数・整合性の正は `test/features/catalog/data/catalog_consistency_test.dart` のアサーション（このファイルを見ずに件数を書かない）。
+- **イベント依存の連動移動（D&D）は双方向探索**（`cascade_move_provider.dart`。連結成分全体がずれる、後続だけではない）。制約チェック（`constraint_checker_provider.dart`）は違反があってもドロップ自体はブロックしない。
+- **`*_provider.dart` でも Provider を含まない純関数ファイルがある**（例: `cascade_move_provider.dart`）。名前を信用せず中身を見ること。
+- **Freezed / json_serializable / riverpod_generator（build_runner）は導入していない。** ドメインモデルは手書きのイミュータブルクラス。新規 Provider は手書き（`NotifierProvider` / `AsyncNotifierProvider`）。riverpod 3 系（ADR-022）で `StateProvider` は legacy 扱い。
+- **認証は `kIsWeb` で実装が分岐する**（Web はポップアップ、モバイルは `google_sign_in`）。
+- **Firestore のルール・インデックスは `firestore.rules` / `firestore.indexes.json` が正。** `firebase deploy --only firestore:rules,firestore:indexes` で手動反映（CI では自動デプロイしない。理由は ADR-015）。コンソール直接編集は禁止、変更したら `docs/FIREBASE_ARCHITECTURE.md` にも反映する。`storage.rules` は無い（Cloud Storage 未使用）。
+- **`yyyy-MM` の日付計算は `timeline/domain/year_month.dart` の `YearMonth` に集約**（自分で書かない。過去に同一アルゴリズムが4重実装されていた）。永続化フィールドは `String` のまま、境界は `yearMonth` getter と `toJson`/`fromJson` だけ（ADR-020）。`toString()` は Firestore 形式（`2025-03`）、UI 表示は `japaneseLabel`（`2025年3月`）。
+- **ゲストの InMemory Repository を Provider 内で直接 `new` しない。** `authStateProvider` の emission ごとに作り直され編集が消える（実際に起きた事故）。`inMemory*RepositoryProvider` 経由で保持する。
+- **`authStateProvider` は `AsyncLoading` から始まる。** `.value == null` は「未認証」と「未解決」の両方を意味し、ログイン済みでも初回フレームはゲスト扱いになる（ADR-020 に記録、未修正）。
+- **riverpod 3 で listener の無い `StreamProvider` はテストで一時停止しうる。** `container.read(provider.future)` を単独で呼ぶと解決しないことがある（ADR-022）。`container.listen` で能動的な listener を張るか、`authStateProvider` は `test/support/pump.dart` の `awaitAuthState()` を使う。
 
 ## 5. 実装規約とテスト方針
 
@@ -66,7 +59,7 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 | null 安全性 | `required` パラメータを優先。Optional は明示的に `?` と `??` で処理 |
 | 命名規則 | Dart 公式スタイルガイド（lowerCamelCase / UpperCamelCase） |
 | コメント | 公開 API（public class / method）には dartdoc コメントを付ける |
-| 大きなウィジェットの分割 | `timeline_view.dart` は ADR-021 で表示部品を分割済み（#38 大半解消）。それでも肥大化するようなら機能追加のついでに分割しない。分割は独立した PR で行う |
+| 大きなウィジェットの分割 | `timeline_view.dart` は ADR-021 で表示部品を分割済み。それでも肥大化するようなら機能追加のついでに分割しない。分割は独立した PR で行う |
 
 **テスト方針**:
 
@@ -140,19 +133,17 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
    タイトルと出典（どの ADR/PDR/ファイルから来たか）が書いてあれば十分。
    PR 説明の `## なぜ` は `Closes #N` で代替してよい。
 
-## 7. ドキュメント体系
+## 7. ドキュメント
 
-```
-docs/
-├── PRODUCT_VISION.md           # Mission・Vision・Values
-├── PRD.md                      # ターゲット・フェーズ別機能一覧
-├── SPEC.md                     # ビジネスルール仕様
-├── SOFTWARE_ARCHITECTURE.md    # レイヤー構成・Riverpod 規約
-├── FIREBASE_ARCHITECTURE.md    # Firestore スキーマ・セキュリティルール
-├── adr/                        # Architecture Decision Records（なぜその設計か）
-├── pdr/                        # Product Decision Records（なぜこの機能・優先順位か）
-└── archive/                    # 更新を停止した歴史的ドキュメント（参照のみ）
-```
+| 知りたいこと | 参照先 |
+|---|---|
+| なぜこのプロダクトか（Mission/Vision/Values） | `docs/PRODUCT_VISION.md` |
+| 機能一覧・フェーズ | `docs/PRD.md` |
+| ビジネスルール仕様 | `docs/SPEC.md` |
+| レイヤー構成・Riverpod 規約 | `docs/SOFTWARE_ARCHITECTURE.md` |
+| Firestore スキーマ・セキュリティルール | `docs/FIREBASE_ARCHITECTURE.md` |
+| なぜその設計にしたか | `docs/adr/`（Architecture Decision Records） |
+| なぜその機能・優先順位にしたか | `docs/pdr/`（Product Decision Records） |
 
-- `docs/archive/` の中身は**現状の仕様ではない**。仕様を知る目的で読まないこと。
-- 設計ドキュメントとコードが食い違っていたら、**コードが正**。気付いた時点でドキュメント側を直すか、直せない場合は PR 説明に食い違いを記録する。
+`docs/archive/` は更新を停止した歴史的ドキュメント。**現状の仕様ではないので読まないこと。**
+設計ドキュメントとコードが食い違っていたら、**コードが正**。気付いた時点でドキュメント側を直すか、直せない場合は PR 説明に食い違いを記録する。
