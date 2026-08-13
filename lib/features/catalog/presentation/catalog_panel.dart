@@ -31,67 +31,18 @@ class CatalogPanel extends ConsumerWidget {
       color: Colors.grey.shade50,
       child: Column(
         children: [
-          // カスタムイベント追加ボタン
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () {
-                final user = ref.read(authStateProvider).value;
-                if (user == null) {
-                  showDialog<void>(
-                    context: context,
-                    builder: (_) => const SignInDialog(),
-                  );
-                } else {
-                  showDialog<void>(
-                    context: context,
-                    builder: (_) => const AddEventDialog(),
-                  );
-                }
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.add_circle_outline,
-                        size: 15, color: AppTheme.primary),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'カスタムイベントの追加',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
           // 検索フィールド
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             child: TextField(
               decoration: InputDecoration(
                 hintText: '検索',
-                hintStyle: TextStyle(
-                  fontSize: 12,
+                hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: 16,
                   color: Colors.grey.shade400,
                 ),
-                prefixIcon:
-                    Icon(Icons.search, size: 16, color: Colors.grey.shade400),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 8,
                   vertical: 6,
@@ -123,7 +74,11 @@ class CatalogPanel extends ConsumerWidget {
             child: searchQuery.isNotEmpty
                 ? _buildSearchResults(filteredCatalog, placedCatalogIds)
                 : _buildGroupList(
-                    context, catalogByGroup, placedCatalogIds, ref),
+                    context,
+                    catalogByGroup,
+                    placedCatalogIds,
+                    ref,
+                  ),
           ),
         ],
       ),
@@ -246,10 +201,7 @@ class _CatalogItemTile extends ConsumerWidget {
   final PredefinedLifeEvent item;
   final bool isPlaced;
 
-  const _CatalogItemTile({
-    required this.item,
-    required this.isPlaced,
-  });
+  const _CatalogItemTile({required this.item, required this.isPlaced});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -289,10 +241,7 @@ class _CatalogItemTile extends ConsumerWidget {
               child: _buildItemCard(opacity: 1.0),
             ),
           ),
-          childWhenDragging: Opacity(
-            opacity: 0.4,
-            child: _buildItemRow(),
-          ),
+          childWhenDragging: Opacity(opacity: 0.4, child: _buildItemRow()),
           child: _buildItemRow(),
         ),
       ),
@@ -309,19 +258,12 @@ class _CatalogItemTile extends ConsumerWidget {
           Expanded(
             child: Text(
               item.label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade800,
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade800),
               overflow: TextOverflow.ellipsis,
             ),
           ),
           if (isPlaced)
-            Icon(
-              Icons.check_circle,
-              size: 12,
-              color: Colors.green.shade400,
-            ),
+            Icon(Icons.check_circle, size: 12, color: Colors.green.shade400),
         ],
       ),
     );
@@ -337,7 +279,10 @@ class _CatalogItemTile extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: item.color.withValues(alpha: 0.4), width: 1),
+          border: Border.all(
+            color: item.color.withValues(alpha: 0.4),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: item.color.withValues(alpha: 0.15),

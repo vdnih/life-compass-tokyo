@@ -10,6 +10,7 @@ import '../logic/budget_summary_provider.dart';
 import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
 import 'widgets/timeline_view.dart';
+import 'add_event_dialog.dart';
 import 'goal_setup_dialog.dart';
 import 'timeline_keys.dart';
 
@@ -105,8 +106,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white24,
                   borderRadius: BorderRadius.circular(16),
@@ -195,8 +198,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               padding: const EdgeInsets.only(right: 4),
               child: IconButton(
                 tooltip: 'サインアウト',
-                icon:
-                    const Icon(Icons.logout, color: Colors.white70, size: 20),
+                icon: const Icon(Icons.logout, color: Colors.white70, size: 20),
                 onPressed: () async {
                   final authRepo = ref.read(authRepositoryProvider);
                   await authRepo.signOut();
@@ -229,48 +231,51 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             ),
           );
 
+          final timelineWithAddButton = Stack(
+            children: [
+              timelineBody,
+              Positioned(
+                bottom: 16,
+                left: 12,
+                child: FloatingActionButton.small(
+                  heroTag: 'add_event_btn',
+                  tooltip: 'イベントを追加',
+                  backgroundColor: AppTheme.primary,
+                  onPressed: () {
+                    final user = ref.read(authStateProvider).value;
+                    if (user == null) {
+                      showDialog<void>(
+                        context: context,
+                        builder: (_) => const SignInDialog(),
+                      );
+                    } else {
+                      showDialog<void>(
+                        context: context,
+                        builder: (_) => const AddEventDialog(),
+                      );
+                    }
+                  },
+                  child: const Icon(Icons.add, color: Colors.white, size: 20),
+                ),
+              ),
+            ],
+          );
+
           if (isDesktop) {
             // デスクトップ: 左にカタログパネル（200px固定）+ 右にタイムライン
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(
-                  width: 200,
-                  child: CatalogPanel(),
-                ),
+                const SizedBox(width: 200, child: CatalogPanel()),
                 Container(width: 1, color: Colors.grey.shade200),
-                Expanded(child: timelineBody),
+                Expanded(child: timelineWithAddButton),
               ],
             );
           } else {
-            // モバイル: タイムラインのみ表示（カタログはドロワーボタンで開く）
-            return Builder(
-              builder: (ctx) => Stack(
-                children: [
-                  timelineBody,
-                  Positioned(
-                    bottom: 16,
-                    left: 12,
-                    child: FloatingActionButton.small(
-                      heroTag: 'catalog_panel_btn',
-                      tooltip: 'カタログを開く',
-                      backgroundColor: AppTheme.primary,
-                      onPressed: () {
-                        Scaffold.of(ctx).openDrawer();
-                      },
-                      child: const Icon(Icons.menu_book_outlined,
-                          color: Colors.white, size: 18),
-                    ),
-                  ),
-                ],
-              ),
-            );
+            // モバイル: タイムラインのみ表示（＋ボタンでイベント追加）
+            return timelineWithAddButton;
           }
         },
-      ),
-      drawer: const Drawer(
-        width: 220,
-        child: CatalogPanel(),
       ),
     );
   }
