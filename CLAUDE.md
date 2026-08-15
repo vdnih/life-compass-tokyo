@@ -19,7 +19,8 @@ Flutter 製、Web が主要ターゲット（Firebase Hosting でデプロイ）
 
 ```bash
 flutter pub get                  # 依存取得（pubspec 変更後は必須）
-flutter run -d chrome            # アプリ起動
+firebase emulators:start         # Firebase エミュレータ起動（flutter run の前に必要）
+flutter run -d chrome            # アプリ起動。常にローカルエミュレータに接続する（ADR-024）
 flutter analyze                  # 静的解析（flutter_lints）
 flutter test                     # 全テスト
 flutter test path/to/x_test.dart # 単一ファイル
@@ -50,6 +51,8 @@ firebase deploy --only hosting   # projectId: my-career-app-559fd
 - **ゲストの InMemory Repository を Provider 内で直接 `new` しない。** `authStateProvider` の emission ごとに作り直され編集が消える（実際に起きた事故）。`inMemory*RepositoryProvider` 経由で保持する。
 - **`authStateProvider` は `AsyncLoading` から始まる。** `.value == null` は「未認証」と「未解決」の両方を意味し、ログイン済みでも初回フレームはゲスト扱いになる（ADR-020 に記録、未修正）。
 - **riverpod 3 で listener の無い `StreamProvider` はテストで一時停止しうる。** `container.read(provider.future)` を単独で呼ぶと解決しないことがある（ADR-022）。`container.listen` で能動的な listener を張るか、`authStateProvider` は `test/support/pump.dart` の `awaitAuthState()` を使う。
+- **`flutter run`（デバッグビルド）は常にローカルの Firebase エミュレータに接続する**（`lib/core/firebase/emulator_config.dart`、ADR-024）。事前に `firebase emulators:start` が必要。エスケープハッチは無く、本番 Firebase を見たい場合は `flutter run --release` を使う。**リリースビルド（`flutter build web --release`）は常に本番接続**なので CI の deploy には影響しない。Firebase AI Logic 導入後は AI 呼び出し部分だけエミュレータ非対応で本番に到達する（sakeflow の ADR-0003 と同じ制約）。
+- **Google サインイン（Web）は毎回アカウント選択を強制する**（`web_auth_repository.dart` の `prompt: 'select_account'`）。外すとブラウザに残っている Google セッションでサイレンスサインインしてしまう（実際に事故があった。ADR-024）。
 
 ## 5. 実装規約とテスト方針
 
