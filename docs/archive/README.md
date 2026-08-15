@@ -13,3 +13,5 @@
 | `qa_report.md` | 2026-03 時点の品質レポート。廃止済みの `EventCategory` / `WorkSubCategory` 前提で書かれている |
 | `test_scenarios.md` | 2026-03 時点のテストシナリオ。実施されなかった `WorkSubCategory` 移行を前提としている |
 | `WBS.md` | 2026-03 時点のタスク分解。カタログ pivot（PDR-005）以降の作業を反映していない |
+| `product_backlog_memo.txt` | リポジトリ直下に置かれていた未整理メモ。記録時期・優先順位の根拠が無く整理されていない |
+| `user_feedback_memo.txt` | リポジトリ直下に置かれていた未整理メモ。どのバージョンに対するコメントか不明で改善点への反映根拠にできない |
