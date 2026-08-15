@@ -26,18 +26,44 @@ Future<void> _pumpWithSize(WidgetTester tester, Size size) {
 
 void main() {
   group('TimelineScreen カタログパネル統合', () {
-    testWidgets('デスクトップ幅 (1200px) でカタログパネルが表示されること', (tester) async {
+    testWidgets('デスクトップ幅 (1200px) では drawer を持たないこと', (tester) async {
+      await _pumpWithSize(tester, const Size(1200, 800));
+
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(scaffold.drawer, isNull);
+    });
+
+    testWidgets('モバイル幅 (400px) でも drawer を持たないこと', (tester) async {
+      await _pumpWithSize(tester, const Size(400, 800));
+
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(scaffold.drawer, isNull);
+    });
+
+    testWidgets('デスクトップ幅 (1200px) でカタログパネルが1つだけ表示されること', (tester) async {
       await _pumpWithSize(tester, const Size(1200, 800));
 
       expect(find.byType(CatalogPanel), findsOneWidget);
     });
 
-    testWidgets('モバイル幅 (400px) では CatalogPanel がドロワー内に格納されること', (tester) async {
+    testWidgets('モバイル幅 (400px) ではカタログパネルが表示されないこと', (tester) async {
       await _pumpWithSize(tester, const Size(400, 800));
 
-      // モバイル幅では CatalogPanel が画面に直接表示されず、
-      // ドロワーを開くボタンが表示されること
-      expect(find.byIcon(Icons.menu_book_outlined), findsOneWidget);
+      expect(find.byType(CatalogPanel), findsNothing);
+    });
+
+    testWidgets('デスクトップ幅・モバイル幅どちらでもイベント追加ボタンが表示されること', (tester) async {
+      await _pumpWithSize(tester, const Size(1200, 800));
+      expect(find.byIcon(Icons.add), findsOneWidget);
+
+      await _pumpWithSize(tester, const Size(400, 800));
+      expect(find.byIcon(Icons.add), findsOneWidget);
+    });
+
+    testWidgets('カタログを開くためのメニューボタンは存在しないこと', (tester) async {
+      await _pumpWithSize(tester, const Size(400, 800));
+
+      expect(find.byIcon(Icons.menu_book_outlined), findsNothing);
     });
   });
 }
