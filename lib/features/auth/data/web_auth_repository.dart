@@ -16,6 +16,10 @@ class WebAuthRepository implements AuthRepository {
     final GoogleAuthProvider googleProvider = GoogleAuthProvider();
     googleProvider.addScope('email');
     googleProvider.addScope('profile');
+    // ブラウザに Google セッションが残っていても毎回アカウント選択を挟む。
+    // 無指定だとそのセッションでサイレンスサインインし、意図しないアカウントに
+    // 入ってしまう（実際に自動操作テスト中に発生した事故）。
+    googleProvider.setCustomParameters({'prompt': 'select_account'});
     return await _auth.signInWithPopup(googleProvider);
   }
 
