@@ -19,7 +19,7 @@
 
 ### 1. Firebase Local Emulator Suite を導入する
 
-- `firebase.json` に `emulators` ブロックを追加。ポート番号は sakeflow と揃える（auth: 9099, firestore: 8080, ui: 4000）
+- `firebase.json` に `emulators` ブロックを追加。ポート番号は Firebase Emulator Suite の事実上のデフォルト（auth: 9099, firestore: 8080, ui: 4000）ではなく、**sakeflow が既に使っているのと同じデフォルト値**を避けて `auth: 9199` / `firestore: 8180` / `ui: 4100` にずらした。実際に本 PR の検証中、sakeflow の emulator が起動しっぱなしだったため my_career_app 側がデフォルトポートで起動できない事態が発生し判明した。プロダクトごとに別セッションで並行作業する運用（`_hub/CLAUDE.md`）と相性が悪いため、同一マシンで複数プロダクトのエミュレータを同時に起動しっぱなしにできるようポートを分離する
 - `lib/core/firebase/emulator_config.dart` を新規追加。`connectToEmulators()` が Auth / Firestore エミュレータへ接続する
 - `lib/main.dart` で `kDebugMode` のときのみ `connectToEmulators()` を呼ぶ
 
@@ -43,6 +43,7 @@ sakeflow の `docs/adr/0003-migrate-openai-to-firebase-ai-logic.md` に「`fireb
 
 - **`--dart-define` によるオプトイン式の本番接続フラグ**: 上記の通り、フラグ管理という「消し忘れ／付け忘れ」の余地自体が事故の温床になるため不採用。
 - **dev 用に別 Firebase プロジェクトを新設する**: プロジェクト管理コスト（Firebase コンソール設定・Firestore ルール・Auth プロバイダ設定の二重管理）が増える一方、エミュレータで得られる分離効果と大差ないため見送り。
+- **sakeflow とポート番号を完全に一致させる**: 当初この方針で実装したが、検証中に「両プロダクトのエミュレータを同時起動できない」問題が実際に発生したため撤回した。ポート番号は統一すべき対象ではなく、統一すべきは「`kDebugMode` は常にエミュレータ、エスケープハッチ無し」という契約の方だと判断した。
 
 ## 影響範囲
 
