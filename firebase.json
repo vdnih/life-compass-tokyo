@@ -58,14 +58,14 @@
   },
   "emulators": {
     "auth": {
-      "port": 9199
+      "port": 19099
     },
     "firestore": {
-      "port": 8180
+      "port": 18080
     },
     "ui": {
       "enabled": true,
-      "port": 4100
+      "port": 14000
     }
   }
 }

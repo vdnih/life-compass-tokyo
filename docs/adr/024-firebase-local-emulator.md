@@ -3,6 +3,8 @@
 **Date**: 2026-08-16
 **Status**: Accepted
 
+**訂正（2026-08-16）**: 初版でポートを `auth: 9199` / `firestore: 8180` / `ui: 4100` としていたが、`auth: 9199` が sakeflow の **Storage** エミュレータ（Firebase 標準デフォルト）と衝突していた。`+10000` オフセット方式（下記）に変更し、`_hub/CLAUDE.md` にプロダクト横断のポート帯管理を追加した。
+
 ## 背景
 
 実機確認中、ブラウザ自動操作（Claude in Chrome）で「サインインが必要です」ダイアログを操作していたところ、誤って「Googleでサインイン」をクリックし、ブラウザに残っていた Google セッションでサイレンスサインインが完了してしまう事故が2回発生した。サインインしたのは操作者自身の日常利用アカウントで実害は無かったが、原因を調べたところ、事故が起きた理由は座標のズレという偶然だけではなく、**このリポジトリのローカル開発（`flutter run`）が構造的に本番 Firebase プロジェクト（`my-career-app-559fd`）に直結しており、ローカル/本番を分離する仕組みが一切無かった**ことだった。
@@ -19,7 +21,7 @@
 
 ### 1. Firebase Local Emulator Suite を導入する
 
-- `firebase.json` に `emulators` ブロックを追加。ポート番号は Firebase Emulator Suite の事実上のデフォルト（auth: 9099, firestore: 8080, ui: 4000）ではなく、**sakeflow が既に使っているのと同じデフォルト値**を避けて `auth: 9199` / `firestore: 8180` / `ui: 4100` にずらした。実際に本 PR の検証中、sakeflow の emulator が起動しっぱなしだったため my_career_app 側がデフォルトポートで起動できない事態が発生し判明した。プロダクトごとに別セッションで並行作業する運用（`_hub/CLAUDE.md`）と相性が悪いため、同一マシンで複数プロダクトのエミュレータを同時に起動しっぱなしにできるようポートを分離する
+- `firebase.json` に `emulators` ブロックを追加。ポート番号は Firebase の標準デフォルト一式（auth: 9099, firestore: 8080, storage: 9199, ui: 4000 等）に**一律 +10000** した `auth: 19099` / `firestore: 18080` / `ui: 14000` を使う。プロダクトごとに別セッションで並行作業する運用（`_hub/CLAUDE.md`）と、標準デフォルトのままの sakeflow が同一マシンで起動しっぱなしになりうる状況は相性が悪いため、同時起動できるようポート帯を分離した。この帯の割り当ては `_hub/CLAUDE.md` にプロダクト横断で記録する
 - `lib/core/firebase/emulator_config.dart` を新規追加。`connectToEmulators()` が Auth / Firestore エミュレータへ接続する
 - `lib/main.dart` で `kDebugMode` のときのみ `connectToEmulators()` を呼ぶ
 
@@ -44,6 +46,7 @@ sakeflow の `docs/adr/0003-migrate-openai-to-firebase-ai-logic.md` に「`fireb
 - **`--dart-define` によるオプトイン式の本番接続フラグ**: 上記の通り、フラグ管理という「消し忘れ／付け忘れ」の余地自体が事故の温床になるため不採用。
 - **dev 用に別 Firebase プロジェクトを新設する**: プロジェクト管理コスト（Firebase コンソール設定・Firestore ルール・Auth プロバイダ設定の二重管理）が増える一方、エミュレータで得られる分離効果と大差ないため見送り。
 - **sakeflow とポート番号を完全に一致させる**: 当初この方針で実装したが、検証中に「両プロダクトのエミュレータを同時起動できない」問題が実際に発生したため撤回した。ポート番号は統一すべき対象ではなく、統一すべきは「`kDebugMode` は常にエミュレータ、エスケープハッチ無し」という契約の方だと判断した。
+- **sakeflow の各サービスの実ポートだけを個別に避ける**: 一度 `auth: 9199` / `firestore: 8180` / `ui: 4100` として実装・マージしたが、`9199` が sakeflow の Storage エミュレータ（Firebase 標準デフォルト）と衝突していた。個別のポートを都度確認して避ける方式は、サービスが増えるたびに再度衝突しうる脆い方式だと判明したため撤回し、Firebase の標準デフォルト一式に一律 `+10000` する方式に変更した。これなら sakeflow が将来 Firebase の別サービス（database, pubsub 等）を追加しても機械的に衝突しない。
 
 ## 影響範囲
 
