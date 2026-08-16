@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/logic/auth_provider.dart';
+import '../../auth/presentation/sign_in_dialog.dart';
 import 'chat_controller.dart';
 
 /// spike/ai-chat-ux: メッセージ一覧 + 入力欄。
@@ -40,6 +42,16 @@ class _CoachChatPanelState extends ConsumerState<CoachChatPanel> {
   Future<void> _handleSend() async {
     final text = _textController.text;
     if (text.trim().isEmpty || _isSending) return;
+
+    // spike/ai-chat-ux: 手動でのイベント配置とは非対称にあえてログイン必須にする。
+    // 手動配置はコストがかからず「試せる」ことに価値があるためゲストに開放したが
+    // （fix/guest-can-edit-without-signin）、AI呼び出しはコストが発生する
+    // （Step 4 で実AI接続予定）ため、無制限に使われては困る。
+    if (ref.read(authStateProvider).value == null) {
+      showDialog<void>(context: context, builder: (_) => const SignInDialog());
+      return;
+    }
+
     _textController.clear();
     widget.onSent?.call();
     setState(() => _isSending = true);
