@@ -56,24 +56,22 @@ void main() {
       await pumpApp(
         tester,
         Scaffold(
-          body: TimelineView(
-            mode: TimelineViewMode.yearMonth,
-            events: [event],
-          ),
+          body: TimelineView(mode: TimelineViewMode.yearMonth, events: [event]),
         ),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           signedInAuth(),
         ],
       );
 
       await dragHorizontally(tester, find.text(event.title), 200);
 
-      final captured = verify(() => eventRepo.updateEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
+      final captured = verify(
+        () => eventRepo.updateEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
       expect(captured, hasLength(1), reason: 'ドロップで1件だけ更新されること');
       expect(captured.single.id, 'e1');
       expect(
@@ -96,17 +94,18 @@ void main() {
         ),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           signedInAuth(),
         ],
       );
 
       await dragHorizontally(tester, find.text(event.title), 200);
 
-      final captured = verify(() => eventRepo.updateEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
+      final captured = verify(
+        () => eventRepo.updateEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
       expect(captured, hasLength(1));
       expect(captured.single.id, 'e1');
     });
@@ -116,29 +115,27 @@ void main() {
     // マーカーは三角アイコンとラベルを Column で積んだ薄い領域で、両者の間に
     // 無地の余白がある。GestureDetector が opaque でないと、その余白のタップが
     // 背景の「タップで新規追加」ハンドラに抜けてしまう（実機で確認した回帰）。
-    testWidgets('マーカー中央（三角とラベルの間の余白）をタップしても詳細ダイアログが開くこと',
-        (tester) async {
+    testWidgets('マーカー中央（三角とラベルの間の余白）をタップしても詳細ダイアログが開くこと', (tester) async {
       final event = buildLifeEvent(id: 'e1', date: monthFromNow(0));
 
       await pumpApp(
         tester,
         Scaffold(
-          body: TimelineView(
-            mode: TimelineViewMode.yearMonth,
-            events: [event],
-          ),
+          body: TimelineView(mode: TimelineViewMode.yearMonth, events: [event]),
         ),
         overrides: [
-          eventRepositoryProvider
-              .overrideWithValue(stubEventRepository(events: [event])),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          eventRepositoryProvider.overrideWithValue(
+            stubEventRepository(events: [event]),
+          ),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           guestAuth(),
         ],
       );
 
-      final markerCenter = tester.getCenter(find.text(event.title)) -
-          const Offset(0, 14);
+      final markerCenter =
+          tester.getCenter(find.text(event.title)) - const Offset(0, 14);
       await tester.tapAt(markerCenter);
       await tester.pumpAndSettle();
 
@@ -192,14 +189,13 @@ void main() {
 
       await dragHorizontally(tester, find.text(source.title), 200);
 
-      final captured = verify(() => eventRepo.updateEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
-      expect(
-        captured.map((e) => e.id).toSet(),
-        {'src', 'tgt'},
-        reason: '依存グラフを辿って依存先も連動移動すること',
-      );
+      final captured = verify(
+        () => eventRepo.updateEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
+      expect(captured.map((e) => e.id).toSet(), {
+        'src',
+        'tgt',
+      }, reason: '依存グラフを辿って依存先も連動移動すること');
     });
   });
 
@@ -215,8 +211,9 @@ void main() {
         const TimelineScreen(),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           if (signedIn) signedInAuth() else guestAuth(),
         ],
         size: const Size(1400, 900),
@@ -235,8 +232,9 @@ void main() {
             matching: find.byType(LongPressDraggable<PredefinedLifeEvent>),
           )
           .first;
-      final timelineRect =
-          tester.getRect(find.byKey(TimelineKeys.timelineYearMonth));
+      final timelineRect = tester.getRect(
+        find.byKey(TimelineKeys.timelineYearMonth),
+      );
       final laneRect = tester.getRect(find.byKey(TimelineKeys.workLane));
       final dropTarget = Offset(timelineRect.center.dx, laneRect.center.dy);
 
@@ -255,20 +253,23 @@ void main() {
 
       await dragCatalogItemToTimeline(tester);
 
-      final captured = verify(() => eventRepo.saveEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
+      final captured = verify(
+        () => eventRepo.saveEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
       expect(captured, hasLength(1));
       expect(captured.single.catalogId, 'wedding-ceremony');
     });
 
-    testWidgets('未認証ならサインインを促し、保存しないこと', (tester) async {
+    testWidgets('未認証でもドロップしたカタログのイベントが保存されること', (tester) async {
       final eventRepo = await pumpScreen(tester, signedIn: false);
 
       await dragCatalogItemToTimeline(tester);
 
-      verifyNever(() => eventRepo.saveEvent(any()));
-      expect(find.text('サインインが必要です'), findsOneWidget);
+      final captured = verify(
+        () => eventRepo.saveEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
+      expect(captured, hasLength(1));
+      expect(captured.single.catalogId, 'wedding-ceremony');
     });
   });
 }

@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../ai_coach/presentation/highlight_provider.dart';
-import '../../../auth/logic/auth_provider.dart';
-import '../../../auth/presentation/sign_in_dialog.dart';
 import '../../../catalog/domain/predefined_life_event.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
@@ -589,15 +587,6 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           if (data is String) {
             _applyCascadeMove(data, newDateStr, events);
           } else if (data is PredefinedLifeEvent) {
-            // 認証チェック（タップ追加と同じパターン）
-            if (!mounted) return;
-            if (ref.read(authStateProvider).value == null) {
-              showDialog<void>(
-                context: context,
-                builder: (_) => const SignInDialog(),
-              );
-              return;
-            }
             _applyAddFromCatalog(data, newDateStr);
           }
         },
@@ -909,11 +898,6 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
     final tappedDate = scale.dateAtSlot(slotIndex).toDateTime();
     final isWork = tapY < axisHeight + _rowHeight;
-
-    if (ref.read(authStateProvider).value == null) {
-      showDialog<void>(context: context, builder: (_) => const SignInDialog());
-      return;
-    }
 
     showDialog(
       context: context,
