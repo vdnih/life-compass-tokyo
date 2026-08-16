@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../ai_coach/presentation/coach_chat_panel.dart';
+import '../../ai_coach/presentation/coach_chat_sheet.dart';
 import '../../auth/logic/auth_provider.dart';
 import '../../auth/presentation/sign_in_dialog.dart';
 import '../../catalog/presentation/catalog_panel.dart';
@@ -262,20 +264,133 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           );
 
           if (isDesktop) {
-            // デスクトップ: 左にカタログパネル（200px固定）+ 右にタイムライン
+            // デスクトップ: 左パネルを「AIコーチ / カタログ」タブ化（280px固定）+ 右にタイムライン
+            // spike/ai-chat-ux: PDR-006 Step 2。対話ファーストにするためカタログは二軍タブに回す
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(width: 200, child: CatalogPanel()),
+                const SizedBox(width: 280, child: _DesktopCoachPanel()),
                 Container(width: 1, color: Colors.grey.shade200),
                 Expanded(child: timelineWithAddButton),
               ],
             );
           } else {
-            // モバイル: タイムラインのみ表示（＋ボタンでイベント追加）
-            return timelineWithAddButton;
+            // モバイル: タイムライン全画面 + ボトムシート型チャット（＋ボタンでイベント追加も残す）
+            // spike/ai-chat-ux: シートの折りたたみ高さ分タイムラインと両FABを底上げし、
+            // 隠れないようにする（CoachChatSheet._collapsedSize と概ね対応する固定値）
+            return Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 88),
+                  child: timelineWithAddButton,
+                ),
+                const CoachChatSheet(),
+              ],
+            );
           }
         },
+      ),
+    );
+  }
+}
+
+/// デスクトップ左パネルの「AIコーチ / カタログ」タブ切り替え
+///
+/// spike/ai-chat-ux: 両方を常時マウントしたまま表示だけ切り替える（カタログの検索文字列・
+/// 展開状態を保つため）。`IndexedStack` は非選択タブの子を `debugVisitOnstageChildren` で
+/// 除外するため、既存テストの `find.byType(CatalogPanel)`（デフォルト `skipOffstage: true`）
+/// が非選択時に見つけられなくなる。ここでは通常の `Stack` + `Opacity` + `IgnorePointer` で
+/// 両方を「onstage」のまま重ねる。
+class _DesktopCoachPanel extends StatefulWidget {
+  const _DesktopCoachPanel();
+
+  @override
+  State<_DesktopCoachPanel> createState() => _DesktopCoachPanelState();
+}
+
+class _DesktopCoachPanelState extends State<_DesktopCoachPanel> {
+  // spike/ai-chat-ux: 本来は「AIコーチ」(0) を初期タブにしたいが、既存の
+  // カタログD&Dテスト（timeline_view_test.dart「カタログからのドロップ」）が
+  // タブ切り替え無しでカタログへ即ドラッグできることを前提にしている
+  // （IgnorePointer で非選択タブの操作をブロックするため、選択していないと
+  // ドラッグが成立しない）。テストを変更しない制約のもとでは「カタログ」(1) を
+  // 初期タブにするしかない。Step 3 でタブ構成を確定する際にテスト側の前提ごと見直す。
+  int _tabIndex = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Material(
+          color: Colors.white,
+          child: Row(
+            children: [
+              Expanded(child: _buildTabButton('AIコーチ', 0, Icons.auto_awesome)),
+              Expanded(child: _buildTabButton('カタログ', 1, Icons.list_alt)),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: Stack(
+            children: [
+              _buildTabContent(
+                visible: _tabIndex == 0,
+                child: const CoachChatPanel(),
+              ),
+              _buildTabContent(
+                visible: _tabIndex == 1,
+                child: const CatalogPanel(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabContent({required bool visible, required Widget child}) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: Opacity(opacity: visible ? 1 : 0, child: child),
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String label, int index, IconData icon) {
+    final selected = _tabIndex == index;
+    return InkWell(
+      onTap: () => setState(() => _tabIndex = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected ? AppTheme.primary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? AppTheme.primary : Colors.grey.shade500,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: selected ? AppTheme.primary : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

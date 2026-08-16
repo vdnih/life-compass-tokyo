@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../ai_coach/presentation/highlight_provider.dart';
 import '../../../auth/logic/auth_provider.dart';
 import '../../../auth/presentation/sign_in_dialog.dart';
 import '../../../catalog/domain/predefined_life_event.dart';
@@ -139,6 +140,14 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   final ScrollController _horizontalScrollController = ScrollController();
   bool _hasScrolledToNow = false;
 
+  /// build() の最後に更新される最新の [TimelineScale]。
+  /// spike/ai-chat-ux: チャットからの自動スクロール（[_animateTo]）が
+  /// build 外（[ref.listen] コールバック）から呼ばれるために保持する。
+  TimelineScale? _lastScale;
+
+  /// spike/ai-chat-ux: チャットが直前にハイライトしたイベントID
+  Set<String> _highlightedEventIds = const {};
+
   @override
   void initState() {
     super.initState();
@@ -154,8 +163,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   /// 表示範囲の起点となる「デフォルト5年前 / 5年後」等に相当するスロット0の
   /// [TimelineScale] を組み立てる（現在位置スクロール専用。表示範囲全体は [_buildScale]）
   TimelineScale _scaleForScrollToNow(YearMonth nowAnchor) {
-    final origin = nowAnchor
-        .addMonths(-widget.mode.defaultBackSlots * widget.mode.monthsPerSlot);
+    final origin = nowAnchor.addMonths(
+      -widget.mode.defaultBackSlots * widget.mode.monthsPerSlot,
+    );
     return TimelineScale(
       origin: origin,
       pixelsPerSlot: widget.mode.pixelsPerSlot,
@@ -167,24 +177,45 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   void _scrollToNow() {
     if (_hasScrolledToNow) return;
     if (!_horizontalScrollController.hasClients) return;
-    final nowAnchor = widget.mode.anchorOf(YearMonth.fromDateTime(DateTime.now()));
+    final nowAnchor = widget.mode.anchorOf(
+      YearMonth.fromDateTime(DateTime.now()),
+    );
     final scale = _scaleForScrollToNow(nowAnchor);
     final nowXPos = scale.xOf(nowAnchor);
-    final viewportWidth = _horizontalScrollController.position.viewportDimension;
-    final targetOffset = (nowXPos - viewportWidth / 2)
-        .clamp(0.0, _horizontalScrollController.position.maxScrollExtent);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset = (nowXPos - viewportWidth / 2).clamp(
+      0.0,
+      _horizontalScrollController.position.maxScrollExtent,
+    );
     _horizontalScrollController.jumpTo(targetOffset);
     _hasScrolledToNow = true;
   }
 
   void _animateToNow() {
+    final nowAnchor = widget.mode.anchorOf(
+      YearMonth.fromDateTime(DateTime.now()),
+    );
+    _animateTo(nowAnchor, scale: _scaleForScrollToNow(nowAnchor));
+  }
+
+  /// spike/ai-chat-ux: 任意の年月へアニメーション付きでスクロールする。
+  /// [_animateToNow] の一般化。チャットがテンプレートを展開した直後、
+  /// ゴール年月へスクロールして「書き換わった瞬間」を見せるために使う。
+  ///
+  /// [scale] を省略すると直近の build() で使われた [_lastScale] を使う
+  /// （表示範囲全体をカバーするスケールなので、任意の年月に対応できる）。
+  void _animateTo(YearMonth target, {TimelineScale? scale}) {
     if (!_horizontalScrollController.hasClients) return;
-    final nowAnchor = widget.mode.anchorOf(YearMonth.fromDateTime(DateTime.now()));
-    final scale = _scaleForScrollToNow(nowAnchor);
-    final nowXPos = scale.xOf(nowAnchor);
-    final viewportWidth = _horizontalScrollController.position.viewportDimension;
-    final targetOffset = (nowXPos - viewportWidth / 2)
-        .clamp(0.0, _horizontalScrollController.position.maxScrollExtent);
+    final effectiveScale = scale ?? _lastScale;
+    if (effectiveScale == null) return;
+    final xPos = effectiveScale.xOf(target);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset = (xPos - viewportWidth / 2).clamp(
+      0.0,
+      _horizontalScrollController.position.maxScrollExtent,
+    );
     _horizontalScrollController.animateTo(
       targetOffset,
       duration: const Duration(milliseconds: 400),
@@ -201,9 +232,12 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   TimelineScale _buildScale(List<LifeEvent> events, DateTime now) {
     final mode = widget.mode;
     final nowAnchor = mode.anchorOf(YearMonth.fromDateTime(now));
-    var origin = nowAnchor.addMonths(-mode.defaultBackSlots * mode.monthsPerSlot);
-    var endBoundary =
-        nowAnchor.addMonths(mode.defaultForwardSlots * mode.monthsPerSlot);
+    var origin = nowAnchor.addMonths(
+      -mode.defaultBackSlots * mode.monthsPerSlot,
+    );
+    var endBoundary = nowAnchor.addMonths(
+      mode.defaultForwardSlots * mode.monthsPerSlot,
+    );
 
     if (events.isNotEmpty) {
       final sorted = List<LifeEvent>.from(events)
@@ -217,16 +251,19 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
         }
       }
       if (firstAnchor.isBefore(origin)) {
-        origin =
-            firstAnchor.addMonths(-mode.eventBackPadSlots * mode.monthsPerSlot);
+        origin = firstAnchor.addMonths(
+          -mode.eventBackPadSlots * mode.monthsPerSlot,
+        );
       }
       if (lastAnchor.isAfter(endBoundary)) {
-        endBoundary = lastAnchor
-            .addMonths(mode.eventForwardPadSlots * mode.monthsPerSlot);
+        endBoundary = lastAnchor.addMonths(
+          mode.eventForwardPadSlots * mode.monthsPerSlot,
+        );
       }
     }
 
-    final slotCount = endBoundary.differenceInMonths(origin) ~/ mode.monthsPerSlot;
+    final slotCount =
+        endBoundary.differenceInMonths(origin) ~/ mode.monthsPerSlot;
     return TimelineScale(
       origin: origin,
       pixelsPerSlot: mode.pixelsPerSlot,
@@ -242,9 +279,22 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final events = widget.events;
     final now = DateTime.now();
     final scale = _buildScale(events, now);
+    _lastScale = scale;
 
     final profile = ref.watch(userProfileNotifierProvider).value;
     final dependenciesAsync = ref.watch(dependencyProvider);
+
+    // spike/ai-chat-ux: チャットがテンプレートを展開したら、対象イベントをリング表示し
+    // ゴール年月へ自動スクロールする。ハイライトのみの変化（Undo 後のクリア等）では
+    // スクロールしない -- focusYearMonth が変わった時だけトリガーする。
+    final highlight = ref.watch(chatHighlightProvider);
+    _highlightedEventIds = highlight.eventIds;
+    ref.listen<ChatHighlight>(chatHighlightProvider, (previous, next) {
+      final target = next.focusYearMonth;
+      if (target == null) return;
+      if (previous?.focusYearMonth == target) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _animateTo(target));
+    });
 
     final stackIndices = computeStackIndices(events, scale);
     _rowHeight = computeStackedRowHeight(
@@ -255,7 +305,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       cardHeight: _cardHeight,
     );
 
-    final nowXPos = scale.xOf(widget.mode.anchorOf(YearMonth.fromDateTime(now)));
+    final nowXPos = scale.xOf(
+      widget.mode.anchorOf(YearMonth.fromDateTime(now)),
+    );
 
     final eventPositions = <String, double>{};
     final eventLanes = <String, bool>{};
@@ -338,7 +390,12 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                           topPadding: _topPadding,
                         ),
                       if (events.isNotEmpty)
-                        ..._buildEventCards(events, scale, stackIndices, context),
+                        ..._buildEventCards(
+                          events,
+                          scale,
+                          stackIndices,
+                          context,
+                        ),
                     ],
                   ),
                 ),
@@ -357,7 +414,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 20),
+                      horizontal: 24,
+                      vertical: 20,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(16),
@@ -372,9 +431,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.timeline,
-                            size: 48,
-                            color: AppTheme.primary.withValues(alpha: 0.25)),
+                        Icon(
+                          Icons.timeline,
+                          size: 48,
+                          color: AppTheme.primary.withValues(alpha: 0.25),
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           'まだイベントがありません',
@@ -531,7 +592,10 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
             // 認証チェック（タップ追加と同じパターン）
             if (!mounted) return;
             if (ref.read(authStateProvider).value == null) {
-              showDialog<void>(context: context, builder: (_) => const SignInDialog());
+              showDialog<void>(
+                context: context,
+                builder: (_) => const SignInDialog(),
+              );
               return;
             }
             _applyAddFromCatalog(data, newDateStr);
@@ -545,8 +609,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           return Stack(
             children: [
               Positioned.fill(
-                child:
-                    Container(color: AppTheme.primary.withValues(alpha: 0.04)),
+                child: Container(
+                  color: AppTheme.primary.withValues(alpha: 0.04),
+                ),
               ),
               Positioned(
                 left: xPos,
@@ -622,16 +687,20 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     for (final change in changes) {
       await ref
           .read(timelineEventsProvider.notifier)
-          .moveEvent(change.eventId, change.newDate, newEndDate: change.newEndDate);
+          .moveEvent(
+            change.eventId,
+            change.newDate,
+            newEndDate: change.newEndDate,
+          );
     }
 
     if (mounted) {
       final movedCount = changes.length;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(movedCount > 1
-              ? '$movedCount件のイベントを連動して移動しました'
-              : 'イベントを移動しました'),
+          content: Text(
+            movedCount > 1 ? '$movedCount件のイベントを連動して移動しました' : 'イベントを移動しました',
+          ),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -659,24 +728,27 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     if (_draggingEventId != null) {
       for (final change in _cascadePreviewChanges) {
         if (change.eventId == _draggingEventId) continue;
-        final event = events
-            .cast<LifeEvent?>()
-            .firstWhere((e) => e!.id == change.eventId, orElse: () => null);
+        final event = events.cast<LifeEvent?>().firstWhere(
+          (e) => e!.id == change.eventId,
+          orElse: () => null,
+        );
         if (event == null) continue;
 
         final previewX = scale.xOf(YearMonth.parse(change.newDate));
         final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
 
-        result.add(Positioned(
-          left: previewX - 60,
-          top: rowTop + _topPadding,
-          child: IgnorePointer(
-            child: Opacity(
-              opacity: 0.55,
-              child: EventCard(event: event, eventConstraints: const []),
+        result.add(
+          Positioned(
+            left: previewX - 60,
+            top: rowTop + _topPadding,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.55,
+                child: EventCard(event: event, eventConstraints: const []),
+              ),
             ),
           ),
-        ));
+        );
       }
     }
 
@@ -688,8 +760,10 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
       double barWidth = 0;
       if (event.hasDuration) {
-        barWidth =
-            (scale.xOf(event.endYearMonth!) - xPos).clamp(30.0, double.infinity);
+        barWidth = (scale.xOf(event.endYearMonth!) - xPos).clamp(
+          30.0,
+          double.infinity,
+        );
       }
 
       final leftOffset = event.hasDuration ? xPos : xPos - 40;
@@ -699,109 +773,115 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           .toList();
 
       final isDragging = _draggingEventId == event.id;
-      final isInCascade = _draggingEventId != null &&
+      final isInCascade =
+          _draggingEventId != null &&
           _cascadePreviewChanges.any((c) => c.eventId == event.id);
+      final isHighlighted = _highlightedEventIds.contains(event.id);
 
-      result.add(Positioned(
-        left: leftOffset,
-        top: topPos,
-        // Listener でトラックパッドの pan/zoom イベントを吸収し、
-        // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。
-        child: Listener(
-          onPointerPanZoomStart: (_) {},
-          child: LongPressDraggable<String>(
-            data: event.id,
-            delay: const Duration(milliseconds: 400),
-            onDragStarted: () {
-              setState(() => _draggingEventId = event.id);
-            },
-            onDraggableCanceled: (_, _) {
-              setState(() {
-                _draggingEventId = null;
-                _cascadePreviewChanges = [];
-                _snapSlotIndex = null;
-              });
-            },
-            onDragEnd: (_) {
-              setState(() {
-                _draggingEventId = null;
-                _cascadePreviewChanges = [];
-                _snapSlotIndex = null;
-              });
-            },
-            feedback: Material(
-              color: Colors.transparent,
-              child: Transform.scale(
-                scale: 1.05,
-                child: event.hasDuration
-                    ? DurationEventBar(
-                        event: event,
-                        barWidth: barWidth.clamp(80.0, 200.0),
-                        eventConstraints: eventConstraints,
-                      )
-                    : PointEventMarker(
-                        event: event,
-                        eventConstraints: eventConstraints,
-                      ),
-              ),
-            ),
-            childWhenDragging: event.hasDuration
-                ? DurationEventBar(
-                    event: event,
-                    barWidth: barWidth,
-                    eventConstraints: eventConstraints,
-                    isDimmed: true,
-                  )
-                : PointEventMarker(
-                    event: event,
-                    eventConstraints: eventConstraints,
-                    isDimmed: true,
-                  ),
-            child: GestureDetector(
-              // マーカーの Column は三角アイコンとラベルの間に無地の余白があり、
-              // デフォルトの HitTestBehavior.deferToChild だとその余白のタップが
-              // 背景の GestureDetector（タップで新規追加 = _handleTap）に抜けて、
-              // ゲストには常にサインインダイアログが出てしまっていた。
-              // opaque にしてマーカー全体の矩形でタップを確定させる。
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                if (_linkingEventId != null) {
-                  _handleLinkTap(event, events);
-                } else {
-                  showEventDetailDialog(
-                    context: context,
-                    ref: ref,
-                    event: event,
-                    eventConstraints: eventConstraints,
-                    allEvents: events,
-                    onRequestLink: () =>
-                        setState(() => _linkingEventId = event.id),
-                  );
-                }
+      result.add(
+        Positioned(
+          left: leftOffset,
+          top: topPos,
+          // Listener でトラックパッドの pan/zoom イベントを吸収し、
+          // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。
+          child: Listener(
+            onPointerPanZoomStart: (_) {},
+            child: LongPressDraggable<String>(
+              data: event.id,
+              delay: const Duration(milliseconds: 400),
+              onDragStarted: () {
+                setState(() => _draggingEventId = event.id);
               },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (event.hasDuration)
-                    DurationEventBar(
+              onDraggableCanceled: (_, _) {
+                setState(() {
+                  _draggingEventId = null;
+                  _cascadePreviewChanges = [];
+                  _snapSlotIndex = null;
+                });
+              },
+              onDragEnd: (_) {
+                setState(() {
+                  _draggingEventId = null;
+                  _cascadePreviewChanges = [];
+                  _snapSlotIndex = null;
+                });
+              },
+              feedback: Material(
+                color: Colors.transparent,
+                child: Transform.scale(
+                  scale: 1.05,
+                  child: event.hasDuration
+                      ? DurationEventBar(
+                          event: event,
+                          barWidth: barWidth.clamp(80.0, 200.0),
+                          eventConstraints: eventConstraints,
+                        )
+                      : PointEventMarker(
+                          event: event,
+                          eventConstraints: eventConstraints,
+                        ),
+                ),
+              ),
+              childWhenDragging: event.hasDuration
+                  ? DurationEventBar(
                       event: event,
                       barWidth: barWidth,
                       eventConstraints: eventConstraints,
-                      isDimmed: isDragging || (isInCascade && !isDragging),
+                      isDimmed: true,
                     )
-                  else
-                    PointEventMarker(
+                  : PointEventMarker(
                       event: event,
                       eventConstraints: eventConstraints,
-                      isDimmed: isDragging || (isInCascade && !isDragging),
+                      isDimmed: true,
                     ),
-                ],
+              child: GestureDetector(
+                // マーカーの Column は三角アイコンとラベルの間に無地の余白があり、
+                // デフォルトの HitTestBehavior.deferToChild だとその余白のタップが
+                // 背景の GestureDetector（タップで新規追加 = _handleTap）に抜けて、
+                // ゲストには常にサインインダイアログが出てしまっていた。
+                // opaque にしてマーカー全体の矩形でタップを確定させる。
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (_linkingEventId != null) {
+                    _handleLinkTap(event, events);
+                  } else {
+                    showEventDetailDialog(
+                      context: context,
+                      ref: ref,
+                      event: event,
+                      eventConstraints: eventConstraints,
+                      allEvents: events,
+                      onRequestLink: () =>
+                          setState(() => _linkingEventId = event.id),
+                    );
+                  }
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (event.hasDuration)
+                      DurationEventBar(
+                        event: event,
+                        barWidth: barWidth,
+                        eventConstraints: eventConstraints,
+                        isDimmed: isDragging || (isInCascade && !isDragging),
+                        isHighlighted: isHighlighted,
+                      )
+                    else
+                      PointEventMarker(
+                        event: event,
+                        eventConstraints: eventConstraints,
+                        isDimmed: isDragging || (isInCascade && !isDragging),
+                        isHighlighted: isHighlighted,
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ));
+      );
     }
 
     return result;
@@ -843,7 +923,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   }
 
   Future<void> _handleLinkTap(
-      LifeEvent targetEvent, List<LifeEvent> allEvents) async {
+    LifeEvent targetEvent,
+    List<LifeEvent> allEvents,
+  ) async {
     if (targetEvent.id == _linkingEventId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -865,13 +947,15 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       return;
     }
 
-    final sourceEvent = allEvents
-        .cast<LifeEvent?>()
-        .firstWhere((e) => e!.id == _linkingEventId, orElse: () => null);
+    final sourceEvent = allEvents.cast<LifeEvent?>().firstWhere(
+      (e) => e!.id == _linkingEventId,
+      orElse: () => null,
+    );
     if (sourceEvent == null) return;
 
-    final offsetMonths =
-        targetEvent.yearMonth.differenceInMonths(sourceEvent.yearMonth);
+    final offsetMonths = targetEvent.yearMonth.differenceInMonths(
+      sourceEvent.yearMonth,
+    );
 
     final dep = EventDependency(
       id: _uuid.v4(),
