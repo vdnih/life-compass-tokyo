@@ -19,8 +19,7 @@ import '../../../../support/pump.dart';
 /// 座標から日付への変換・スナップ・境界値の網羅はここでは扱わない
 /// （純粋関数として切り出したうえでユニットテストで担保する方針）。
 ///
-/// ドラッグの起点にはイベントのタイトル文字を使う。マーカーの矩形中心は
-/// 三角形とタイトルの間の余白にあたり、hit test が素通りしてしまうため。
+/// ドラッグの起点にはイベントのタイトル文字を使う。
 void main() {
   setUpAll(registerCommonFallbackValues);
 
@@ -110,6 +109,45 @@ void main() {
           .cast<LifeEvent>();
       expect(captured, hasLength(1));
       expect(captured.single.id, 'e1');
+    });
+  });
+
+  group('マーカータップでイベント詳細を開く', () {
+    // マーカーは三角アイコンとラベルを Column で積んだ薄い領域で、両者の間に
+    // 無地の余白がある。GestureDetector が opaque でないと、その余白のタップが
+    // 背景の「タップで新規追加」ハンドラに抜けてしまう（実機で確認した回帰）。
+    testWidgets('マーカー中央（三角とラベルの間の余白）をタップしても詳細ダイアログが開くこと',
+        (tester) async {
+      final event = buildLifeEvent(id: 'e1', date: monthFromNow(0));
+
+      await pumpApp(
+        tester,
+        Scaffold(
+          body: TimelineView(
+            mode: TimelineViewMode.yearMonth,
+            events: [event],
+          ),
+        ),
+        overrides: [
+          eventRepositoryProvider
+              .overrideWithValue(stubEventRepository(events: [event])),
+          dependencyRepositoryProvider
+              .overrideWithValue(stubDependencyRepository()),
+          guestAuth(),
+        ],
+      );
+
+      final markerCenter = tester.getCenter(find.text(event.title)) -
+          const Offset(0, 14);
+      await tester.tapAt(markerCenter);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('関連を追加'),
+        findsOneWidget,
+        reason: 'イベント詳細ダイアログが開くこと（サインインダイアログにフォールバックしないこと）',
+      );
+      expect(find.text('サインインが必要です'), findsNothing);
     });
   });
 

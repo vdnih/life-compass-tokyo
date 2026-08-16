@@ -758,6 +758,12 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                     isDimmed: true,
                   ),
             child: GestureDetector(
+              // マーカーの Column は三角アイコンとラベルの間に無地の余白があり、
+              // デフォルトの HitTestBehavior.deferToChild だとその余白のタップが
+              // 背景の GestureDetector（タップで新規追加 = _handleTap）に抜けて、
+              // ゲストには常にサインインダイアログが出てしまっていた。
+              // opaque にしてマーカー全体の矩形でタップを確定させる。
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 if (_linkingEventId != null) {
                   _handleLinkTap(event, events);
