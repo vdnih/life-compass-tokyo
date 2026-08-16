@@ -15,11 +15,17 @@ Flutter 製で、Web を主要ターゲットとして Firebase Hosting にデ�
 
 ```bash
 flutter pub get
+firebase emulators:start   # 別ターミナルで起動しておく（サインインを試す場合に必要）
 flutter run -d chrome
 ```
 
 未ログイン（ゲスト）状態ではサンプルデータを含むインメモリのデータストアが使われるため、
-Firebase の設定なしでも動作を確認できる。Google ログインするとデータは Firestore に保存される。
+Firebase の設定なしでも動作を確認できる。
+
+`flutter run`（デバッグビルド）は常にローカルの Firebase エミュレータに接続し、本番の
+Firebase プロジェクトには一切触れない（ADR-024）。Google ログインを試す場合はエミュレータの
+偽アカウントでサインインすることになる。本番データを見る必要がある場合は
+`flutter run --release` を使う。
 
 ## 開発
 
