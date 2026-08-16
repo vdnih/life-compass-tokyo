@@ -224,6 +224,10 @@ class _CatalogItemTile extends ConsumerWidget {
         child: LongPressDraggable<PredefinedLifeEvent>(
           data: item,
           delay: const Duration(milliseconds: 400),
+          // details.offset をポインタの実位置にする（timeline_view.dart の
+          // イベント移動ドラッグと同じ理由。ドロップ先が実際につまんだ位置より
+          // 手前にズレる不具合の修正）。
+          dragAnchorStrategy: pointerDragAnchorStrategy,
           feedback: Material(
             color: Colors.transparent,
             child: Transform.scale(

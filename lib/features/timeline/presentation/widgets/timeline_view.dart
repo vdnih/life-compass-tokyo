@@ -778,6 +778,12 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
             child: LongPressDraggable<String>(
               data: event.id,
               delay: const Duration(milliseconds: 400),
+              // details.offset をポインタの実位置にする。デフォルト（child基準）だと
+              // feedback ウィジェット（PointEventMarker）の左上が基準になり、
+              // 実際につまんでいる三角アイコンの位置（左端から約44px内側）との
+              // ズレがドロップ先のスロット計算に混入し、約1ヶ月手前に着地する
+              // 不具合の原因になっていた。
+              dragAnchorStrategy: pointerDragAnchorStrategy,
               onDragStarted: () {
                 setState(() => _draggingEventId = event.id);
               },
