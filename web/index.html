@@ -49,6 +49,18 @@
 
   <title>My Career App | キャリアも、ライフも、自分らしく。</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Firebase Auth Emulator が接続時に自動挿入する警告バナー（.firebase-emulator-warning）を
+    非表示にする。Dart側の useAuthEmulator() はJS SDKの disableWarnings オプションを
+    公開していないため、CSSで抑制する以外に手段が無い。エミュレータ接続時（開発時）
+    にしか出現しない要素なので、本番ビルド（常に本番Firebaseへ接続、ADR-024）には影響しない。
+  -->
+  <style>
+    .firebase-emulator-warning {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
