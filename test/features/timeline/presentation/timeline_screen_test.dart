@@ -12,8 +12,8 @@ import '../../../support/pump.dart';
 class _StubEventsNotifier extends TimelineEventsNotifier {
   @override
   Future<List<LifeEvent>> build() async => [
-        buildLifeEvent(id: 'stub-event-1', date: '2020-01'),
-      ];
+    buildLifeEvent(id: 'stub-event-1', date: '2020-01'),
+  ];
 }
 
 /// ゲストモード（未認証）で [TimelineScreen] を表示する
@@ -47,7 +47,8 @@ Future<void> _pumpAsSignedIn(WidgetTester tester) {
 /// x はイベントカードを避けるためタイムライン領域の右寄りを使う。
 Future<void> _tapLane(WidgetTester tester, Key laneKey) async {
   final laneRect = tester.getRect(find.byKey(laneKey));
-  final screenWidth = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+  final screenWidth =
+      tester.view.physicalSize.width / tester.view.devicePixelRatio;
   await tester.tapAt(Offset(screenWidth - 80, laneRect.center.dy));
   await tester.pumpAndSettle();
 }
@@ -55,7 +56,8 @@ Future<void> _tapLane(WidgetTester tester, Key laneKey) async {
 /// 軸エリア（レーンより上の年月ラベル部分）をタップする
 Future<void> _tapAxis(WidgetTester tester) async {
   final laneRect = tester.getRect(find.byKey(TimelineKeys.workLane));
-  final screenWidth = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+  final screenWidth =
+      tester.view.physicalSize.width / tester.view.devicePixelRatio;
   await tester.tapAt(Offset(screenWidth - 80, laneRect.top - 10));
   await tester.pumpAndSettle();
 }
@@ -147,12 +149,12 @@ void main() {
       expect(find.text('イベントを追加'), findsNothing);
     });
 
-    testWidgets('未認証でレーンをタップするとサインインダイアログが表示されること', (tester) async {
+    testWidgets('未認証でもレーンをタップするとAddEventDialogが開くこと', (tester) async {
       await _pumpAsGuest(tester);
 
       await _tapLane(tester, TimelineKeys.workLane);
 
-      expect(find.text('サインインが必要です'), findsOneWidget);
+      expect(find.text('イベントを追加'), findsOneWidget);
     });
   });
 

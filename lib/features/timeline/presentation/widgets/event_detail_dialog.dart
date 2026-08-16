@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../auth/logic/auth_provider.dart';
-import '../../../auth/presentation/sign_in_dialog.dart';
 import '../../../catalog/data/predefined_catalog_registry.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/event_dependency.dart';
@@ -50,8 +48,7 @@ void showEventDetailDialog({
           Expanded(
             child: Text(
               event.title,
-              style:
-                  const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -60,8 +57,10 @@ void showEventDetailDialog({
         builder: (ctx, ref, _) {
           final deps = ref.watch(dependencyProvider).value ?? [];
           final relatedDeps = deps
-              .where((d) =>
-                  d.sourceEventId == event.id || d.targetEventId == event.id)
+              .where(
+                (d) =>
+                    d.sourceEventId == event.id || d.targetEventId == event.id,
+              )
               .toList();
 
           return SingleChildScrollView(
@@ -71,9 +70,11 @@ void showEventDetailDialog({
               children: [
                 Row(
                   children: [
-                    Icon(Icons.calendar_month_outlined,
-                        size: 14,
-                        color: AppTheme.primary.withValues(alpha: 0.6)),
+                    Icon(
+                      Icons.calendar_month_outlined,
+                      size: 14,
+                      color: AppTheme.primary.withValues(alpha: 0.6),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       event.hasDuration
@@ -89,7 +90,9 @@ void showEventDetailDialog({
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
@@ -97,9 +100,10 @@ void showEventDetailDialog({
                         child: Text(
                           event.status.label,
                           style: TextStyle(
-                              fontSize: 11,
-                              color: color,
-                              fontWeight: FontWeight.w600),
+                            fontSize: 11,
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -111,24 +115,31 @@ void showEventDetailDialog({
                     Container(
                       width: 8,
                       height: 8,
-                      decoration:
-                          BoxDecoration(color: color, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                        PredefinedCatalogRegistry.findById(event.catalogId)
-                                ?.label ??
+                      PredefinedCatalogRegistry.findById(
                             event.catalogId,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: color,
-                            fontWeight: FontWeight.w500)),
+                          )?.label ??
+                          event.catalogId,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: color,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
                 if (event.description.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text(event.description,
-                      style: const TextStyle(fontSize: 13, height: 1.5)),
+                  Text(
+                    event.description,
+                    style: const TextStyle(fontSize: 13, height: 1.5),
+                  ),
                 ],
                 if (eventConstraints.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -148,8 +159,10 @@ void showEventDetailDialog({
                       ),
                     ),
                   ),
-                  ...relatedDeps.map((dep) =>
-                      _buildDependencyTile(ref, dep, event.id, allEvents)),
+                  ...relatedDeps.map(
+                    (dep) =>
+                        _buildDependencyTile(ref, dep, event.id, allEvents),
+                  ),
                 ],
               ],
             ),
@@ -168,31 +181,17 @@ void showEventDetailDialog({
           style: TextButton.styleFrom(foregroundColor: Colors.red),
           onPressed: () {
             Navigator.pop(dialogCtx);
-            if (ref.read(authStateProvider).value == null) {
-              showDialog<void>(
-                context: context,
-                builder: (_) => const SignInDialog(),
-              );
-            } else {
-              _confirmAndDelete(context, ref, event);
-            }
+            _confirmAndDelete(context, ref, event);
           },
           child: const Text('削除'),
         ),
         TextButton(
           onPressed: () {
             Navigator.pop(dialogCtx);
-            if (ref.read(authStateProvider).value == null) {
-              showDialog<void>(
-                context: context,
-                builder: (_) => const SignInDialog(),
-              );
-            } else {
-              showDialog(
-                context: context,
-                builder: (_) => EditEventDialog(event: event),
-              );
-            }
+            showDialog(
+              context: context,
+              builder: (_) => EditEventDialog(event: event),
+            );
           },
           child: const Text('編集'),
         ),
@@ -207,8 +206,7 @@ void showEventDetailDialog({
 
 Widget _buildConstraintTile(ConstraintResult c) {
   final isWarning = c.severity == ConstraintSeverity.warning;
-  final bgColor =
-      isWarning ? const Color(0xFFFFF3E0) : const Color(0xFFEDE7F6);
+  final bgColor = isWarning ? const Color(0xFFFFF3E0) : const Color(0xFFEDE7F6);
   final borderColor = isWarning
       ? const Color(0xFFFFB74D)
       : AppTheme.primary.withValues(alpha: 0.4);
@@ -217,16 +215,19 @@ Widget _buildConstraintTile(ConstraintResult c) {
   return Container(
     margin: const EdgeInsets.only(bottom: 8),
     clipBehavior: Clip.antiAlias,
-    decoration:
-        BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(12),
+    ),
     child: Stack(
       children: [
         Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 3,
-            child: Container(color: borderColor)),
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 3,
+          child: Container(color: borderColor),
+        ),
         Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
@@ -238,8 +239,10 @@ Widget _buildConstraintTile(ConstraintResult c) {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(c.message,
-                    style: const TextStyle(fontSize: 12, height: 1.4)),
+                child: Text(
+                  c.message,
+                  style: const TextStyle(fontSize: 12, height: 1.4),
+                ),
               ),
             ],
           ),
@@ -258,9 +261,10 @@ Widget _buildDependencyTile(
   final otherEventId = dep.sourceEventId == currentEventId
       ? dep.targetEventId
       : dep.sourceEventId;
-  final otherEvent = allEvents
-      .cast<LifeEvent?>()
-      .firstWhere((e) => e!.id == otherEventId, orElse: () => null);
+  final otherEvent = allEvents.cast<LifeEvent?>().firstWhere(
+    (e) => e!.id == otherEventId,
+    orElse: () => null,
+  );
   final otherTitle = otherEvent?.title ?? '(不明なイベント)';
   final isSource = dep.sourceEventId == currentEventId;
 
@@ -278,13 +282,20 @@ Widget _buildDependencyTile(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(otherTitle,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600)),
-              Text('関連',
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: AppTheme.primary.withValues(alpha: 0.6))),
+              Text(
+                otherTitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '関連',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.primary.withValues(alpha: 0.6),
+                ),
+              ),
             ],
           ),
         ),
@@ -295,7 +306,9 @@ Widget _buildDependencyTile(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           ),
           onPressed: () async {
-            await ref.read(dependencyProvider.notifier).removeDependency(dep.id);
+            await ref
+                .read(dependencyProvider.notifier)
+                .removeDependency(dep.id);
           },
           child: const Text('解除', style: TextStyle(fontSize: 12)),
         ),
@@ -304,17 +317,12 @@ Widget _buildDependencyTile(
   );
 }
 
-void _confirmAndDelete(
-  BuildContext context,
-  WidgetRef ref,
-  LifeEvent event,
-) {
+void _confirmAndDelete(BuildContext context, WidgetRef ref, LifeEvent event) {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('イベントを削除'),
-      content:
-          Text('"${event.title}" を削除しますか？\n関連する依存関係も削除されます。'),
+      content: Text('"${event.title}" を削除しますか？\n関連する依存関係も削除されます。'),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),

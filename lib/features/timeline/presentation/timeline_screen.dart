@@ -26,21 +26,6 @@ class TimelineScreen extends ConsumerStatefulWidget {
 class _TimelineScreenState extends ConsumerState<TimelineScreen> {
   TimelineViewMode _viewMode = TimelineViewMode.yearMonth;
 
-  /// 書き込み操作に認証ガードをかけるヘルパー
-  ///
-  /// 未認証の場合は [SignInDialog] を表示し、認証済みの場合は [action] を実行する。
-  void _withAuth(VoidCallback action) {
-    final user = ref.read(authStateProvider).value;
-    if (user == null) {
-      showDialog<void>(
-        context: context,
-        builder: (context) => const SignInDialog(),
-      );
-    } else {
-      action();
-    }
-  }
-
   /// 合計予算テキストを組み立てる
   String _formatTotalBudget(int totalYen) {
     if (totalYen == 0) return '';
@@ -148,18 +133,18 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               showSelectedIcon: false,
             ),
           ),
-          // 目標設定ボタン（認証ガード付き）
+          // 目標設定ボタン
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: IconButton(
               tooltip: '目標設定',
               icon: const Icon(Icons.flag_outlined, color: Colors.white),
-              onPressed: () => _withAuth(() {
+              onPressed: () {
                 showDialog(
                   context: context,
                   builder: (context) => const GoalSetupDialog(),
                 );
-              }),
+              },
             ),
           ),
           // プロフィール / サインインボタン
@@ -242,18 +227,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                   tooltip: 'イベントを追加',
                   backgroundColor: AppTheme.primary,
                   onPressed: () {
-                    final user = ref.read(authStateProvider).value;
-                    if (user == null) {
-                      showDialog<void>(
-                        context: context,
-                        builder: (_) => const SignInDialog(),
-                      );
-                    } else {
-                      showDialog<void>(
-                        context: context,
-                        builder: (_) => const AddEventDialog(),
-                      );
-                    }
+                    showDialog<void>(
+                      context: context,
+                      builder: (_) => const AddEventDialog(),
+                    );
                   },
                   child: const Icon(Icons.add, color: Colors.white, size: 20),
                 ),
