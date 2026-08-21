@@ -40,14 +40,29 @@ class TimelineScale {
   double offsetSlots(YearMonth ym) =>
       ym.differenceInMonths(origin) / monthsPerSlot;
 
-  /// [ym] のX座標
-  double xOf(YearMonth ym) => leftPadding + offsetSlots(ym) * pixelsPerSlot;
-
-  /// スロットインデックス [index] のX座標（グリッド線・軸ラベル・スナップ枠用）
+  /// スロットインデックス [index] のX座標（グリッド線・スナップ枠用）
   double xOfSlot(int index) => leftPadding + index * pixelsPerSlot;
 
   /// X座標 [dx] が属するスロットインデックス（ドロップ位置の判定用）
   int slotIndexAt(double dx) => ((dx - leftPadding) / pixelsPerSlot).floor();
+
+  /// [ym] が属するスロット（ブロック）のインデックス
+  int slotIndexOf(YearMonth ym) => offsetSlots(ym).floor();
+
+  /// スロット [index] のブロック中央X
+  double xCenterOfSlot(int index) => xOfSlot(index) + pixelsPerSlot / 2;
+
+  /// [ym] が属するブロックの左端X（期間バーの左端・ドロップ枠用）
+  double xOfBlock(YearMonth ym) => xOfSlot(slotIndexOf(ym));
+
+  /// [ym] が属するブロックの中央X（点イベント・軸ラベル・依存線の接続点用）
+  double xCenterOf(YearMonth ym) => xCenterOfSlot(slotIndexOf(ym));
+
+  /// [start] から [end] までを両端含みで覆う幅（期間バーの長さ用）。
+  ///
+  /// 例えば `2025-03` 〜 `2025-06` は4ブロック分（3, 4, 5, 6月）になる。
+  double inclusiveWidth(YearMonth start, YearMonth end) =>
+      (slotIndexOf(end) - slotIndexOf(start) + 1) * pixelsPerSlot;
 
   /// スロットインデックス [index] が表す年月
   YearMonth dateAtSlot(int index) => origin.addMonths(index * monthsPerSlot);

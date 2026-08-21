@@ -13,11 +13,11 @@ void main() {
     );
 
     test('origin の位置は左余白のみであること', () {
-      expect(scale.xOf(const YearMonth(2025, 1)), 20.0);
+      expect(scale.xOfBlock(const YearMonth(2025, 1)), 20.0);
     });
 
     test('1ヶ月先は1スロット分右にずれること', () {
-      expect(scale.xOf(const YearMonth(2025, 2)), 20.0 + 60.0);
+      expect(scale.xOfBlock(const YearMonth(2025, 2)), 20.0 + 60.0);
     });
 
     test('slotIndexAt と xOfSlot が往復すること', () {
@@ -41,6 +41,24 @@ void main() {
     test('widthOfMonths が1ヶ月あたり pixelsPerSlot になること', () {
       expect(scale.widthOfMonths(3), 180.0);
     });
+
+    test('xCenterOf が該当ブロックの中央になること', () {
+      // 2025-03 は slot 2（0始まり） → 20 + 2*60 + 30
+      expect(scale.xCenterOf(const YearMonth(2025, 3)), 20.0 + 2 * 60.0 + 30.0);
+    });
+
+    test('inclusiveWidth が両端を含んだブロック数分の幅になること', () {
+      // 2025-03 〜 2025-06 は 3,4,5,6月 の4ブロック分
+      expect(
+        scale.inclusiveWidth(const YearMonth(2025, 3), const YearMonth(2025, 6)),
+        4 * 60.0,
+      );
+      // 同月同士は1ブロック分
+      expect(
+        scale.inclusiveWidth(const YearMonth(2025, 3), const YearMonth(2025, 3)),
+        60.0,
+      );
+    });
   });
 
   group('年ビュー相当のスケール（monthsPerSlot: 12）', () {
@@ -51,9 +69,10 @@ void main() {
       slotCount: 20,
     );
 
-    test('年の途中の月は小数位置になること', () {
-      // 2021-07 は origin から 1年 + 6/12 年
-      expect(scale.xOf(const YearMonth(2021, 7)), 20.0 + 1.5 * 80.0);
+    test('offsetSlots は年の途中の月では小数位置になること', () {
+      // 2021-07 は origin から 1年 + 6/12 年（面モデルの xCenterOf / xOfBlock は
+      // これを 1 スロット目に丸める。下の「年内のどの月でも…」テスト参照）
+      expect(scale.offsetSlots(const YearMonth(2021, 7)), 1.5);
     });
 
     test('dateAtSlot が常に1月を返すこと（年ビューは1月にスナップ）', () {
@@ -66,6 +85,15 @@ void main() {
     test('widthOfMonths が12ヶ月で pixelsPerSlot 分になること', () {
       expect(scale.widthOfMonths(12), 80.0);
       expect(scale.widthOfMonths(6), 40.0);
+    });
+
+    test('年内のどの月でも同じブロック（=年）の中央を返すこと', () {
+      // 面モデルでは年ビューは年内の小数位置を持たず、年単位のブロックに丸まる。
+      expect(
+        scale.xCenterOf(const YearMonth(2021, 1)),
+        scale.xCenterOf(const YearMonth(2021, 7)),
+      );
+      expect(scale.xCenterOf(const YearMonth(2021, 1)), 20.0 + 80.0 + 40.0);
     });
   });
 
@@ -96,7 +124,9 @@ void main() {
   group('ドラッグ着地月の往復不変条件（timeline_view.dart の _dragAnchorInset と対）', () {
     // 「月 M に描画されたイベントを掴んで動かさずに離したら、着地月も M であること」。
     // #75 の元バグは、この往復が点イベントだけ1スロット手前にズレていたことが原因
-    // （PointEventMarker は基準月から anchorInset 分だけ左にオフセットして描画される）。
+    // （PointEventMarker はブロックの左端から anchorInset 分だけ左にオフセットして
+    // 描画される）。面モデル化（ADR-025）後も基準がブロック左端に変わっただけで、
+    // 往復不変条件そのものは維持する。
     //
     // 描画時の left も timeline_view.dart の _dragAnchorInset も、ここで呼んでいる
     // PointEventMarker.anchorInset を単一の情報源として参照している（値の重複定義なし）。
@@ -109,8 +139,9 @@ void main() {
     }) {
       final anchorInset = PointEventMarker.anchorInset(
         hasDuration: hasDuration,
+        pixelsPerSlot: scale.pixelsPerSlot,
       );
-      final renderLeft = scale.xOf(month) - anchorInset;
+      final renderLeft = scale.xOfBlock(month) - anchorInset;
       return scale.slotIndexAt(renderLeft + anchorInset);
     }
 

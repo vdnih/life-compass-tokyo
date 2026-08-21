@@ -61,22 +61,36 @@ Widget buildTimelineGridLines({
 }
 
 Widget buildTimelineNowMarker({
-  required double nowXPos,
+  required double nowBlockLeft,
+  required double slotWidth,
   required double totalHeight,
 }) {
+  final centerX = nowBlockLeft + slotWidth / 2;
   return Stack(
     children: [
       Positioned(
-        left: nowXPos - 0.75,
+        left: nowBlockLeft,
         top: 0,
+        width: slotWidth,
+        height: totalHeight,
         child: Container(
-          width: 1.5,
-          height: totalHeight,
-          color: AppTheme.nowMarker.withValues(alpha: 0.5),
+          decoration: BoxDecoration(
+            color: AppTheme.nowMarker.withValues(alpha: 0.08),
+            border: Border(
+              left: BorderSide(
+                color: AppTheme.nowMarker.withValues(alpha: 0.35),
+                width: 1,
+              ),
+              right: BorderSide(
+                color: AppTheme.nowMarker.withValues(alpha: 0.35),
+                width: 1,
+              ),
+            ),
+          ),
         ),
       ),
       Positioned(
-        left: nowXPos - 18,
+        left: centerX - 18,
         top: totalHeight - 18,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
@@ -103,16 +117,16 @@ List<Widget> buildTimelineAxisTicks({
   required UserProfile? profile,
   required double axisHeight,
 }) {
-  return List.generate(scale.slotCount + 1, (index) {
+  return List.generate(scale.slotCount, (index) {
     final currentYearMonth = scale.dateAtSlot(index);
     final currentDate = currentYearMonth.toDateTime();
-    final xPos = scale.xOfSlot(index);
+    final xPos = scale.xCenterOfSlot(index);
     final isMajor = currentYearMonth.month == 1;
     final ageAtDate = profile?.calculateAgeAt(currentDate);
 
     return Positioned(
       left: xPos - 20,
-      top: axisHeight - (isMajor ? 55 : 25),
+      top: axisHeight - (isMajor ? 40 : 22),
       child: SizedBox(
         width: 40,
         child: Column(
@@ -138,8 +152,7 @@ List<Widget> buildTimelineAxisTicks({
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
-            ] else ...[
+            ] else
               Text(
                 '${currentDate.month}',
                 style: TextStyle(
@@ -148,15 +161,6 @@ List<Widget> buildTimelineAxisTicks({
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
-            ],
-            Container(
-              width: isMajor ? 1.5 : 1,
-              height: isMajor ? 12 : 6,
-              color: isMajor
-                  ? AppTheme.primary.withValues(alpha: 0.6)
-                  : AppTheme.primary.withValues(alpha: 0.25),
-            ),
           ],
         ),
       ),
