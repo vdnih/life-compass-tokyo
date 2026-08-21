@@ -26,7 +26,6 @@ Widget buildCatalogDropPreview({
   final previewYearMonth = YearMonth.parse(date);
   if (!scale.contains(previewYearMonth)) return const SizedBox.shrink();
 
-  final xPos = scale.xOf(previewYearMonth);
   // カタログ項目はプライベートレーン（非work）に配置するプレビュー
   final rowTop = axisHeight + rowHeight;
 
@@ -43,9 +42,19 @@ Widget buildCatalogDropPreview({
   final violationMessage = violation?.message;
 
   final previewDurationMonths = catalog.defaultDurationMonths;
+  // ドロップ後の実バー（timeline_events_provider.dart の
+  // `endDate: start.addMonths(n)`）と完全に一致させる。
   final barPreviewWidth = previewDurationMonths != null
-      ? scale.widthOfMonths(previewDurationMonths).clamp(30.0, double.infinity)
+      ? scale
+            .inclusiveWidth(
+              previewYearMonth,
+              previewYearMonth.addMonths(previewDurationMonths),
+            )
+            .clamp(30.0, double.infinity)
       : null;
+  final xPos = barPreviewWidth != null
+      ? scale.xOfBlock(previewYearMonth)
+      : scale.xCenterOf(previewYearMonth);
 
   Widget previewBody;
   if (barPreviewWidth != null) {

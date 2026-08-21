@@ -12,16 +12,20 @@ class PointEventMarker extends StatelessWidget {
   /// マーカーの横幅。基準月の X はこの中央（= markerWidth / 2）に来る
   static const double markerWidth = 80.0;
 
-  /// 基準月の X 位置から、マーカー（または対応するイベント）の描画左端 /
-  /// ドラッグ基準点までの左方向オフセット。
+  /// 基準月が属するブロックの左端 X 位置から、マーカー（または対応するイベント）の
+  /// 描画左端 / ドラッグ基準点までの左方向オフセット。
   ///
-  /// 点イベント（[hasDuration] = false）は三角アイコンがマーカー中央にあるため
-  /// `markerWidth / 2`。期間イベント（true）はバーの左端が基準月そのものなので 0。
+  /// タイムラインは「面（ブロック）」モデルで表示する（ADR-025）。点イベント
+  /// （[hasDuration] = false）は三角アイコンをブロック中央に置くため
+  /// `(markerWidth - pixelsPerSlot) / 2`。期間イベント（true）はバーの左端が
+  /// ブロックの左端そのものなので 0。
   /// 描画時の `leftOffset` 計算とドラッグ&ドロップの着地スロット計算
   /// （`timeline_view.dart` の `_dragAnchorInset`）の双方から参照される、
   /// 単一の情報源。
-  static double anchorInset({required bool hasDuration}) =>
-      hasDuration ? 0 : markerWidth / 2;
+  static double anchorInset({
+    required bool hasDuration,
+    required double pixelsPerSlot,
+  }) => hasDuration ? 0 : (markerWidth - pixelsPerSlot) / 2;
 
   const PointEventMarker({
     super.key,

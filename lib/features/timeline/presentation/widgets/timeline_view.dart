@@ -176,7 +176,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       YearMonth.fromDateTime(DateTime.now()),
     );
     final scale = _scaleForScrollToNow(nowAnchor);
-    final nowXPos = scale.xOf(nowAnchor);
+    final nowXPos = scale.xCenterOf(nowAnchor);
     final viewportWidth =
         _horizontalScrollController.position.viewportDimension;
     final targetOffset = (nowXPos - viewportWidth / 2).clamp(
@@ -193,7 +193,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       YearMonth.fromDateTime(DateTime.now()),
     );
     final scale = _scaleForScrollToNow(nowAnchor);
-    final nowXPos = scale.xOf(nowAnchor);
+    final nowXPos = scale.xCenterOf(nowAnchor);
     final viewportWidth =
         _horizontalScrollController.position.viewportDimension;
     final targetOffset = (nowXPos - viewportWidth / 2).clamp(
@@ -276,14 +276,16 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       cardHeight: _cardHeight,
     );
 
-    final nowXPos = scale.xOf(
+    final nowBlockLeft = scale.xOfBlock(
       widget.mode.anchorOf(YearMonth.fromDateTime(now)),
     );
 
     final eventPositions = <String, double>{};
     final eventLanes = <String, bool>{};
     for (final event in events) {
-      eventPositions[event.id] = scale.xOf(event.yearMonth);
+      eventPositions[event.id] = event.hasDuration
+          ? scale.xOfBlock(event.yearMonth)
+          : scale.xCenterOf(event.yearMonth);
       eventLanes[event.id] = event.isWork;
     }
 
@@ -326,7 +328,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                         rowHeight: _rowHeight,
                       ),
                       buildTimelineNowMarker(
-                        nowXPos: nowXPos,
+                        nowBlockLeft: nowBlockLeft,
+                        slotWidth: widget.mode.pixelsPerSlot,
                         totalHeight: totalHeight,
                       ),
                       ...buildTimelineAxisTicks(
@@ -508,7 +511,26 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     if (data is! String) return 0;
     return PointEventMarker.anchorInset(
       hasDuration: _draggingEventHasDuration,
+      pixelsPerSlot: widget.mode.pixelsPerSlot,
     );
+  }
+
+  /// イベント（またはそのゴースト）の描画左端 X 座標。
+  ///
+  /// [PointEventMarker.anchorInset] を単一の情報源として、ブロック左端から
+  /// 描画左端までの距離を引く。実カードとカスケードプレビューのゴーストの
+  /// 双方から呼ばれ、位置計算が二重化しないようにする。
+  double _cardLeft(
+    TimelineScale scale,
+    YearMonth ym, {
+    required bool hasDuration,
+  }) {
+    final blockLeft = scale.xOfBlock(ym);
+    return blockLeft -
+        PointEventMarker.anchorInset(
+          hasDuration: hasDuration,
+          pixelsPerSlot: widget.mode.pixelsPerSlot,
+        );
   }
 
   Widget _buildDropTarget(
@@ -721,14 +743,15 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
     // Cascade preview ghost cards (below regular cards)
     //
-    // ドロップ確定後の実カードと同じ xOf() で位置を出す（小数位置）。
+    // ドロップ確定後の実カードと同じブロック中央基準（[TimelineScale.xCenterOf]）で
+    // 位置を出す。
     if (_draggingEventId != null) {
       for (final change in _cascadePreviewChanges) {
         if (change.eventId == _draggingEventId) continue;
         final event = _findEventById(events, change.eventId);
         if (event == null) continue;
 
-        final previewX = scale.xOf(YearMonth.parse(change.newDate));
+        final previewX = scale.xCenterOf(YearMonth.parse(change.newDate));
         final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
 
         result.add(
@@ -747,21 +770,22 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     }
 
     for (final event in events) {
-      final xPos = scale.xOf(event.yearMonth);
       final rowTop = event.isWork ? axisHeight : axisHeight + _rowHeight;
       final stackIdx = stackIndices[event.id] ?? 0;
       final topPos = rowTop + _topPadding + stackIdx * _cardHeight;
 
       double barWidth = 0;
       if (event.hasDuration) {
-        barWidth = (scale.xOf(event.endYearMonth!) - xPos).clamp(
-          30.0,
-          double.infinity,
-        );
+        barWidth = scale
+            .inclusiveWidth(event.yearMonth, event.endYearMonth!)
+            .clamp(30.0, double.infinity);
       }
 
-      final leftOffset =
-          xPos - PointEventMarker.anchorInset(hasDuration: event.hasDuration);
+      final leftOffset = _cardLeft(
+        scale,
+        event.yearMonth,
+        hasDuration: event.hasDuration,
+      );
 
       final eventConstraints = widget.constraints
           .where((c) => c.targetEventTitle == event.title)
