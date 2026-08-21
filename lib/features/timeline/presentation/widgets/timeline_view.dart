@@ -604,14 +604,15 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
           if (mounted) setState(() => _snapSlotIndex = null);
 
+          // 認証状態が未解決の間は書き込まない（既存イベント移動・カタログ追加の
+          // どちらも対象）。#39: authStateProvider が AsyncLoading の間に書き込むと、
+          // 解決後に Firestore 実装へ切り替わった時点でこの内容が失われる。
+          if (!mounted) return;
+          if (ref.read(authPendingProvider)) return;
+
           if (data is String) {
             _applyCascadeMove(data, newDateStr, events);
           } else if (data is PredefinedLifeEvent) {
-            // 認証状態が未解決の間は書き込まない（タップ追加と同じパターン）。
-            // #39: authStateProvider が AsyncLoading の間に書き込むと、解決後に
-            // Firestore 実装へ切り替わった時点でこの内容が失われる。
-            if (!mounted) return;
-            if (ref.read(authPendingProvider)) return;
             _applyAddFromCatalog(data, newDateStr);
           }
         },
