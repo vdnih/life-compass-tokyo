@@ -115,6 +115,10 @@ class TimelineView extends ConsumerStatefulWidget {
 
 class _TimelineViewState extends ConsumerState<TimelineView> {
   String? _draggingEventId;
+
+  /// ドラッグ中のイベントが期間イベントか（[_dragAnchorInset] 用に
+  /// `onDragStarted` 時点で確定させ、ドラッグ中に毎フレーム再計算しない）
+  bool _draggingEventHasDuration = false;
   String? _linkingEventId;
   List<EventDateChange> _cascadePreviewChanges = [];
 
@@ -483,6 +487,30 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
   // ---- drop target ----
 
+  /// [events] から id が [id] のイベントを探す（無ければ null）
+  LifeEvent? _findEventById(List<LifeEvent> events, String id) {
+    return events.cast<LifeEvent?>().firstWhere(
+      (e) => e!.id == id,
+      orElse: () => null,
+    );
+  }
+
+  /// ドロップ先スロット計算で [localOffset.dx] に足す補正値。
+  ///
+  /// イベント移動（[data] が `String` = イベントID）は子基準の `details.offset` を
+  /// そのまま使うため、[PointEventMarker.anchorInset] 分だけ描画時のオフセットを
+  /// 戻す必要がある（ドラッグ中のイベントが期間イベントか否かは `onDragStarted`
+  /// 時点で確定しているため `_draggingEventHasDuration` を使い、ドラッグ中に
+  /// 毎フレーム `events` をスキャンし直さない）。
+  /// カタログ追加（[data] が [PredefinedLifeEvent]）はポインタ基準（
+  /// [pointerDragAnchorStrategy]）なので、そのままポインタ位置が基準月になる。
+  double _dragAnchorInset(Object? data) {
+    if (data is! String) return 0;
+    return PointEventMarker.anchorInset(
+      hasDuration: _draggingEventHasDuration,
+    );
+  }
+
   Widget _buildDropTarget(
     double totalWidth,
     double totalHeight,
@@ -502,7 +530,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
               _dropTargetKey.currentContext?.findRenderObject() as RenderBox?;
           if (renderBox == null) return;
           final localOffset = renderBox.globalToLocal(details.offset);
-          final slotIndex = scale.slotIndexAt(localOffset.dx);
+          final data = details.data;
+          final anchorInset = _dragAnchorInset(data);
+          final slotIndex = scale.slotIndexAt(localOffset.dx + anchorInset);
           if (!scale.containsSlot(slotIndex)) return;
 
           final newDateStr = scale.dateAtSlot(slotIndex).toString();
@@ -511,7 +541,6 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
             setState(() => _snapSlotIndex = slotIndex);
           }
 
-          final data = details.data;
           if (data is String) {
             if (_draggingEventId == null) return;
             final deps = ref.read(dependencyProvider).value ?? [];
@@ -545,14 +574,15 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           final renderBox =
               _dropTargetKey.currentContext!.findRenderObject() as RenderBox;
           final localOffset = renderBox.globalToLocal(details.offset);
-          final slotIndex = scale.slotIndexAt(localOffset.dx);
+          final data = details.data;
+          final anchorInset = _dragAnchorInset(data);
+          final slotIndex = scale.slotIndexAt(localOffset.dx + anchorInset);
           if (!scale.containsSlot(slotIndex)) return;
 
           final newDateStr = scale.dateAtSlot(slotIndex).toString();
 
           if (mounted) setState(() => _snapSlotIndex = null);
 
-          final data = details.data;
           if (data is String) {
             _applyCascadeMove(data, newDateStr, events);
           } else if (data is PredefinedLifeEvent) {
@@ -695,10 +725,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     if (_draggingEventId != null) {
       for (final change in _cascadePreviewChanges) {
         if (change.eventId == _draggingEventId) continue;
-        final event = events.cast<LifeEvent?>().firstWhere(
-          (e) => e!.id == change.eventId,
-          orElse: () => null,
-        );
+        final event = _findEventById(events, change.eventId);
         if (event == null) continue;
 
         final previewX = scale.xOf(YearMonth.parse(change.newDate));
@@ -733,7 +760,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
         );
       }
 
-      final leftOffset = event.hasDuration ? xPos : xPos - 40;
+      final leftOffset =
+          xPos - PointEventMarker.anchorInset(hasDuration: event.hasDuration);
 
       final eventConstraints = widget.constraints
           .where((c) => c.targetEventTitle == event.title)
@@ -755,14 +783,17 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
             child: LongPressDraggable<String>(
               data: event.id,
               delay: const Duration(milliseconds: 400),
-              // details.offset をポインタの実位置にする。デフォルト（child基準）だと
-              // feedback ウィジェット（PointEventMarker）の左上が基準になり、
-              // 実際につまんでいる三角アイコンの位置（左端から約44px内側）との
-              // ズレがドロップ先のスロット計算に混入し、約1ヶ月手前に着地する
-              // 不具合の原因になっていた。
-              dragAnchorStrategy: pointerDragAnchorStrategy,
+              // デフォルトの child 基準 details.offset を使う。ドロップ先スロット計算
+              // （_buildDropTarget）側で、点イベントは描画時に付けている
+              // PointEventMarker.anchorInset 分のオフセットを _dragAnchorInset で
+              // 戻している。これにより、掴んだ位置に依存せず「掴んだ分だけ平行移動」
+              // になる（ポインタ基準にすると期間イベントのバーで掴む位置により着地が
+              // 大きくズレる回帰を招くため採らなかった）。
               onDragStarted: () {
-                setState(() => _draggingEventId = event.id);
+                setState(() {
+                  _draggingEventId = event.id;
+                  _draggingEventHasDuration = event.hasDuration;
+                });
               },
               onDraggableCanceled: (_, _) {
                 setState(() {
@@ -917,10 +948,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       return;
     }
 
-    final sourceEvent = allEvents.cast<LifeEvent?>().firstWhere(
-      (e) => e!.id == _linkingEventId,
-      orElse: () => null,
-    );
+    final sourceEvent = _findEventById(allEvents, _linkingEventId!);
     if (sourceEvent == null) return;
 
     final offsetMonths = targetEvent.yearMonth.differenceInMonths(
