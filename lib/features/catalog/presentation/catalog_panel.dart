@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/logic/auth_provider.dart';
-import '../../auth/presentation/sign_in_dialog.dart';
 import '../../timeline/logic/timeline_events_provider.dart';
 import '../../timeline/presentation/add_event_dialog.dart';
 import '../domain/predefined_life_event.dart';
@@ -211,21 +210,14 @@ class _CatalogItemTile extends ConsumerWidget {
     //   - ロングプレス（≥ 400ms）→ LongPressRecognizer 勝利 → D&D 開始
     return GestureDetector(
       onTap: () {
-        final user = ref.read(authStateProvider).value;
-        if (user == null) {
-          showDialog<void>(
-            context: context,
-            builder: (_) => const SignInDialog(),
-          );
-        } else {
-          showDialog<void>(
-            context: context,
-            builder: (_) => AddEventDialog(
-              initialCatalogId: item.id,
-              initialIsWork: item.group == LifeEventGroup.career,
-            ),
-          );
-        }
+        if (ref.read(authPendingProvider)) return;
+        showDialog<void>(
+          context: context,
+          builder: (_) => AddEventDialog(
+            initialCatalogId: item.id,
+            initialIsWork: item.group == LifeEventGroup.career,
+          ),
+        );
       },
       // Listener でトラックパッドの pan/zoom イベントを吸収し、
       // LongPressDraggable が trackpad wheel イベントで assertion エラーを起こすのを防ぐ。

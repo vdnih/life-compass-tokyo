@@ -21,3 +21,14 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
+
+/// 認証状態がまだ解決していない間 true を返すProvider
+///
+/// [authStateProvider] は `AsyncLoading` から始まり、`.value == null` だけでは
+/// 「未認証」と「まだ解決していない」を区別できない（ADR-020, #39）。この窓で
+/// ゲストとして書き込むと、解決後に Firestore 実装へ切り替わった時点でその内容が
+/// 失われる。根治（[TimelineEventsNotifier.build] 等で解決を待つ）は #39 に譲り、
+/// ここでは書き込み導線を一時的に閉じることで実害だけを防ぐ。
+final authPendingProvider = Provider<bool>(
+  (ref) => ref.watch(authStateProvider).isLoading,
+);

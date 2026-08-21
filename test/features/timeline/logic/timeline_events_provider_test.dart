@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:my_career_app/features/auth/logic/auth_provider.dart';
 import 'package:my_career_app/features/catalog/data/predefined_catalog_registry.dart';
 import 'package:my_career_app/features/timeline/data/event_repository.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
@@ -405,6 +406,36 @@ void main() {
           .addEventFromCatalog(catalog, '2026-03');
 
       expect(savedEvents.single.endDate, isNull);
+    });
+  });
+
+  group('ゲストの書き込み（実 InMemoryEventRepository 経路）', () {
+    // 上のグループは eventRepositoryProvider をモックに差し替えているため、
+    // 「ゲートが無い」以上のことを検証できていなかった（PR #74 レビュー指摘）。
+    // ここではリポジトリを override せず、ゲストとして実際に InMemoryEventRepository
+    // まで書き込みが届くこと、かつ認証状態の再評価をまたいで保持されることを見る。
+    test('ゲストが追加したイベントが、認証状態の再評価をまたいで保持されること', () async {
+      final container = support.createContainer(
+        overrides: [support.guestAuth()],
+      );
+      await support.awaitAuthState(container);
+
+      final catalog = PredefinedCatalogRegistry.findById('wedding-ceremony')!;
+      await container
+          .read(timelineEventsProvider.notifier)
+          .addEventFromCatalog(catalog, '2026-06');
+
+      // guestAuth() は Stream.value(null) で1回きり emission して閉じるため、
+      // invalidate で override の create を再実行させてトークンリフレッシュ相当を
+      // 再現する（event_repository_test.dart の同趣旨テストと同じ手法）。
+      container.invalidate(authStateProvider);
+      await pumpEventQueue();
+
+      final events = await container.read(timelineEventsProvider.future);
+      expect(
+        events.map((e) => e.catalogId),
+        contains('wedding-ceremony'),
+      );
     });
   });
 }

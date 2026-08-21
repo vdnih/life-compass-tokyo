@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/logic/auth_provider.dart';
-import '../../../auth/presentation/sign_in_dialog.dart';
 import '../../../catalog/data/predefined_catalog_registry.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/event_dependency.dart';
@@ -168,31 +167,19 @@ void showEventDetailDialog({
           style: TextButton.styleFrom(foregroundColor: Colors.red),
           onPressed: () {
             Navigator.pop(dialogCtx);
-            if (ref.read(authStateProvider).value == null) {
-              showDialog<void>(
-                context: context,
-                builder: (_) => const SignInDialog(),
-              );
-            } else {
-              _confirmAndDelete(context, ref, event);
-            }
+            if (ref.read(authPendingProvider)) return;
+            _confirmAndDelete(context, ref, event);
           },
           child: const Text('削除'),
         ),
         TextButton(
           onPressed: () {
             Navigator.pop(dialogCtx);
-            if (ref.read(authStateProvider).value == null) {
-              showDialog<void>(
-                context: context,
-                builder: (_) => const SignInDialog(),
-              );
-            } else {
-              showDialog(
-                context: context,
-                builder: (_) => EditEventDialog(event: event),
-              );
-            }
+            if (ref.read(authPendingProvider)) return;
+            showDialog(
+              context: context,
+              builder: (_) => EditEventDialog(event: event),
+            );
           },
           child: const Text('編集'),
         ),

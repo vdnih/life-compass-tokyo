@@ -147,7 +147,7 @@ void main() {
         findsOneWidget,
         reason: 'イベント詳細ダイアログが開くこと（サインインダイアログにフォールバックしないこと）',
       );
-      expect(find.text('サインインが必要です'), findsNothing);
+      expect(find.text('サインインして保存する'), findsNothing);
     });
   });
 
@@ -262,13 +262,19 @@ void main() {
       expect(captured.single.catalogId, 'wedding-ceremony');
     });
 
-    testWidgets('未認証ならサインインを促し、保存しないこと', (tester) async {
+    testWidgets('未認証でもドロップが DragTarget に届き、保存が呼ばれること', (tester) async {
+      // ゲストの書き込みはゲートされていない（PR #74）。実際にゲストの
+      // InMemoryEventRepository へ保存されることは
+      // timeline_events_provider_test.dart の状態層テストで担保する。
       final eventRepo = await pumpScreen(tester, signedIn: false);
 
       await dragCatalogItemToTimeline(tester);
 
-      verifyNever(() => eventRepo.saveEvent(any()));
-      expect(find.text('サインインが必要です'), findsOneWidget);
+      final captured = verify(() => eventRepo.saveEvent(captureAny()))
+          .captured
+          .cast<LifeEvent>();
+      expect(captured, hasLength(1));
+      expect(captured.single.catalogId, 'wedding-ceremony');
     });
   });
 }

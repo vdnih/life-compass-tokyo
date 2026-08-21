@@ -7,7 +7,10 @@ import 'signup_profile_dialog.dart';
 
 /// Googleサインインを促すダイアログ
 ///
-/// 未認証状態でイベント追加などの書き込み操作を行おうとした際に表示される。
+/// AppBar のログインアイコンから開く。書き込み操作のゲートではない
+/// （ゲストのままでもイベント追加・編集・削除は自由にできる）。ゲストの編集は
+/// インメモリ実装に留まりリロードやサインインで失われるため、保存を継続したく
+/// なった時にここからサインインしてもらう導線として機能する。
 /// サインイン後、新規ユーザーの場合は [SignupProfileDialog] に遷移する。
 class SignInDialog extends ConsumerStatefulWidget {
   const SignInDialog({super.key});
@@ -83,14 +86,14 @@ class _SignInDialogState extends ConsumerState<SignInDialog> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
-                Icons.lock_outline_rounded,
+                Icons.cloud_outlined,
                 color: AppTheme.primary,
                 size: 28,
               ),
             ),
             const SizedBox(height: 16),
             const Text(
-              'サインインが必要です',
+              'サインインして保存する',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -98,7 +101,7 @@ class _SignInDialogState extends ConsumerState<SignInDialog> {
             ),
             const SizedBox(height: 8),
             Text(
-              'データを保存・編集するには\nGoogleアカウントでサインインしてください。',
+              '今の内容はこの端末・このセッション限りです。\nGoogleアカウントでサインインすると保存が継続されます。',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
