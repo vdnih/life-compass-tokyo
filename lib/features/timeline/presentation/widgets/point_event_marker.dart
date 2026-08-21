@@ -9,6 +9,20 @@ class PointEventMarker extends StatelessWidget {
   final List<ConstraintResult> eventConstraints;
   final bool isDimmed;
 
+  /// マーカーの横幅。基準月の X はこの中央（= markerWidth / 2）に来る
+  static const double markerWidth = 80.0;
+
+  /// 基準月の X 位置から、マーカー（または対応するイベント）の描画左端 /
+  /// ドラッグ基準点までの左方向オフセット。
+  ///
+  /// 点イベント（[hasDuration] = false）は三角アイコンがマーカー中央にあるため
+  /// `markerWidth / 2`。期間イベント（true）はバーの左端が基準月そのものなので 0。
+  /// 描画時の `leftOffset` 計算とドラッグ&ドロップの着地スロット計算
+  /// （`timeline_view.dart` の `_dragAnchorInset`）の双方から参照される、
+  /// 単一の情報源。
+  static double anchorInset({required bool hasDuration}) =>
+      hasDuration ? 0 : markerWidth / 2;
+
   const PointEventMarker({
     super.key,
     required this.event,
@@ -25,7 +39,7 @@ class PointEventMarker extends StatelessWidget {
     return Opacity(
       opacity: opacity,
       child: SizedBox(
-        width: 80,
+        width: markerWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,

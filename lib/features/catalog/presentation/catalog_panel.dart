@@ -234,11 +234,20 @@ class _CatalogItemTile extends ConsumerWidget {
         child: LongPressDraggable<PredefinedLifeEvent>(
           data: item,
           delay: const Duration(milliseconds: 400),
+          // child（パネル内の横長 Row）と feedback（別ウィジェットのカード）で
+          // 形も基準点も違うため、child 基準の details.offset ではドロップ先が
+          // 実際につまんだ位置より手前にズレる。ポインタ基準にした上で、
+          // FractionalTranslation でカード自身を中心合わせし、ドラッグ開始時に
+          // カーソルから見た目が飛ばないようにしている。
+          dragAnchorStrategy: pointerDragAnchorStrategy,
           feedback: Material(
             color: Colors.transparent,
-            child: Transform.scale(
-              scale: 0.85,
-              child: _buildItemCard(opacity: 1.0),
+            child: FractionalTranslation(
+              translation: const Offset(-0.5, -0.5),
+              child: Transform.scale(
+                scale: 0.85,
+                child: _buildItemCard(opacity: 1.0),
+              ),
             ),
           ),
           childWhenDragging: Opacity(opacity: 0.4, child: _buildItemRow()),

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_career_app/features/timeline/domain/timeline_scale.dart';
 import 'package:my_career_app/features/timeline/domain/year_month.dart';
+import 'package:my_career_app/features/timeline/presentation/widgets/point_event_marker.dart';
 
 void main() {
   group('月ビュー相当のスケール（monthsPerSlot: 1）', () {
@@ -89,6 +90,66 @@ void main() {
 
     test('totalWidth が slotCount * pixelsPerSlot + 100 であること', () {
       expect(scale.totalWidth, 10 * 60.0 + 100);
+    });
+  });
+
+  group('ドラッグ着地月の往復不変条件（timeline_view.dart の _dragAnchorInset と対）', () {
+    // 「月 M に描画されたイベントを掴んで動かさずに離したら、着地月も M であること」。
+    // #75 の元バグは、この往復が点イベントだけ1スロット手前にズレていたことが原因
+    // （PointEventMarker は基準月から anchorInset 分だけ左にオフセットして描画される）。
+    //
+    // 描画時の left も timeline_view.dart の _dragAnchorInset も、ここで呼んでいる
+    // PointEventMarker.anchorInset を単一の情報源として参照している（値の重複定義なし）。
+    // イベント移動は child 基準の details.offset を使うため、ドラッグ開始位置の
+    // ローカル dx は「描画時の left」そのものになる。
+    int roundTripSlot(
+      TimelineScale scale,
+      YearMonth month, {
+      required bool hasDuration,
+    }) {
+      final anchorInset = PointEventMarker.anchorInset(
+        hasDuration: hasDuration,
+      );
+      final renderLeft = scale.xOf(month) - anchorInset;
+      return scale.slotIndexAt(renderLeft + anchorInset);
+    }
+
+    const monthScale = TimelineScale(
+      origin: YearMonth(2025, 1),
+      pixelsPerSlot: 80.0,
+      monthsPerSlot: 1,
+      slotCount: 60,
+    );
+    const yearScale = TimelineScale(
+      origin: YearMonth(2020, 1),
+      pixelsPerSlot: 80.0,
+      monthsPerSlot: 12,
+      slotCount: 20,
+    );
+
+    const months = [
+      YearMonth(2025, 1),
+      YearMonth(2025, 6),
+      YearMonth(2026, 12),
+      YearMonth(2029, 3),
+    ];
+
+    for (final month in months) {
+      test('$month（点イベント・月ビュー）: 動かさずに離すと同じ月に着地すること', () {
+        final slot = roundTripSlot(monthScale, month, hasDuration: false);
+        expect(monthScale.dateAtSlot(slot), month);
+      });
+
+      test('$month（期間イベント・月ビュー）: 動かさずに離すと同じ月に着地すること', () {
+        final slot = roundTripSlot(monthScale, month, hasDuration: true);
+        expect(monthScale.dateAtSlot(slot), month);
+      });
+    }
+
+    test('年ビュー（点イベント）: 動かさずに離すと同じ年の1月に着地すること', () {
+      const month = YearMonth(2023, 1);
+      final slot = roundTripSlot(yearScale, month, hasDuration: false);
+      expect(yearScale.dateAtSlot(slot), month);
     });
   });
 }
