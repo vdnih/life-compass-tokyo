@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,6 +66,16 @@ Override signedInAuth({String uid = 'test-uid'}) {
   final user = MockUser();
   when(() => user.uid).thenReturn(uid);
   return authStateProvider.overrideWith((ref) => Stream<User?>.value(user));
+}
+
+/// 認証状態が未解決（`AsyncLoading` のまま）であることを表す [authStateProvider] の override。
+///
+/// 何も emit しないまま閉じない [StreamController] を使う。`Stream.empty()` は
+/// 即座に完了扱いになり `AsyncLoading` のまま止まらないため使えない。
+Override pendingAuth() {
+  final controller = StreamController<User?>();
+  addTearDown(controller.close);
+  return authStateProvider.overrideWith((ref) => controller.stream);
 }
 
 /// [ProviderScope] と [MaterialApp] で包んだ [child] を pump する。

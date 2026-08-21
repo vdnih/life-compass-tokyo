@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/logic/auth_provider.dart';
-import '../../../auth/presentation/sign_in_dialog.dart';
 import '../../../catalog/domain/predefined_life_event.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
@@ -608,15 +607,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           if (data is String) {
             _applyCascadeMove(data, newDateStr, events);
           } else if (data is PredefinedLifeEvent) {
-            // 認証チェック（タップ追加と同じパターン）
+            // 認証状態が未解決の間は書き込まない（タップ追加と同じパターン）。
+            // #39: authStateProvider が AsyncLoading の間に書き込むと、解決後に
+            // Firestore 実装へ切り替わった時点でこの内容が失われる。
             if (!mounted) return;
-            if (ref.read(authStateProvider).value == null) {
-              showDialog<void>(
-                context: context,
-                builder: (_) => const SignInDialog(),
-              );
-              return;
-            }
+            if (ref.read(authPendingProvider)) return;
             _applyAddFromCatalog(data, newDateStr);
           }
         },
@@ -935,10 +930,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final tappedDate = scale.dateAtSlot(slotIndex).toDateTime();
     final isWork = tapY < axisHeight + _rowHeight;
 
-    if (ref.read(authStateProvider).value == null) {
-      showDialog<void>(context: context, builder: (_) => const SignInDialog());
-      return;
-    }
+    // 認証状態が未解決の間は書き込まない（#39: この窓の書き込みは Firestore
+    // 実装へ切り替わった時点で失われる）。
+    if (ref.read(authPendingProvider)) return;
 
     showDialog(
       context: context,

@@ -28,7 +28,10 @@ Future<void> _pumpAsGuest(WidgetTester tester) {
   );
 }
 
-/// 認証済みで [TimelineScreen] を表示する（書き込み操作のテスト用）
+/// 認証済みで [TimelineScreen] を表示する
+///
+/// ゲート撤去後は書き込み操作もゲストで動くため、これ自体は要件ではない。
+/// ログイン済み表示（プロフィール名など）を検証するテストで使う。
 Future<void> _pumpAsSignedIn(WidgetTester tester) {
   return pumpApp(
     tester,
@@ -147,12 +150,27 @@ void main() {
       expect(find.text('イベントを追加'), findsNothing);
     });
 
-    testWidgets('未認証でレーンをタップするとサインインダイアログが表示されること', (tester) async {
+    testWidgets('未認証でもレーンをタップするとAddEventDialogが開くこと', (tester) async {
       await _pumpAsGuest(tester);
 
       await _tapLane(tester, TimelineKeys.workLane);
 
-      expect(find.text('サインインが必要です'), findsOneWidget);
+      expect(find.text('イベントを追加'), findsOneWidget);
+    });
+
+    testWidgets('認証状態が未解決の間はレーンをタップしてもAddEventDialogが開かないこと', (tester) async {
+      await pumpApp(
+        tester,
+        const TimelineScreen(),
+        overrides: [
+          timelineEventsProvider.overrideWith(_StubEventsNotifier.new),
+          pendingAuth(),
+        ],
+      );
+
+      await _tapLane(tester, TimelineKeys.workLane);
+
+      expect(find.text('イベントを追加'), findsNothing);
     });
   });
 
