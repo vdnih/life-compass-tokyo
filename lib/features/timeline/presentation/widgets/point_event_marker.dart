@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/life_event.dart';
 import 'event_style.dart';
@@ -8,6 +9,9 @@ class PointEventMarker extends StatelessWidget {
   final LifeEvent event;
   final List<ConstraintResult> eventConstraints;
   final bool isDimmed;
+
+  /// spike/ai-chat-ux: チャットが直前に追加/展開したイベントであることを示すリング表示
+  final bool isHighlighted;
 
   /// マーカーの横幅。基準月の X はこの中央（= markerWidth / 2）に来る
   static const double markerWidth = 80.0;
@@ -32,6 +36,7 @@ class PointEventMarker extends StatelessWidget {
     required this.event,
     this.eventConstraints = const [],
     this.isDimmed = false,
+    this.isHighlighted = false,
   });
 
   @override
@@ -40,73 +45,89 @@ class PointEventMarker extends StatelessWidget {
     final opacity = isDimmed ? 0.3 : eventOpacity(event);
     final hasWarning = eventConstraints.isNotEmpty;
 
-    return Opacity(
-      opacity: opacity,
-      child: SizedBox(
-        width: markerWidth,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.topCenter,
-              children: [
-                CustomPaint(
-                  size: const Size(20, 18),
-                  painter: _TrianglePainter(color: color),
-                ),
-                if (hasWarning)
-                  Positioned(
-                    top: -5,
-                    right: 22,
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF8C42),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.warning_rounded,
-                        color: Colors.white,
-                        size: 9,
+    // spike/ai-chat-ux: 外側に対称 padding で足すため、[anchorInset] が前提とする
+    // markerWidth 中心の位置は変わらない（ドラッグ着地計算には影響しない）。
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: isHighlighted
+            ? Border.all(color: AppTheme.primary, width: 2)
+            : null,
+        color: isHighlighted ? AppTheme.primary.withValues(alpha: 0.08) : null,
+      ),
+      child: Opacity(
+        opacity: opacity,
+        child: SizedBox(
+          width: markerWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  CustomPaint(
+                    size: const Size(20, 18),
+                    painter: _TrianglePainter(color: color),
+                  ),
+                  if (hasWarning)
+                    Positioned(
+                      top: -5,
+                      right: 22,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF8C42),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.warning_rounded,
+                          color: Colors.white,
+                          size: 9,
+                        ),
                       ),
                     ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                event.title,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
+              if (event.isFuturePlan) ...[
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
                   ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    event.status.label,
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              event.title,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-            if (event.isFuturePlan) ...[
-              const SizedBox(height: 2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  event.status.label,
-                  style: TextStyle(
-                    fontSize: 8,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );

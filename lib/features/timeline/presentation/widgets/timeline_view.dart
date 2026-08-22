@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../ai_coach/presentation/highlight_provider.dart';
 import '../../../auth/logic/auth_provider.dart';
 import '../../../catalog/domain/predefined_life_event.dart';
 import '../../../user_profile/user_profile.dart';
@@ -142,6 +143,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   final ScrollController _horizontalScrollController = ScrollController();
   bool _hasScrolledToNow = false;
 
+  /// 直近の [build] で使った [TimelineScale]。spike/ai-chat-ux: チャットのハイライト
+  /// フォーカス（[chatHighlightProvider]）を任意の年月へスクロールさせるのに使う。
+  /// [_scaleForScrollToNow] は「現在」専用でデフォルト origin 固定のため流用しない。
+  TimelineScale? _lastScale;
+
   @override
   void initState() {
     super.initState();
@@ -196,6 +202,28 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final viewportWidth =
         _horizontalScrollController.position.viewportDimension;
     final targetOffset = (nowXPos - viewportWidth / 2).clamp(
+      0.0,
+      _horizontalScrollController.position.maxScrollExtent,
+    );
+    _horizontalScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  /// spike/ai-chat-ux: チャットがテンプレート展開した先のゴール年月へスクロールする。
+  /// [_lastScale]（直近 build の実スケール）を使うため、イベントで origin が
+  /// 前倒しされていても正しい位置に合う（[_scaleForScrollToNow] は現在専用でこれをしない）。
+  void _animateToYearMonth(YearMonth target) {
+    if (!_horizontalScrollController.hasClients) return;
+    final scale = _lastScale;
+    if (scale == null) return;
+    final anchor = widget.mode.anchorOf(target);
+    final xPos = scale.xCenterOf(anchor);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset = (xPos - viewportWidth / 2).clamp(
       0.0,
       _horizontalScrollController.position.maxScrollExtent,
     );
@@ -262,9 +290,22 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final events = widget.events;
     final now = DateTime.now();
     final scale = _buildScale(events, now);
+    _lastScale = scale;
 
     final profile = ref.watch(userProfileNotifierProvider).value;
     final dependenciesAsync = ref.watch(dependencyProvider);
+
+    // spike/ai-chat-ux: チャットが直前に追加/展開したイベントをリング表示し、
+    // ゴール年月へ自動スクロールする。
+    final chatHighlight = ref.watch(chatHighlightProvider);
+    ref.listen(chatHighlightProvider, (previous, next) {
+      final focus = next.focusYearMonth;
+      if (focus == null) return;
+      if (previous?.focusYearMonth == focus) return;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _animateToYearMonth(focus),
+      );
+    });
 
     final stackIndices = computeStackIndices(events, scale);
     _rowHeight = computeStackedRowHeight(
@@ -368,6 +409,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                           scale,
                           stackIndices,
                           context,
+                          chatHighlight.eventIds,
                         ),
                     ],
                   ),
@@ -734,6 +776,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     TimelineScale scale,
     Map<String, int> stackIndices,
     BuildContext context,
+    Set<String> highlightedEventIds,
   ) {
     final result = <Widget>[];
 
@@ -791,6 +834,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       final isInCascade =
           _draggingEventId != null &&
           _cascadePreviewChanges.any((c) => c.eventId == event.id);
+      final isHighlighted = highlightedEventIds.contains(event.id);
 
       result.add(
         Positioned(
@@ -889,12 +933,14 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                         barWidth: barWidth,
                         eventConstraints: eventConstraints,
                         isDimmed: isDragging || (isInCascade && !isDragging),
+                        isHighlighted: isHighlighted,
                       )
                     else
                       PointEventMarker(
                         event: event,
                         eventConstraints: eventConstraints,
                         isDimmed: isDragging || (isInCascade && !isDragging),
+                        isHighlighted: isHighlighted,
                       ),
                   ],
                 ),
