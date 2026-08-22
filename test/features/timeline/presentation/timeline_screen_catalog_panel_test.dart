@@ -46,10 +46,14 @@ void main() {
       expect(find.byType(CatalogPanel), findsOneWidget);
     });
 
-    testWidgets('モバイル幅 (400px) ではカタログパネルが表示されないこと', (tester) async {
+    testWidgets('モバイル幅 (400px) でもボトムシートのタブ経由でカタログパネルに到達できること', (tester) async {
+      // #72 spike v2: モバイルはチャットのみでカタログへ到達できなかったため、
+      // ボトムシートを「チャット/カタログ/テンプレート」タブ化した。CatalogPanel は
+      // 非選択時も検索文字列・展開状態を保つため常時マウントされている
+      // （CoachChatSheet の buildPanelTabContent、IndexedStack を使わない理由と同じ）。
       await _pumpWithSize(tester, const Size(400, 800));
 
-      expect(find.byType(CatalogPanel), findsNothing);
+      expect(find.byType(CatalogPanel), findsOneWidget);
     });
 
     testWidgets('デスクトップ幅・モバイル幅どちらでもイベント追加ボタンが表示されること', (tester) async {
