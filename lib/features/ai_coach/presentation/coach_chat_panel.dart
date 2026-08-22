@@ -76,8 +76,9 @@ class _CoachChatPanelState extends ConsumerState<CoachChatPanel> {
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
             label: '元に戻す',
-            onPressed: () =>
-                ref.read(chatControllerProvider.notifier).undoLast(),
+            onPressed: () => ref
+                .read(chatControllerProvider.notifier)
+                .undoLast(result.expansion),
           ),
         ),
       );

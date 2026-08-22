@@ -219,6 +219,12 @@ void main() {
         ],
         size: const Size(1400, 900),
       );
+
+      // デスクトップの初期タブは「AIコーチ」（対話ファースト）なので、
+      // カタログD&Dのテストは明示的にタブを切り替える。
+      await tester.tap(find.text('カタログ'));
+      await tester.pumpAndSettle();
+
       return eventRepo;
     }
 

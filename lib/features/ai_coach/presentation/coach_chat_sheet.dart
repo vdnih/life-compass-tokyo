@@ -19,6 +19,13 @@ class CoachChatSheet extends StatefulWidget {
   /// キー経由で参照するため）。
   static const dragHandleKey = Key('coach-chat-sheet-drag-handle');
 
+  /// 折りたたみ時のシート高さ（body 高さに対する分数）。
+  ///
+  /// `timeline_screen.dart` のモバイル分岐が、この折りたたみ状態のシートに
+  /// タイムライン本体・FABが隠れないよう底上げする padding を計算するのに使う
+  /// （両者が食い違うとシートが FAB を覆ってタップできなくなる）。
+  static const double collapsedSizeFraction = 0.20;
+
   const CoachChatSheet({super.key});
 
   @override
@@ -26,7 +33,7 @@ class CoachChatSheet extends StatefulWidget {
 }
 
 class _CoachChatSheetState extends State<CoachChatSheet> {
-  static const double _collapsedSize = 0.20;
+  static const double _collapsedSize = CoachChatSheet.collapsedSizeFraction;
   static const double _sentSize = 0.30;
   static const double _expandedSize = 0.60;
 
@@ -148,23 +155,15 @@ class _CoachChatSheetState extends State<CoachChatSheet> {
               ),
               const Divider(height: 1),
               Expanded(
-                child: Stack(
+                child: IndexedStack(
+                  index: _tabIndex,
                   children: [
-                    buildPanelTabContent(
-                      visible: _tabIndex == 0,
-                      child: CoachChatPanel(
-                        scrollController: scrollController,
-                        onSent: _shrinkAfterSend,
-                      ),
+                    CoachChatPanel(
+                      scrollController: scrollController,
+                      onSent: _shrinkAfterSend,
                     ),
-                    buildPanelTabContent(
-                      visible: _tabIndex == 1,
-                      child: const CatalogPanel(),
-                    ),
-                    buildPanelTabContent(
-                      visible: _tabIndex == 2,
-                      child: const TemplateSetPanel(),
-                    ),
+                    const CatalogPanel(),
+                    const TemplateSetPanel(),
                   ],
                 ),
               ),

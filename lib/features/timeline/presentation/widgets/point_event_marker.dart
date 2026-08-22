@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/life_event.dart';
 import 'event_style.dart';
@@ -47,16 +46,8 @@ class PointEventMarker extends StatelessWidget {
 
     // spike/ai-chat-ux: 外側に対称 padding で足すため、[anchorInset] が前提とする
     // markerWidth 中心の位置は変わらない（ドラッグ着地計算には影響しない）。
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: isHighlighted
-            ? Border.all(color: AppTheme.primary, width: 2)
-            : null,
-        color: isHighlighted ? AppTheme.primary.withValues(alpha: 0.08) : null,
-      ),
+    return buildHighlightRing(
+      isHighlighted: isHighlighted,
       child: Opacity(
         opacity: opacity,
         child: SizedBox(

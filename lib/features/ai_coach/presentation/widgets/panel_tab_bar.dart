@@ -76,18 +76,3 @@ class PanelTabBar extends StatelessWidget {
     );
   }
 }
-
-/// 常時マウントしたまま表示だけ切り替えるタブコンテンツのラッパー。
-///
-/// `IndexedStack` は非選択タブの子を `debugVisitOnstageChildren` で除外するため、
-/// `find.byType(CatalogPanel)`（デフォルト `skipOffstage: true`）を使う既存の
-/// D&D テストが非選択時に見つけられなくなる。`Positioned.fill` + `IgnorePointer` +
-/// `Opacity` で両方を「onstage」のまま重ねることでこれを避ける。
-Widget buildPanelTabContent({required bool visible, required Widget child}) {
-  return Positioned.fill(
-    child: IgnorePointer(
-      ignoring: !visible,
-      child: Opacity(opacity: visible ? 1 : 0, child: child),
-    ),
-  );
-}

@@ -40,20 +40,23 @@ void main() {
       expect(scaffold.drawer, isNull);
     });
 
-    testWidgets('デスクトップ幅 (1200px) でカタログパネルが1つだけ表示されること', (tester) async {
+    testWidgets('デスクトップ幅 (1200px) でカタログパネルが1つだけ存在すること', (tester) async {
       await _pumpWithSize(tester, const Size(1200, 800));
 
-      expect(find.byType(CatalogPanel), findsOneWidget);
+      // 初期タブは「AIコーチ」なので、カタログタブは IndexedStack により
+      // オフステージ（skipOffstage: true の既定では見つからない）。
+      // 存在すること自体（タブ切り替えで到達できること）を確認する。
+      expect(find.byType(CatalogPanel, skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('モバイル幅 (400px) でもボトムシートのタブ経由でカタログパネルに到達できること', (tester) async {
       // #72 spike v2: モバイルはチャットのみでカタログへ到達できなかったため、
       // ボトムシートを「チャット/カタログ/テンプレート」タブ化した。CatalogPanel は
-      // 非選択時も検索文字列・展開状態を保つため常時マウントされている
-      // （CoachChatSheet の buildPanelTabContent、IndexedStack を使わない理由と同じ）。
+      // IndexedStack の非選択タブとして常時マウントされている
+      // （検索文字列・展開状態をタブ切り替えでも保つため）。
       await _pumpWithSize(tester, const Size(400, 800));
 
-      expect(find.byType(CatalogPanel), findsOneWidget);
+      expect(find.byType(CatalogPanel, skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('デスクトップ幅・モバイル幅どちらでもイベント追加ボタンが表示されること', (tester) async {

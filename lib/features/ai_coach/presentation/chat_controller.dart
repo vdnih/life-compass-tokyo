@@ -21,18 +21,21 @@ class ChatMessage {
 class ChatState {
   final List<ChatMessage> messages;
 
-  /// 直近の展開結果（Undo 用に保持。展開していない/Undo 済みなら null）
-  final GoalExpansionResult? lastExpansion;
-
-  const ChatState({this.messages = const [], this.lastExpansion});
+  const ChatState({this.messages = const []});
 }
 
-/// チャット送信1回の結果。UI 側がスナックバーを出すために使う
+/// チャット送信1回の結果。UI 側がスナックバーを出す・Undo するために使う。
+///
+/// [expansion] はこの送信で生成された展開結果そのものを持つ（Notifier 側の
+/// 「直近の」共有状態を参照しない）。連続送信で2件目のスナックバーがまだ
+/// 表示されている間に1件目の Undo を押しても、1件目自身の展開を正しく
+/// 取り消せるようにするため。
 @immutable
 class ChatSendResult {
   final int addedCount;
+  final GoalExpansionResult expansion;
 
-  const ChatSendResult({required this.addedCount});
+  const ChatSendResult({required this.addedCount, required this.expansion});
 }
 
 /// spike/ai-chat-ux: 固定応答チャットのコントローラ
@@ -61,7 +64,6 @@ class ChatController extends Notifier<ChatState> {
         ...state.messages,
         ChatMessage(text: trimmed, isUser: true),
       ],
-      lastExpansion: state.lastExpansion,
     );
 
     final reply = ScriptedCoach.reply(trimmed);
@@ -70,7 +72,6 @@ class ChatController extends Notifier<ChatState> {
         ...state.messages,
         ChatMessage(text: reply.responseText, isUser: false),
       ],
-      lastExpansion: state.lastExpansion,
     );
 
     final templateId = reply.templateId;
@@ -88,20 +89,23 @@ class ChatController extends Notifier<ChatState> {
           goalTitle: reply.goalTitle,
         );
 
-    state = ChatState(messages: state.messages, lastExpansion: result);
-
     ref
         .read(chatHighlightProvider.notifier)
         .show(result.generatedEvents.map((e) => e.id).toSet(), goalYearMonth);
 
-    return ChatSendResult(addedCount: result.generatedEvents.length);
+    return ChatSendResult(
+      addedCount: result.generatedEvents.length,
+      expansion: result,
+    );
   }
 
-  /// 直近の展開を取り消す（生成イベント・依存関係を削除）
-  Future<void> undoLast() async {
-    final expansion = state.lastExpansion;
-    if (expansion == null) return;
-
+  /// [expansion] の展開を取り消す（生成イベント・依存関係を削除）。
+  ///
+  /// 呼び出し元（スナックバーの「元に戻す」）はその送信自身が返した
+  /// [ChatSendResult.expansion] を渡す。Notifier 側で「直近の」展開を
+  /// 共有状態として持たないのは、連続送信時に別の送信の結果を誤って
+  /// 取り消さないようにするため。
+  Future<void> undoLast(GoalExpansionResult expansion) async {
     for (final dep in expansion.generatedDependencies) {
       await ref.read(dependencyProvider.notifier).removeDependency(dep.id);
     }
@@ -116,7 +120,6 @@ class ChatController extends Notifier<ChatState> {
         ...state.messages,
         const ChatMessage(text: '元に戻しました。', isUser: false),
       ],
-      lastExpansion: null,
     );
   }
 }

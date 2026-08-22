@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:my_career_app/features/ai_coach/presentation/coach_chat_sheet.dart';
-import 'package:my_career_app/features/catalog/presentation/catalog_panel.dart';
 import 'package:my_career_app/features/timeline/data/dependency_repository.dart';
 import 'package:my_career_app/features/timeline/data/event_repository.dart';
-import 'package:my_career_app/features/timeline/presentation/widgets/template_set_panel.dart';
 
 import '../../../support/mocks.dart';
 import '../../../support/pump.dart';
@@ -30,50 +28,38 @@ void main() {
     );
   }
 
-  /// [type] のパネルを直接の子孫として囲む [IgnorePointer] の `ignoring` を返す。
-  ///
-  /// `buildPanelTabContent` が非選択タブも常時マウントしたまま
-  /// `IgnorePointer` で操作だけ無効化する方式のため、タブが実際に選択されて
-  /// 操作可能になっているかは `find.byType` の有無ではなく `ignoring` で判定する。
-  bool isTabInteractive(WidgetTester tester, Type type) {
-    final ignorePointer = tester.widget<IgnorePointer>(
-      find
-          .ancestor(of: find.byType(type), matching: find.byType(IgnorePointer))
-          .first,
-    );
-    return !ignorePointer.ignoring;
+  /// 現在選択中のタブインデックス（`IndexedStack.index`）を返す。
+  int selectedTabIndex(WidgetTester tester) {
+    return tester.widget<IndexedStack>(find.byType(IndexedStack)).index!;
   }
 
   group('3タブ切り替え', () {
-    testWidgets('初期表示はチャットタブが操作可能で、カタログ/テンプレートは無効化されていること', (tester) async {
+    testWidgets('初期表示はチャットタブが選択されていること', (tester) async {
       await pumpSheet(tester);
 
       expect(find.text('チャット'), findsOneWidget);
       expect(find.text('カタログ'), findsOneWidget);
       expect(find.text('テンプレート'), findsOneWidget);
 
-      expect(isTabInteractive(tester, CatalogPanel), isFalse);
-      expect(isTabInteractive(tester, TemplateSetPanel), isFalse);
+      expect(selectedTabIndex(tester), 0);
     });
 
-    testWidgets('「カタログ」タブをタップするとカタログが操作可能になること', (tester) async {
+    testWidgets('「カタログ」タブをタップするとカタログが選択されること', (tester) async {
       await pumpSheet(tester);
 
       await tester.tap(find.text('カタログ'));
       await tester.pumpAndSettle();
 
-      expect(isTabInteractive(tester, CatalogPanel), isTrue);
-      expect(isTabInteractive(tester, TemplateSetPanel), isFalse);
+      expect(selectedTabIndex(tester), 1);
     });
 
-    testWidgets('「テンプレート」タブをタップするとテンプレート一覧が操作可能になること', (tester) async {
+    testWidgets('「テンプレート」タブをタップするとテンプレートが選択されること', (tester) async {
       await pumpSheet(tester);
 
       await tester.tap(find.text('テンプレート'));
       await tester.pumpAndSettle();
 
-      expect(isTabInteractive(tester, TemplateSetPanel), isTrue);
-      expect(isTabInteractive(tester, CatalogPanel), isFalse);
+      expect(selectedTabIndex(tester), 2);
     });
   });
 

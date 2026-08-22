@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -131,6 +132,13 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   /// ドラッグ中のスナップ先スロットインデックス（マグネティックUI用）
   int? _snapSlotIndex;
 
+  /// テンプレート（イベントセット）適用が実行中かどうか。
+  ///
+  /// [GoalTemplateNotifier.applyTemplate] は複数イベントを直列 await するため、
+  /// 完了前に同じ／別のテンプレートを連続でドロップすると二重生成されうる。
+  /// 旧 `GoalSetupDialog` の `_isApplying` ガードに相当する。
+  bool _isApplyingTemplate = false;
+
   final _dropTargetKey = GlobalKey();
 
   static const double axisHeight = 60.0;
@@ -218,6 +226,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   /// [_lastScale]（直近 build の実スケール）を使うため、イベントで origin が
   /// 前倒しされていても正しい位置に合う（[_scaleForScrollToNow] は現在専用でこれをしない）。
   void _animateToYearMonth(YearMonth target) {
+    // postFrameCallback 経由（chatHighlightProvider の listener）で呼ばれるため、
+    // スケジュール後に dispose される可能性がある。dispose() は
+    // _horizontalScrollController.dispose() を呼ぶため、mounted を先に見ないと
+    // 破棄済みコントローラへアクセスして例外になりうる。
+    if (!mounted) return;
     if (!_horizontalScrollController.hasClients) return;
     final scale = _lastScale;
     if (scale == null) return;
@@ -302,8 +315,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final chatHighlight = ref.watch(chatHighlightProvider);
     ref.listen(chatHighlightProvider, (previous, next) {
       final focus = next.focusYearMonth;
-      if (focus == null) return;
-      if (previous?.focusYearMonth == focus) return;
+      if (focus == null || next.eventIds.isEmpty) return;
+      // focusYearMonth だけで比較すると、同じ年月へ2回目のハイライトが来た
+      // 場合（例: 同じ月内で同じキーワードを2回送信）に「変化なし」と
+      // 誤判定してスクロールが起きない。生成イベント集合の変化で判定する。
+      if (setEquals(previous?.eventIds ?? const {}, next.eventIds)) return;
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _animateToYearMonth(focus),
       );
@@ -734,23 +750,29 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   /// ドラッグ&ドロップの操作感に置き換えた。逆算の計算エンジン自体
   /// （[GoalTemplateNotifier.applyTemplate]）は変更していない。
   Future<void> _applyAddFromTemplate(GoalTemplate template, String date) async {
-    final result = await ref
-        .read(goalTemplateProvider.notifier)
-        .applyTemplate(
-          templateId: template.id,
-          goalDate: date,
-          goalTitle: template.name,
-        );
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '「${template.name}」（${result.generatedEvents.length}件）を追加しました',
+    if (_isApplyingTemplate) return;
+    _isApplyingTemplate = true;
+    try {
+      final result = await ref
+          .read(goalTemplateProvider.notifier)
+          .applyTemplate(
+            templateId: template.id,
+            goalDate: date,
+            goalTitle: template.name,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '「${template.name}」（${result.generatedEvents.length}件）を追加しました',
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
           ),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
+    } finally {
+      _isApplyingTemplate = false;
     }
   }
 

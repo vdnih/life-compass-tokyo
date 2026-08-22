@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../catalog/data/predefined_catalog_registry.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/life_event.dart';
@@ -46,16 +45,8 @@ class DurationEventBar extends StatelessWidget {
 
     final effectiveWidth = barWidth.clamp(30.0, double.infinity);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: isHighlighted
-            ? Border.all(color: AppTheme.primary, width: 2)
-            : null,
-        color: isHighlighted ? AppTheme.primary.withValues(alpha: 0.08) : null,
-      ),
+    return buildHighlightRing(
+      isHighlighted: isHighlighted,
       child: Opacity(
         opacity: opacity,
         child: Column(

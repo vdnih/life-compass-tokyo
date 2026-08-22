@@ -244,11 +244,17 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           } else {
             // モバイル: タイムライン全画面 + ボトムシート型チャット（＋ボタンでイベント追加も残す）
             // spike/ai-chat-ux: シートの折りたたみ高さ分タイムラインと両FABを底上げし、
-            // 隠れないようにする（CoachChatSheet._collapsedSize と概ね対応する固定値）
+            // 隠れないようにする。CoachChatSheet は `constraints`（この LayoutBuilder の
+            // body 高さ）を基準に折りたたみ高さを決めるため、ここも同じ基準
+            // （collapsedSizeFraction）から算出し、固定値の食い違いで FAB が
+            // シートに隠れないようにする。
+            final bottomInset =
+                constraints.maxHeight * CoachChatSheet.collapsedSizeFraction +
+                16;
             return Stack(
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 88),
+                  padding: EdgeInsets.only(bottom: bottomInset),
                   child: timelineWithAddButton,
                 ),
                 const CoachChatSheet(),
@@ -263,12 +269,9 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
 
 /// デスクトップ左パネルの「AIコーチ / カタログ / テンプレート」タブ切り替え
 ///
-/// spike/ai-chat-ux: 全タブを常時マウントしたまま表示だけ切り替える（カタログの検索
-/// 文字列・展開状態を保つため）。`IndexedStack` は非選択タブの子を
-/// `debugVisitOnstageChildren` で除外するため、既存テストの `find.byType(CatalogPanel)`
-/// （デフォルト `skipOffstage: true`）が非選択時に見つけられなくなる。
-/// `buildPanelTabContent`（`Stack` + `Opacity` + `IgnorePointer`）で全タブを
-/// 「onstage」のまま重ねる。
+/// spike/ai-chat-ux: `IndexedStack` で選択中のタブのみ描画・ヒットテストする。
+/// 非選択タブも `IndexedStack` の子としてはマウントされ続けるため、カタログの
+/// 検索文字列・展開状態はタブを切り替えても保たれる。
 class _DesktopCoachPanel extends StatefulWidget {
   const _DesktopCoachPanel();
 
@@ -277,13 +280,10 @@ class _DesktopCoachPanel extends StatefulWidget {
 }
 
 class _DesktopCoachPanelState extends State<_DesktopCoachPanel> {
-  // spike/ai-chat-ux: 本来は「AIコーチ」(0) を初期タブにしたいが、既存の
-  // カタログD&Dテスト（timeline_view_test.dart「カタログからのドロップ」）が
-  // タブ切り替え無しでカタログへ即ドラッグできることを前提にしている
-  // （IgnorePointer で非選択タブの操作をブロックするため、選択していないと
-  // ドラッグが成立しない）。テストを変更しない制約のもとでは「カタログ」(1) を
-  // 初期タブにするしかない。
-  int _tabIndex = 1;
+  // spike/ai-chat-ux: 対話ファーストにするため初期タブは「AIコーチ」(0)。
+  // カタログD&Dのテスト（timeline_view_test.dart「カタログからのドロップ」）は
+  // タブを明示的に切り替えてからドラッグする。
+  int _tabIndex = 0;
 
   static const _tabs = [
     PanelTabItem(label: 'AIコーチ', icon: Icons.auto_awesome),
@@ -302,20 +302,12 @@ class _DesktopCoachPanelState extends State<_DesktopCoachPanel> {
         ),
         const Divider(height: 1),
         Expanded(
-          child: Stack(
+          child: IndexedStack(
+            index: _tabIndex,
             children: [
-              buildPanelTabContent(
-                visible: _tabIndex == 0,
-                child: const CoachChatPanel(),
-              ),
-              buildPanelTabContent(
-                visible: _tabIndex == 1,
-                child: const CatalogPanel(),
-              ),
-              buildPanelTabContent(
-                visible: _tabIndex == 2,
-                child: const TemplateSetPanel(),
-              ),
+              const CoachChatPanel(),
+              const CatalogPanel(),
+              const TemplateSetPanel(),
             ],
           ),
         ),
