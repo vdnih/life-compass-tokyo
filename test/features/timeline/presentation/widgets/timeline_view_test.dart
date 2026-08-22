@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:my_career_app/features/catalog/domain/predefined_life_event.dart';
 import 'package:my_career_app/features/timeline/data/dependency_repository.dart';
 import 'package:my_career_app/features/timeline/data/event_repository.dart';
+import 'package:my_career_app/features/timeline/domain/goal_template.dart';
 import 'package:my_career_app/features/timeline/domain/life_event.dart';
 import 'package:my_career_app/features/timeline/presentation/timeline_keys.dart';
 import 'package:my_career_app/features/timeline/presentation/timeline_screen.dart';
@@ -56,24 +57,22 @@ void main() {
       await pumpApp(
         tester,
         Scaffold(
-          body: TimelineView(
-            mode: TimelineViewMode.yearMonth,
-            events: [event],
-          ),
+          body: TimelineView(mode: TimelineViewMode.yearMonth, events: [event]),
         ),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           signedInAuth(),
         ],
       );
 
       await dragHorizontally(tester, find.text(event.title), 200);
 
-      final captured = verify(() => eventRepo.updateEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
+      final captured = verify(
+        () => eventRepo.updateEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
       expect(captured, hasLength(1), reason: 'ドロップで1件だけ更新されること');
       expect(captured.single.id, 'e1');
       expect(
@@ -96,17 +95,18 @@ void main() {
         ),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           signedInAuth(),
         ],
       );
 
       await dragHorizontally(tester, find.text(event.title), 200);
 
-      final captured = verify(() => eventRepo.updateEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
+      final captured = verify(
+        () => eventRepo.updateEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
       expect(captured, hasLength(1));
       expect(captured.single.id, 'e1');
     });
@@ -116,29 +116,27 @@ void main() {
     // マーカーは三角アイコンとラベルを Column で積んだ薄い領域で、両者の間に
     // 無地の余白がある。GestureDetector が opaque でないと、その余白のタップが
     // 背景の「タップで新規追加」ハンドラに抜けてしまう（実機で確認した回帰）。
-    testWidgets('マーカー中央（三角とラベルの間の余白）をタップしても詳細ダイアログが開くこと',
-        (tester) async {
+    testWidgets('マーカー中央（三角とラベルの間の余白）をタップしても詳細ダイアログが開くこと', (tester) async {
       final event = buildLifeEvent(id: 'e1', date: monthFromNow(0));
 
       await pumpApp(
         tester,
         Scaffold(
-          body: TimelineView(
-            mode: TimelineViewMode.yearMonth,
-            events: [event],
-          ),
+          body: TimelineView(mode: TimelineViewMode.yearMonth, events: [event]),
         ),
         overrides: [
-          eventRepositoryProvider
-              .overrideWithValue(stubEventRepository(events: [event])),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          eventRepositoryProvider.overrideWithValue(
+            stubEventRepository(events: [event]),
+          ),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           guestAuth(),
         ],
       );
 
-      final markerCenter = tester.getCenter(find.text(event.title)) -
-          const Offset(0, 14);
+      final markerCenter =
+          tester.getCenter(find.text(event.title)) - const Offset(0, 14);
       await tester.tapAt(markerCenter);
       await tester.pumpAndSettle();
 
@@ -192,14 +190,13 @@ void main() {
 
       await dragHorizontally(tester, find.text(source.title), 200);
 
-      final captured = verify(() => eventRepo.updateEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
-      expect(
-        captured.map((e) => e.id).toSet(),
-        {'src', 'tgt'},
-        reason: '依存グラフを辿って依存先も連動移動すること',
-      );
+      final captured = verify(
+        () => eventRepo.updateEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
+      expect(captured.map((e) => e.id).toSet(), {
+        'src',
+        'tgt',
+      }, reason: '依存グラフを辿って依存先も連動移動すること');
     });
   });
 
@@ -215,8 +212,9 @@ void main() {
         const TimelineScreen(),
         overrides: [
           eventRepositoryProvider.overrideWithValue(eventRepo),
-          dependencyRepositoryProvider
-              .overrideWithValue(stubDependencyRepository()),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
           if (signedIn) signedInAuth() else guestAuth(),
         ],
         size: const Size(1400, 900),
@@ -235,8 +233,9 @@ void main() {
             matching: find.byType(LongPressDraggable<PredefinedLifeEvent>),
           )
           .first;
-      final timelineRect =
-          tester.getRect(find.byKey(TimelineKeys.timelineYearMonth));
+      final timelineRect = tester.getRect(
+        find.byKey(TimelineKeys.timelineYearMonth),
+      );
       final laneRect = tester.getRect(find.byKey(TimelineKeys.workLane));
       final dropTarget = Offset(timelineRect.center.dx, laneRect.center.dy);
 
@@ -255,9 +254,9 @@ void main() {
 
       await dragCatalogItemToTimeline(tester);
 
-      final captured = verify(() => eventRepo.saveEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
+      final captured = verify(
+        () => eventRepo.saveEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
       expect(captured, hasLength(1));
       expect(captured.single.catalogId, 'wedding-ceremony');
     });
@@ -270,11 +269,77 @@ void main() {
 
       await dragCatalogItemToTimeline(tester);
 
-      final captured = verify(() => eventRepo.saveEvent(captureAny()))
-          .captured
-          .cast<LifeEvent>();
+      final captured = verify(
+        () => eventRepo.saveEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
       expect(captured, hasLength(1));
       expect(captured.single.catalogId, 'wedding-ceremony');
+    });
+  });
+
+  group('テンプレート（イベントセット）からのドロップ', () {
+    /// デスクトップ幅で画面ごと表示し、「テンプレート」タブへ切り替える。
+    ///
+    /// 旧 GoalSetupDialog（ゴール日入力→逆算プレビュー→適用のモーダルフロー）は
+    /// 使いづらいというフィードバックを受けて廃止し、カタログの単発イベントと
+    /// 同じドラッグ&ドロップの操作感に置き換えた（テンプレート自体・逆算の
+    /// 計算エンジンは無改修で再利用）。
+    Future<MockEventRepository> pumpScreenOnTemplateTab(
+      WidgetTester tester,
+    ) async {
+      final eventRepo = stubEventRepository();
+      await pumpApp(
+        tester,
+        const TimelineScreen(),
+        overrides: [
+          eventRepositoryProvider.overrideWithValue(eventRepo),
+          dependencyRepositoryProvider.overrideWithValue(
+            stubDependencyRepository(),
+          ),
+          signedInAuth(),
+        ],
+        size: const Size(1400, 900),
+      );
+
+      await tester.tap(find.text('テンプレート'));
+      await tester.pumpAndSettle();
+
+      return eventRepo;
+    }
+
+    testWidgets('テンプレートをドロップすると、ゴール+関連イベント一式が保存されること', (tester) async {
+      final eventRepo = await pumpScreenOnTemplateTab(tester);
+
+      // GoalTemplateRegistry.templates の先頭（出産テンプレート）をドラッグする。
+      final templateItem = find.byType(LongPressDraggable<GoalTemplate>).first;
+      final timelineRect = tester.getRect(
+        find.byKey(TimelineKeys.timelineYearMonth),
+      );
+      final laneRect = tester.getRect(find.byKey(TimelineKeys.privateLane));
+      final dropTarget = Offset(timelineRect.center.dx, laneRect.center.dy);
+
+      final gesture = await tester.startGesture(tester.getCenter(templateItem));
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveTo(dropTarget);
+      await tester.pump();
+      await gesture.moveBy(const Offset(10, 0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final captured = verify(
+        () => eventRepo.saveEvent(captureAny()),
+      ).captured.cast<LifeEvent>();
+      expect(
+        captured.length,
+        greaterThan(1),
+        reason: 'ゴールイベント本体 + 関連イベントがまとめて保存されること',
+      );
+      expect(
+        captured.where((e) => e.isGoal).length,
+        1,
+        reason: 'ゴールイベントは1件だけ生成されること',
+      );
     });
   });
 }

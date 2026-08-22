@@ -9,11 +9,13 @@ import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/event_dependency.dart';
 import '../../domain/event_stacking.dart';
+import '../../domain/goal_template.dart';
 import '../../domain/life_event.dart';
 import '../../domain/timeline_scale.dart';
 import '../../domain/year_month.dart';
 import '../../logic/cascade_move_provider.dart';
 import '../../logic/dependency_provider.dart';
+import '../../logic/goal_template_provider.dart';
 import '../../logic/timeline_events_provider.dart';
 import '../add_event_dialog.dart';
 import 'catalog_drop_preview.dart';
@@ -622,6 +624,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
               });
             }
           }
+          // GoalTemplate（イベントセット）はドロップ位置のスナップ帯のみ表示し、
+          // 単発イベントのようなゴーストカードプレビューは出さない（複数イベント分の
+          // プレビュー作り込みはスコープ外）。
         },
         onLeave: (_) {
           if (mounted) {
@@ -656,6 +661,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
             _applyCascadeMove(data, newDateStr, events);
           } else if (data is PredefinedLifeEvent) {
             _applyAddFromCatalog(data, newDateStr);
+          } else if (data is GoalTemplate) {
+            _applyAddFromTemplate(data, newDateStr);
           }
         },
         builder: (context, candidateData, _) {
@@ -713,6 +720,33 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('「${catalog.label}」を追加しました'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  /// テンプレート（イベントセット）をドロップ位置の月をゴール日として一括生成する。
+  ///
+  /// 旧 `GoalSetupDialog`（ゴール日入力→逆算プレビュー→適用というモーダルフロー）は
+  /// 使いづらいというフィードバックを受けて廃止し、単発カタログ追加と同じ
+  /// ドラッグ&ドロップの操作感に置き換えた。逆算の計算エンジン自体
+  /// （[GoalTemplateNotifier.applyTemplate]）は変更していない。
+  Future<void> _applyAddFromTemplate(GoalTemplate template, String date) async {
+    final result = await ref
+        .read(goalTemplateProvider.notifier)
+        .applyTemplate(
+          templateId: template.id,
+          goalDate: date,
+          goalTitle: template.name,
+        );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '「${template.name}」（${result.generatedEvents.length}件）を追加しました',
+          ),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
