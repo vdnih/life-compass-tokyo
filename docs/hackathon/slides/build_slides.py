@@ -228,9 +228,11 @@ def build():
                 "何度でも立て直せる", 36, color=NAVY_DEEP, bold=True)
 
     add_picture_framed(s, ASSETS / "timeline-overview.jpg",
-                        Inches(0.7), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
+                        Inches(0.7), Inches(1.5), width=Inches(4.4), height=Inches(3.25))
+    add_picture_framed(s, ASSETS / "timeline-mobile.jpg",
+                        Inches(5.3), Inches(1.5), width=Inches(1.5), height=Inches(3.25))
     add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
-                        Inches(6.6), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
+                        Inches(7.0), Inches(1.5), width=Inches(5.3), height=Inches(3.25))
 
     add_textbox(s, Inches(0.7), Inches(5.0), Inches(11.5), Inches(1.3),
                 "結婚・出産・転職などの予定を自由に置き、必要な制度情報をすぐに確認できます。\n"
