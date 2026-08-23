@@ -60,9 +60,37 @@ class PointEventMarker extends StatelessWidget {
                 clipBehavior: Clip.none,
                 alignment: Alignment.topCenter,
                 children: [
-                  CustomPaint(
-                    size: const Size(20, 18),
-                    painter: _TrianglePainter(color: color),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // デザイン仕上げ: ベタ三角だけだと視覚的な重みが弱いため、
+                      // カタログのアイコン（event_detail_dialog と同じ情報源）を
+                      // 円形チップに載せ、下に指し先の三角を添える
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.35),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          catalogIcon(event.catalogId),
+                          color: Colors.white,
+                          size: 15,
+                        ),
+                      ),
+                      CustomPaint(
+                        size: const Size(10, 6),
+                        painter: _TrianglePainter(color: color),
+                      ),
+                    ],
                   ),
                   if (badgeStyle != null)
                     Positioned(
@@ -85,16 +113,23 @@ class PointEventMarker extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                event.title,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: color,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
+                child: Text(
+                  event.title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
               ),
               if (event.isFuturePlan) ...[
                 const SizedBox(height: 2),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/branding/app_branding.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/logic/auth_provider.dart';
 import '../../auth/presentation/sign_in_dialog.dart';
@@ -172,26 +173,64 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        constraints: const BoxConstraints(maxWidth: 260),
-        decoration: BoxDecoration(
-          color: isUser ? AppTheme.primary : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: isUser ? null : Border.all(color: Colors.grey.shade200),
-        ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.4,
-            color: isUser ? Colors.white : Colors.black87,
-          ),
+    // BoxDecoration の border は辺ごとに色を変えると borderRadius と両立できない
+    // ため、AI 側の左アクセント（ティール）は ClipRRect + Row の別要素で表現する。
+    final bubbleCore = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isUser ? AppTheme.primary : Colors.white,
+        border: isUser ? null : Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(
+        message.text,
+        style: TextStyle(
+          fontSize: 13,
+          height: 1.4,
+          color: isUser ? Colors.white : Colors.black87,
         ),
       ),
+    );
+    final bubble = Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      constraints: const BoxConstraints(maxWidth: 220),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+      child: isUser
+          ? bubbleCore
+          : IntrinsicHeight(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 3, color: AppTheme.accentTeal),
+                  Flexible(child: bubbleCore),
+                ],
+              ),
+            ),
+    );
+
+    if (isUser) {
+      return Align(alignment: Alignment.centerRight, child: bubble);
+    }
+
+    // AI 側はロゴを添えて、ブランドの顔をチャット内にも一度出す
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8, right: 6),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(9),
+            child: Image.asset(
+              AppBranding.logoAsset,
+              width: 18,
+              height: 18,
+              cacheWidth: 36,
+            ),
+          ),
+        ),
+        Flexible(child: bubble),
+      ],
     );
   }
 }

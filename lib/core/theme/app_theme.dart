@@ -21,6 +21,15 @@ class AppTheme {
   /// 現在地マーカー: コーラルレッド
   static const Color nowMarker = Color(0xFFFF6B6B);
 
+  /// ブランドアクセント: ロゴ（コンパス）のティール。`assets/icons/app_icon.svg` の実値
+  static const Color accentTeal = Color(0xFF1DBFA3);
+
+  /// ブランドアクセント: ロゴ（コンパス）のアンバー。`assets/icons/app_icon.svg` の実値
+  static const Color accentAmber = Color(0xFFF5A623);
+
+  /// AppBar グラデーションの深い側。`docs/hackathon/slides/index.html` の `--navy-deep` と揃える
+  static const Color primaryDeep = Color(0xFF142842);
+
   // ─── テーマデータ ───────────────────────────────────────────
 
   /// ライトテーマ
@@ -28,30 +37,71 @@ class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: primary,
       brightness: Brightness.light,
-    ).copyWith(
-      primary: primary,
-      secondary: secondary,
-      surface: Colors.white,
-    );
+    ).copyWith(primary: primary, secondary: secondary, surface: Colors.white);
 
     final base = GoogleFonts.notoSansJpTextTheme();
 
     final textTheme = base.copyWith(
-      displayLarge: base.displayLarge?.copyWith(fontWeight: FontWeight.w700, color: Colors.black87),
-      displayMedium: base.displayMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.black87),
-      displaySmall: base.displaySmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.black87),
-      headlineLarge: base.headlineLarge?.copyWith(fontWeight: FontWeight.w700, color: Colors.black87),
-      headlineMedium: base.headlineMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.black87),
-      headlineSmall: base.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.black87),
-      titleLarge: base.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Colors.black87),
-      titleMedium: base.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: Colors.grey[800]),
-      titleSmall: base.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.grey[800]),
-      bodyLarge: base.bodyLarge?.copyWith(fontWeight: FontWeight.w400, color: Colors.black87),
-      bodyMedium: base.bodyMedium?.copyWith(fontWeight: FontWeight.w400, color: Colors.black87),
-      bodySmall: base.bodySmall?.copyWith(fontWeight: FontWeight.w400, color: Colors.grey[700]),
-      labelLarge: base.labelLarge?.copyWith(fontWeight: FontWeight.w500, color: Colors.black87),
-      labelMedium: base.labelMedium?.copyWith(fontWeight: FontWeight.w500, color: Colors.grey[700]),
-      labelSmall: base.labelSmall?.copyWith(fontWeight: FontWeight.w400, color: Colors.grey[600]),
+      displayLarge: base.displayLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+      displayMedium: base.displayMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+      displaySmall: base.displaySmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+      headlineLarge: base.headlineLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+      headlineMedium: base.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+      headlineSmall: base.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+      titleLarge: base.titleLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.black87,
+      ),
+      titleMedium: base.titleMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: Colors.grey[800],
+      ),
+      titleSmall: base.titleSmall?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: Colors.grey[800],
+      ),
+      bodyLarge: base.bodyLarge?.copyWith(
+        fontWeight: FontWeight.w400,
+        color: Colors.black87,
+      ),
+      bodyMedium: base.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w400,
+        color: Colors.black87,
+      ),
+      bodySmall: base.bodySmall?.copyWith(
+        fontWeight: FontWeight.w400,
+        color: Colors.grey[700],
+      ),
+      labelLarge: base.labelLarge?.copyWith(
+        fontWeight: FontWeight.w500,
+        color: Colors.black87,
+      ),
+      labelMedium: base.labelMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+        color: Colors.grey[700],
+      ),
+      labelSmall: base.labelSmall?.copyWith(
+        fontWeight: FontWeight.w400,
+        color: Colors.grey[600],
+      ),
     );
 
     return ThemeData(
