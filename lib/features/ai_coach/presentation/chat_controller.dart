@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../catalog/data/predefined_catalog_registry.dart';
+import '../../timeline/data/goal_template_data.dart';
 import '../../timeline/domain/event_dependency.dart';
 import '../../timeline/domain/life_event.dart';
 import '../../timeline/domain/year_month.dart';
@@ -46,8 +47,6 @@ class ChatSendResult {
   });
 
   int get addedCount => addedEvents.length;
-
-  bool get isEmpty => addedEvents.isEmpty && addedDependencies.isEmpty;
 }
 
 /// AI コーチのチャットコントローラ
@@ -129,10 +128,18 @@ class ChatController extends Notifier<ChatState> {
 
     if (addedEvents.isEmpty) return null;
 
-    final focus = YearMonth.parse(addedEvents.first.date);
-    ref
-        .read(chatHighlightProvider.notifier)
-        .show(addedEvents.map((e) => e.id).toSet(), focus);
+    // `_executeTool` が年月を検証済みのため通常は例外にならないが、呼び出し元
+    // （`coach_chat_panel.dart`）に try/catch が無く、ここで例外を投げると
+    // 送信ボタンが固まったままになる。ハイライトは副次的な演出のため、
+    // 失敗しても送信結果自体は返す。
+    try {
+      final focus = YearMonth.parse(addedEvents.first.date);
+      ref
+          .read(chatHighlightProvider.notifier)
+          .show(addedEvents.map((e) => e.id).toSet(), focus);
+    } on FormatException {
+      // ハイライト演出のみ諦める。
+    }
 
     return ChatSendResult(
       addedEvents: addedEvents,
@@ -152,11 +159,26 @@ class ChatController extends Notifier<ChatState> {
   }) async {
     switch (name) {
       case 'applyGoalTemplate':
+        final templateId = args['templateId'] as String;
+        final templateExists = GoalTemplateRegistry.templates.any(
+          (t) => t.id == templateId,
+        );
+        if (!templateExists) {
+          return {'status': 'error', 'message': '不明なテンプレートIDです: $templateId'};
+        }
+        final goalYearMonth = args['goalYearMonth'] as String;
+        if (!_isValidYearMonth(goalYearMonth)) {
+          return {
+            'status': 'error',
+            'message': 'goalYearMonth は yyyy-MM 形式で指定してください: $goalYearMonth',
+          };
+        }
+
         final result = await ref
             .read(goalTemplateProvider.notifier)
             .applyTemplate(
-              templateId: args['templateId'] as String,
-              goalDate: args['goalYearMonth'] as String,
+              templateId: templateId,
+              goalDate: goalYearMonth,
               goalTitle: args['goalTitle'] as String,
             );
         addedEvents.addAll(result.generatedEvents);
@@ -173,6 +195,12 @@ class ChatController extends Notifier<ChatState> {
           return {'status': 'error', 'message': '不明なカタログIDです: $catalogId'};
         }
         final yearMonth = args['yearMonth'] as String;
+        if (!_isValidYearMonth(yearMonth)) {
+          return {
+            'status': 'error',
+            'message': 'yearMonth は yyyy-MM 形式で指定してください: $yearMonth',
+          };
+        }
 
         // build() が未解決（AsyncLoading）のまま before/after を比較すると
         // 追加分を取りこぼすため、先に解決を待つ。
@@ -183,7 +211,13 @@ class ChatController extends Notifier<ChatState> {
             .addEventFromCatalog(catalog, yearMonth);
         final after =
             ref.read(timelineEventsProvider).value ?? const <LifeEvent>[];
-        final added = after.where((e) => !beforeIds.contains(e.id));
+        final added = after.where((e) => !beforeIds.contains(e.id)).toList();
+        if (added.isEmpty) {
+          // TimelineEventsNotifier は書き込み失敗時に previousState へ
+          // 静かに復元するため、ここで空を検知して Gemini に伝える
+          // （そうしないと「追加しました」と誤って発話しうる）。
+          return {'status': 'error', 'message': 'イベントの追加に失敗しました'};
+        }
         addedEvents.addAll(added);
         return {'status': 'ok', 'addedEventCount': added.length};
 
@@ -197,6 +231,23 @@ class ChatController extends Notifier<ChatState> {
 
       default:
         return {'status': 'error', 'message': '未対応の関数です: $name'};
+    }
+  }
+
+  /// [value] が `YearMonth.parse` で解釈できる `yyyy-MM` 形式か検証する。
+  ///
+  /// AI が生成した年月文字列は検証なしで [LifeEvent.date] に書き込まれうるため
+  /// （`TimelineEventsNotifier.addEventFromCatalog` は `endDate` 計算時にしか
+  /// パースしない）、実行前にここで弾く。素通しすると `send()` 末尾の
+  /// `YearMonth.parse(addedEvents.first.date)` が捕捉されずに例外を投げ、
+  /// 呼び出し元（`coach_chat_panel.dart`）に try/catch が無いため送信ボタンが
+  /// 固まる。
+  bool _isValidYearMonth(String value) {
+    try {
+      YearMonth.parse(value);
+      return true;
+    } on FormatException {
+      return false;
     }
   }
 
