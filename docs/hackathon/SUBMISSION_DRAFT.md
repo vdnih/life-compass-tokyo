@@ -89,7 +89,7 @@ Claude Codeを活用しています。
 | フォーム項目 | 転記内容 |
 | --- | --- |
 | 3-3 デモURL | `https://my-career-app-559fd.web.app` |
-| 3-5 その他のURL | `https://github.com/vdnih/my_career_app` |
+| 3-5 その他のURL | `https://github.com/vdnih/life-compass-tokyo` |
 | 3-6 デモURLの一般公開可否 | `[要入力：AI呼び出しのコスト対策（サインインゲート）を踏まえて選択]` |
 | 3-7 ハードウェアを含むか | `いいえ` |
 
