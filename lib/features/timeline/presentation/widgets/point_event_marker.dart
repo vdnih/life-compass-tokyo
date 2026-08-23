@@ -42,7 +42,7 @@ class PointEventMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = eventColor(event);
     final opacity = isDimmed ? 0.3 : eventOpacity(event);
-    final hasWarning = eventConstraints.isNotEmpty;
+    final badgeStyle = ConstraintBadgeStyle.resolve(eventConstraints);
 
     // spike/ai-chat-ux: 外側に対称 padding で足すため、[anchorInset] が前提とする
     // markerWidth 中心の位置は変わらない（ドラッグ着地計算には影響しない）。
@@ -64,19 +64,19 @@ class PointEventMarker extends StatelessWidget {
                     size: const Size(20, 18),
                     painter: _TrianglePainter(color: color),
                   ),
-                  if (hasWarning)
+                  if (badgeStyle != null)
                     Positioned(
                       top: -5,
                       right: 22,
                       child: Container(
                         width: 14,
                         height: 14,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFF8C42),
+                        decoration: BoxDecoration(
+                          color: badgeStyle.color,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.warning_rounded,
+                        child: Icon(
+                          badgeStyle.icon,
                           color: Colors.white,
                           size: 9,
                         ),

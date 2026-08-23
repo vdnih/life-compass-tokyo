@@ -64,9 +64,24 @@ class _ConstraintWarningCard extends StatelessWidget {
                 Icon(icon, color: iconColor, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    constraint.message,
-                    style: const TextStyle(fontSize: 13, height: 1.4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        constraint.message,
+                        style: const TextStyle(fontSize: 13, height: 1.4),
+                      ),
+                      if (constraint.sourceLabel != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          constraint.sourceLabel!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: iconColor.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

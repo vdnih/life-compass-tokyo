@@ -9,6 +9,7 @@ import '../../domain/life_event.dart';
 import '../../logic/dependency_provider.dart';
 import '../../logic/timeline_events_provider.dart';
 import '../edit_event_dialog.dart';
+import 'constraint_warning.dart';
 import 'event_style.dart';
 
 /// イベント詳細ダイアログを表示する。
@@ -16,6 +17,8 @@ import 'event_style.dart';
 /// `year_timeline.dart` と `year_month_timeline.dart` に byte 単位で重複していた
 /// `_showEventDetails` / `_buildConstraintTile` / `_buildDependencyTile` /
 /// `_confirmAndDelete` を統合したもの（#34, #36）。
+/// 制約カードの描画は #87 で `ConstraintWarningList`（`constraint_warning.dart`）
+/// との重複を解消し、そちらに一本化した。
 ///
 /// 月ビューにのみ存在した連動期間（`offsetMonths`）編集ダイアログは、年ビューに
 /// 揃えて削除した。UI として必要かは未決課題として Issue に積む（→ #50）。
@@ -131,7 +134,7 @@ void showEventDetailDialog({
                 ],
                 if (eventConstraints.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  ...eventConstraints.map((c) => _buildConstraintTile(c)),
+                  ConstraintWarningList(constraints: eventConstraints),
                 ],
                 if (relatedDeps.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -186,50 +189,6 @@ void showEventDetailDialog({
         FilledButton(
           onPressed: () => Navigator.pop(dialogCtx),
           child: const Text('閉じる'),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildConstraintTile(ConstraintResult c) {
-  final isWarning = c.severity == ConstraintSeverity.warning;
-  final bgColor =
-      isWarning ? const Color(0xFFFFF3E0) : const Color(0xFFEDE7F6);
-  final borderColor = isWarning
-      ? const Color(0xFFFFB74D)
-      : AppTheme.primary.withValues(alpha: 0.4);
-  final iconColor = isWarning ? const Color(0xFFE65100) : AppTheme.primary;
-
-  return Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    clipBehavior: Clip.antiAlias,
-    decoration:
-        BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
-    child: Stack(
-      children: [
-        Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 3,
-            child: Container(color: borderColor)),
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Icon(
-                isWarning ? Icons.warning_amber_rounded : Icons.info_outline,
-                color: iconColor,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(c.message,
-                    style: const TextStyle(fontSize: 12, height: 1.4)),
-              ),
-            ],
-          ),
         ),
       ],
     ),

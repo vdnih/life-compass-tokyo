@@ -9,10 +9,12 @@ LifeEvent _event({
   required String date,
   required String title,
   required String catalogId,
+  String? endDate,
 }) {
   return LifeEvent(
     id: 'test-${date.replaceAll('-', '')}-$catalogId',
     date: date,
+    endDate: endDate,
     title: title,
     description: '',
     catalogId: catalogId,
@@ -315,6 +317,30 @@ void main() {
       expect(c03Result.message, contains('転職タイミングの目安'));
       expect(c03Result.message, contains('出産予定'));
       expect(c03Result.message, contains('3'));
+    });
+  });
+
+  group('open_data feature の制度上限（B1, PDR-008）との合流', () {
+    test('育休(12ヶ月, 既定値)を含むイベント列で制度上限の info が返ること', () {
+      final events = [
+        _event(
+          date: '2026-01',
+          endDate: '2027-01',
+          title: '育休',
+          catalogId: 'childcare-leave',
+        ),
+      ];
+
+      final results = checkAllConstraints(events);
+
+      expect(
+        results.any(
+          (r) =>
+              r.ruleId == 'IL-childcare-leave' &&
+              r.severity == ConstraintSeverity.info,
+        ),
+        isTrue,
+      );
     });
   });
 }

@@ -32,7 +32,7 @@ class DurationEventBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = eventColor(event);
     final opacity = isDimmed ? 0.3 : eventOpacity(event);
-    final hasWarning = eventConstraints.isNotEmpty;
+    final badgeStyle = ConstraintBadgeStyle.resolve(eventConstraints);
 
     final userBudget = event.budgetYen;
     final catalogDefault = PredefinedCatalogRegistry.findById(
@@ -124,19 +124,19 @@ class DurationEventBar extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (hasWarning)
+                if (badgeStyle != null)
                   Positioned(
                     top: -6,
                     right: -6,
                     child: Container(
                       width: 18,
                       height: 18,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF8C42),
+                      decoration: BoxDecoration(
+                        color: badgeStyle.color,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.warning_rounded,
+                      child: Icon(
+                        badgeStyle.icon,
                         color: Colors.white,
                         size: 12,
                       ),
