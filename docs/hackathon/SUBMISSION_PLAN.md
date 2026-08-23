@@ -130,7 +130,7 @@ Issue #63（「自然妊娠期間（35歳まで）」を参考値候補に）は
 - `timeline_view.dart` は既に1000行超。ADR-021 の方針どおりレイヤーは別ウィジェットとして追加し、この PR で分割はしない
 - テスト：上限判定は純関数側で網羅、ウィジェットは「出典付き情報カードが表示される」配線1本のみ（CLAUDE.md §5）
 
-### Phase 2：AI 対話（PDR-006 Phase 2〜3）
+### Phase 2：AI 対話（PDR-006 Phase 2〜3）**実装完了（ADR-027）**
 
 - `pubspec.yaml` に `firebase_ai` を追加
 - 新規 `lib/features/ai_agent/`

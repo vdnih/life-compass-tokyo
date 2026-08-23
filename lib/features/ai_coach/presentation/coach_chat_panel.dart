@@ -43,9 +43,9 @@ class _CoachChatPanelState extends ConsumerState<CoachChatPanel> {
     final text = _textController.text;
     if (text.trim().isEmpty || _isSending) return;
 
-    // spike/ai-chat-ux: 手動でのイベント配置とは非対称にあえてログイン必須にする。
+    // 手動でのイベント配置とは非対称にあえてログイン必須にする。
     // 手動配置はコストがかからず「試せる」ことに価値があるためゲストに開放したが
-    // （#74）、AI呼び出しはコストが発生する（Step 4 で実AI接続予定）ため、
+    // （#74）、AI呼び出しは Gemini API のコストが発生するため、
     // 無制限に使われては困る。
     //
     // authPendingProvider を先に見るのは、authStateProvider.value == null が
@@ -76,9 +76,8 @@ class _CoachChatPanelState extends ConsumerState<CoachChatPanel> {
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
             label: '元に戻す',
-            onPressed: () => ref
-                .read(chatControllerProvider.notifier)
-                .undoLast(result.expansion),
+            onPressed: () =>
+                ref.read(chatControllerProvider.notifier).undoLast(result),
           ),
         ),
       );
