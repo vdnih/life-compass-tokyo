@@ -30,12 +30,21 @@ class ConstraintResult {
   /// 表示メッセージ
   final String message;
 
+  /// 出典の短いラベル（例: '出典: 育児・介護休業法（厚生労働省）'）。
+  /// 制度上限（open_data feature）由来の結果のみ持つ。PDR-008 参照
+  final String? sourceLabel;
+
+  /// 出典URL。無い場合（法令など）は null
+  final String? sourceUrl;
+
   const ConstraintResult({
     required this.ruleId,
     required this.targetEventTitle,
     this.relatedEventTitle,
     required this.severity,
     required this.message,
+    this.sourceLabel,
+    this.sourceUrl,
   });
 
   @override
@@ -46,7 +55,9 @@ class ConstraintResult {
         other.targetEventTitle == targetEventTitle &&
         other.relatedEventTitle == relatedEventTitle &&
         other.severity == severity &&
-        other.message == message;
+        other.message == message &&
+        other.sourceLabel == sourceLabel &&
+        other.sourceUrl == sourceUrl;
   }
 
   @override
@@ -55,6 +66,8 @@ class ConstraintResult {
         targetEventTitle.hashCode ^
         relatedEventTitle.hashCode ^
         severity.hashCode ^
-        message.hashCode;
+        message.hashCode ^
+        sourceLabel.hashCode ^
+        sourceUrl.hashCode;
   }
 }

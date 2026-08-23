@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../open_data/logic/institutional_limit_check.dart';
 import '../domain/constraint_result.dart';
 import '../domain/event_dependency.dart';
 import '../domain/life_event.dart';
@@ -11,6 +12,11 @@ import 'timeline_events_provider.dart';
 /// v6.0: EventCategory の代わりに catalogId でチェック。
 /// 旧 C-01 / C-02 は §4.3 のカタログ静的ルールに統合されたため、
 /// ここでは catalogId ベースの比較で判定する。
+///
+/// `open_data/logic/institutional_limit_check.dart` の制度上限（B1、PDR-008）
+/// もここに合流させる。timeline feature が open_data feature に依存する形に
+/// なるが、catalog feature を timeline と並列に置いているのと同じ理由
+/// （共有データを持つ feature を下位に置く）で、方向としては問題ない。
 List<ConstraintResult> checkAllConstraints(
   List<LifeEvent> events, [
   List<EventDependency> dependencies = const [],
@@ -19,6 +25,7 @@ List<ConstraintResult> checkAllConstraints(
   results.addAll(_checkC01(events));
   results.addAll(_checkC02(events));
   results.addAll(_checkC03(events, dependencies));
+  results.addAll(checkInstitutionalLimits(events));
   return results;
 }
 
