@@ -335,6 +335,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
         context,
         constraints,
         events,
+        now,
         scale,
         profile,
         dependenciesAsync,
@@ -347,6 +348,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     BuildContext context,
     BoxConstraints constraints,
     List<LifeEvent> events,
+    DateTime now,
     TimelineScale scale,
     UserProfile? profile,
     AsyncValue<List<EventDependency>> dependenciesAsync,
@@ -369,7 +371,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
         : availableHeight / 2;
 
     final nowBlockLeft = scale.xOfBlock(
-      widget.mode.anchorOf(YearMonth.fromDateTime(DateTime.now())),
+      widget.mode.anchorOf(YearMonth.fromDateTime(now)),
     );
 
     final eventPositions = <String, double>{};
