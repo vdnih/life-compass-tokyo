@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/life_event.dart';
 import 'event_style.dart';
@@ -42,7 +43,10 @@ class PointEventMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = eventColor(event);
     final opacity = isDimmed ? 0.3 : eventOpacity(event);
-    final hasWarning = eventConstraints.isNotEmpty;
+    final hasWarning = eventConstraints.any(
+      (c) => c.severity == ConstraintSeverity.warning,
+    );
+    final hasInfo = !hasWarning && eventConstraints.isNotEmpty;
 
     // spike/ai-chat-ux: 外側に対称 padding で足すため、[anchorInset] が前提とする
     // markerWidth 中心の位置は変わらない（ドラッグ着地計算には影響しない）。
@@ -64,19 +68,23 @@ class PointEventMarker extends StatelessWidget {
                     size: const Size(20, 18),
                     painter: _TrianglePainter(color: color),
                   ),
-                  if (hasWarning)
+                  if (hasWarning || hasInfo)
                     Positioned(
                       top: -5,
                       right: 22,
                       child: Container(
                         width: 14,
                         height: 14,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFF8C42),
+                        decoration: BoxDecoration(
+                          color: hasWarning
+                              ? const Color(0xFFFF8C42)
+                              : AppTheme.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.warning_rounded,
+                        child: Icon(
+                          hasWarning
+                              ? Icons.warning_rounded
+                              : Icons.info_outline,
                           color: Colors.white,
                           size: 9,
                         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../catalog/data/predefined_catalog_registry.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/life_event.dart';
@@ -39,7 +40,10 @@ class EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = eventColor(event);
     final opacity = isDimmed ? 0.3 : eventOpacity(event);
-    final hasWarning = eventConstraints.isNotEmpty;
+    final hasWarning = eventConstraints.any(
+      (c) => c.severity == ConstraintSeverity.warning,
+    );
+    final hasInfo = !hasWarning && eventConstraints.isNotEmpty;
 
     // 予算テキストの解決
     final userBudget = event.budgetYen;
@@ -120,19 +124,23 @@ class EventCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (hasWarning)
+                if (hasWarning || hasInfo)
                   Positioned(
                     top: -6,
                     right: -6,
                     child: Container(
                       width: 18,
                       height: 18,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF8C42),
+                      decoration: BoxDecoration(
+                        color: hasWarning
+                            ? const Color(0xFFFF8C42)
+                            : AppTheme.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.warning_rounded,
+                      child: Icon(
+                        hasWarning
+                            ? Icons.warning_rounded
+                            : Icons.info_outline,
                         color: Colors.white,
                         size: 12,
                       ),
