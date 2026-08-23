@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/branding/app_branding.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../ai_coach/presentation/coach_chat_panel.dart';
 import '../../ai_coach/presentation/coach_chat_sheet.dart';
@@ -64,29 +65,89 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     );
     final totalBudgetText = _formatTotalBudget(totalBudget);
 
+    // タグライン・ユーザー名は AppBar が狭いと崩れるため、幅に応じて間引く
+    final appBarWidth = MediaQuery.sizeOf(context).width;
+    final showTagline = appBarWidth >= 840;
+    final showUserName = appBarWidth >= 480;
+    final userNameText = ageText.isNotEmpty
+        ? '$displayName ・ $ageText'
+        : displayName;
+
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        // ブランドのネイビー基調を少し立体的にするグラデーション
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [AppTheme.primary, AppTheme.primaryDeep],
+            ),
+          ),
+        ),
+        // ロゴのティール→アンバーを1本のラインで差す（ブランドアクセント）
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: Container(
+            height: 3,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.accentTeal, AppTheme.accentAmber],
+              ),
+            ),
+          ),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Image.asset(AppBranding.logoAsset, cacheWidth: 56),
+        ),
+        titleSpacing: 0,
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              'わたしのライフプラン',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.white70,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.5,
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    AppBranding.appName,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (showTagline)
+                    const Text(
+                      AppBranding.tagline,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                ],
               ),
             ),
-            Text(
-              ageText.isNotEmpty ? '$displayName  $ageText' : displayName,
-              style: const TextStyle(
-                fontSize: 17,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            if (showUserName) ...[
+              const SizedBox(width: 16),
+              Container(width: 1, height: 20, color: Colors.white24),
+              const SizedBox(width: 16),
+              Flexible(
+                child: Text(
+                  userNameText,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
               ),
-            ),
+            ],
           ],
         ),
         actions: [

@@ -18,7 +18,23 @@ Widget buildTimelineGridLines({
   required double axisHeight,
   required double rowHeight,
 }) {
-  final children = <Widget>[];
+  final children = <Widget>[
+    // 仕事/プライベートの2レーン構造を一目で分かるよう、薄いティントで塗り分ける
+    Positioned(
+      top: axisHeight,
+      left: 0,
+      right: 0,
+      height: rowHeight,
+      child: Container(color: AppTheme.primary.withValues(alpha: 0.025)),
+    ),
+    Positioned(
+      top: axisHeight + rowHeight,
+      left: 0,
+      right: 0,
+      height: rowHeight,
+      child: Container(color: AppTheme.secondary.withValues(alpha: 0.025)),
+    ),
+  ];
 
   final gridHeight = totalHeight - axisHeight;
   for (int i = 0; i <= scale.slotCount; i++) {
@@ -40,22 +56,26 @@ Widget buildTimelineGridLines({
   }
 
   // 仕事/プライベートの境界線（水平）
-  children.add(Positioned(
-    top: axisHeight + rowHeight,
-    left: 0,
-    right: 0,
-    child: Container(height: 1, color: Colors.grey.shade200),
-  ));
-  // 軸下の境界線
-  children.add(Positioned(
-    top: axisHeight,
-    left: 0,
-    right: 0,
-    child: Container(
-      height: 1,
-      color: AppTheme.primary.withValues(alpha: 0.15),
+  children.add(
+    Positioned(
+      top: axisHeight + rowHeight,
+      left: 0,
+      right: 0,
+      child: Container(height: 1, color: Colors.grey.shade200),
     ),
-  ));
+  );
+  // 軸下の境界線
+  children.add(
+    Positioned(
+      top: axisHeight,
+      left: 0,
+      right: 0,
+      child: Container(
+        height: 1,
+        color: AppTheme.primary.withValues(alpha: 0.15),
+      ),
+    ),
+  );
 
   return Stack(children: children);
 }

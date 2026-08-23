@@ -142,8 +142,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   final _dropTargetKey = GlobalKey();
 
   static const double axisHeight = 60.0;
-  static const double sidebarWidth = 40.0;
-  static const double _cardHeight = 84.0;
+  static const double sidebarWidth = 76.0;
+  static const double _cardHeight = 92.0;
   static const double _topPadding = 24.0;
   static const double _minRowHeight = 160.0;
 
@@ -312,6 +312,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
     // spike/ai-chat-ux: チャットが直前に追加/展開したイベントをリング表示し、
     // ゴール年月へ自動スクロールする。
+    // `ref.listen` / `ref.watch` は ConsumerStatefulElement の build フェーズ内で
+    // しか呼べない（LayoutBuilder の builder コールバックは layout フェーズで動く
+    // ため不可）。そのため行の高さ計算に必要な `LayoutBuilder` より前に済ませる。
     final chatHighlight = ref.watch(chatHighlightProvider);
     ref.listen(chatHighlightProvider, (previous, next) {
       final focus = next.focusYearMonth;
@@ -325,14 +328,47 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       );
     });
 
+    // 行の高さをビューポート高さいっぱいまで引き伸ばすため、外側の制約を取る
+    // （デザイン仕上げ: ビューポートが高いとレーンの下に空白帯が残っていた）
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildContent(
+        context,
+        constraints,
+        events,
+        now,
+        scale,
+        profile,
+        dependenciesAsync,
+        chatHighlight,
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    BoxConstraints constraints,
+    List<LifeEvent> events,
+    DateTime now,
+    TimelineScale scale,
+    UserProfile? profile,
+    AsyncValue<List<EventDependency>> dependenciesAsync,
+    ChatHighlight chatHighlight,
+  ) {
     final stackIndices = computeStackIndices(events, scale);
-    _rowHeight = computeStackedRowHeight(
+    final contentRowHeight = computeStackedRowHeight(
       stackIndices: stackIndices,
       events: events,
       minRowHeight: _minRowHeight,
       topPadding: _topPadding,
       cardHeight: _cardHeight,
     );
+    // ビューポートが高いときはレーンを引き伸ばして下の空白帯をなくす。
+    // 段積みで必要な高さ（contentRowHeight）を下回ることはない。
+    final availableHeight =
+        constraints.maxHeight - axisHeight - 80 /* top40 + bottom40 */;
+    _rowHeight = contentRowHeight > availableHeight / 2
+        ? contentRowHeight
+        : availableHeight / 2;
 
     final nowBlockLeft = scale.xOfBlock(
       widget.mode.anchorOf(YearMonth.fromDateTime(now)),

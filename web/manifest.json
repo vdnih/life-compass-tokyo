@@ -1,11 +1,11 @@
 {
-    "name": "My Career App",
-    "short_name": "My Career",
+    "name": "ライフコンパス東京",
+    "short_name": "ライフコンパス",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#1E3A5F",
     "theme_color": "#1E3A5F",
-    "description": "キャリアも、ライフも、自分らしく。キャリアとプライベートの両面からライフプランを考えるタイムラインアプリ。",
+    "description": "制度を知って、自分の人生を自分で描く。結婚・妊娠・出産・子育てとキャリアを一つの時間軸で考え直せるタイムラインアプリ。",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
