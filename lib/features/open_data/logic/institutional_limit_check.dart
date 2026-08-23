@@ -33,6 +33,7 @@ List<ConstraintResult> checkInstitutionalLimits(List<LifeEvent> events) {
         message: limit.message,
         sourceLabel: limit.source.label,
         sourceUrl: limit.source.url,
+        scopeLabel: limit.scope.label,
       ));
     }
   }

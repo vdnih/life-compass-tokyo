@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:my_career_app/core/platform/url_launcher_service.dart';
 import 'package:my_career_app/features/timeline/data/dependency_repository.dart';
 import 'package:my_career_app/features/timeline/data/event_repository.dart';
 import 'package:my_career_app/features/timeline/domain/event_dependency.dart';
@@ -14,6 +15,8 @@ class MockEventRepository extends Mock implements EventRepository {}
 class MockDependencyRepository extends Mock implements DependencyRepository {}
 
 class MockUser extends Mock implements User {}
+
+class MockUrlLauncher extends Mock implements UrlLauncher {}
 
 class _FakeLifeEvent extends Fake implements LifeEvent {}
 
@@ -55,5 +58,12 @@ MockDependencyRepository stubDependencyRepository({
   when(() => mock.deleteDependenciesForEvent(any())).thenAnswer((_) async {});
   when(() => mock.fetchDependenciesForEvent(any()))
       .thenAnswer((_) async => const []);
+  return mock;
+}
+
+/// `open` をスタブ済みの [MockUrlLauncher] を返す。
+MockUrlLauncher stubUrlLauncher() {
+  final mock = MockUrlLauncher();
+  when(() => mock.open(any())).thenAnswer((_) async {});
   return mock;
 }

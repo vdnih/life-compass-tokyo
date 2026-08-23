@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../core/platform/url_launcher_service.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../domain/constraint_result.dart';
 
@@ -21,13 +23,13 @@ class ConstraintWarningList extends StatelessWidget {
   }
 }
 
-class _ConstraintWarningCard extends StatelessWidget {
+class _ConstraintWarningCard extends ConsumerWidget {
   final ConstraintResult constraint;
 
   const _ConstraintWarningCard({required this.constraint});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isWarning = constraint.severity == ConstraintSeverity.warning;
     final bgColor = isWarning
         ? const Color(0xFFFFF3E0)
@@ -67,18 +69,23 @@ class _ConstraintWarningCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (constraint.scopeLabel != null) ...[
+                        _ScopeBadge(
+                          label: constraint.scopeLabel!,
+                          color: iconColor,
+                        ),
+                        const SizedBox(height: 4),
+                      ],
                       Text(
                         constraint.message,
                         style: const TextStyle(fontSize: 13, height: 1.4),
                       ),
                       if (constraint.sourceLabel != null) ...[
                         const SizedBox(height: 4),
-                        Text(
-                          constraint.sourceLabel!,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: iconColor.withValues(alpha: 0.8),
-                          ),
+                        _SourceLine(
+                          label: constraint.sourceLabel!,
+                          url: constraint.sourceUrl,
+                          color: iconColor,
                         ),
                       ],
                     ],
@@ -87,6 +94,71 @@ class _ConstraintWarningCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 実施主体（国/東京都）を示す小さなバッジ（PDR-009）。
+class _ScopeBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _ScopeBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+/// 出典行。[url] があればタップで公式ページを開く（PDR-009）。
+class _SourceLine extends ConsumerWidget {
+  final String label;
+  final String? url;
+  final Color color;
+
+  const _SourceLine({required this.label, required this.url, required this.color});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textStyle = TextStyle(
+      fontSize: 11,
+      color: color.withValues(alpha: 0.8),
+    );
+
+    if (url == null) {
+      return Text(label, style: textStyle);
+    }
+
+    return InkWell(
+      onTap: () => ref.read(urlLauncherProvider).open(url!),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              style: textStyle.copyWith(decoration: TextDecoration.underline),
+            ),
+          ),
+          const SizedBox(width: 2),
+          Icon(Icons.open_in_new, size: 11, color: color.withValues(alpha: 0.8)),
         ],
       ),
     );
