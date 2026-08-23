@@ -1,0 +1,329 @@
+"""ライフコンパス東京 — First Stage プレゼン資料のビルドスクリプト。
+
+このファイルがスライドの唯一のソース。`docs/hackathon/PRESENTATION_OUTLINE.md`
+の文言と逐語一致させること。文言を直すときはこのファイルと骨子の両方を直す。
+
+実行方法（リポジトリの依存には加えない。都度 uv で python-pptx を渡して実行する）:
+
+    uv run --with python-pptx docs/hackathon/slides/build_slides.py
+
+出力: docs/hackathon/slides/lifecompass-slides.pptx
+"""
+
+from __future__ import annotations
+
+import copy
+from pathlib import Path
+
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.oxml.ns import qn
+
+HERE = Path(__file__).parent
+ASSETS = HERE / "assets"
+OUTPUT = HERE / "lifecompass-slides.pptx"
+
+# 16:9, 骨子と同じ比率
+SLIDE_W = Inches(13.333)
+SLIDE_H = Inches(7.5)
+
+WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+INK = RGBColor(0x20, 0x24, 0x2B)
+INK_SOFT = RGBColor(0x56, 0x5B, 0x62)
+NAVY = RGBColor(0x1E, 0x3A, 0x5F)
+NAVY_DEEP = RGBColor(0x14, 0x28, 0x42)
+LINE = RGBColor(0xD9, 0xD0, 0xBC)
+BLOOM = RGBColor(0xC2, 0x70, 0x8C)
+
+FONT_JP = "Hiragino Sans"  # macOS 前提（発表者の環境）。Windows で開く場合はフォント未搭載のため
+                            # OS 側のフォント置換に委ねられる（Yu Gothic 等に自動代替される）
+
+
+def set_font(run, size, color=INK, bold=False, name=FONT_JP):
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    run.font.color.rgb = color
+    run.font.name = name
+    # 日本語(East Asian)ランにも明示しないと、macOS でも英数と和文でフォントが分かれて描画されうる
+    rPr = run._r.get_or_add_rPr()
+    ea = rPr.find(qn("a:ea"))
+    if ea is None:
+        ea = rPr.makeelement(qn("a:ea"), {})
+        rPr.append(ea)
+    ea.set("typeface", name)
+
+
+def add_textbox(slide, left, top, width, height, text, size, color=INK, bold=False,
+                 align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP, line_spacing=1.25):
+    box = slide.shapes.add_textbox(left, top, width, height)
+    tf = box.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = anchor
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.alignment = align
+        p.line_spacing = line_spacing
+        run = p.add_run()
+        run.text = line
+        set_font(run, size, color=color, bold=bold)
+    return box
+
+
+def add_rect(slide, left, top, width, height, fill_color=None, line_color=None):
+    shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
+    shape.shadow.inherit = False
+    if fill_color is not None:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = fill_color
+    else:
+        shape.fill.background()
+    if line_color is not None:
+        shape.line.color.rgb = line_color
+        shape.line.width = Pt(0.75)
+    else:
+        shape.line.fill.background()
+    return shape
+
+
+def add_footnote(slide, text):
+    add_textbox(
+        slide, Inches(0.6), Inches(6.95), Inches(12.15), Inches(0.5),
+        text, 10, color=INK_SOFT, line_spacing=1.15,
+    )
+
+
+def add_slide_number(slide, n):
+    add_textbox(
+        slide, Inches(12.55), Inches(0.25), Inches(0.6), Inches(0.4),
+        f"{n:02d}", 12, color=INK_SOFT, align=PP_ALIGN.RIGHT,
+    )
+
+
+def add_picture_framed(slide, path, left, top, width, height):
+    """画像を枠線付きで配置する（実画面のスクリーンショットであることを示す）。
+
+    アセットが見当たらない場合は、空白のまま埋め込まれて気づかれないより、
+    ビルドを止めて気づけるほうがよい。
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"スライド用アセットが見つかりません: {path}")
+    pic = slide.shapes.add_picture(str(path), left, top, width=width, height=height)
+    pic.line.color.rgb = LINE
+    pic.line.width = Pt(1)
+    return pic
+
+
+def new_slide(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])  # 白紙レイアウト
+    bg = slide.background
+    bg.fill.solid()
+    bg.fill.fore_color.rgb = WHITE
+    return slide
+
+
+def set_notes(slide, text):
+    notes = slide.notes_slide
+    tf = notes.notes_text_frame
+    tf.text = text
+
+
+def build():
+    prs = Presentation()
+    prs.slide_width = SLIDE_W
+    prs.slide_height = SLIDE_H
+
+    # ------------------------------------------------------------------
+    # 1. 表紙｜ライフコンパス東京
+    # ------------------------------------------------------------------
+    s = new_slide(prs)
+    add_rect(s, 0, 0, Inches(0.18), SLIDE_H, fill_color=NAVY)
+    add_textbox(s, Inches(0.7), Inches(0.9), Inches(6.0), Inches(1.2),
+                "ライフコンパス東京", 44, color=NAVY_DEEP, bold=True)
+    add_textbox(s, Inches(0.7), Inches(1.95), Inches(6.0), Inches(0.8),
+                "制度を知って、自分の人生を自分で描く", 22, color=NAVY, bold=True)
+    add_textbox(s, Inches(0.7), Inches(2.75), Inches(6.0), Inches(0.5),
+                "LIFECOMPASS TOKYO", 12, color=INK_SOFT)
+    add_picture_framed(s, ASSETS / "timeline-overview.jpg",
+                        Inches(7.0), Inches(1.4), width=Inches(5.8), height=Inches(3.31))
+    add_footnote(s, "都知事杯オープンデータ・ハッカソン2026 First Stage")
+    add_slide_number(s, 1)
+    set_notes(s, "ライフコンパス東京は、結婚・妊娠・出産・子育てといったライフイベントとキャリアを、"
+                 "一つの時間軸の上で考え直せるWebアプリです。")
+
+    # ------------------------------------------------------------------
+    # 2. 課題｜家庭もキャリアも、全力でがんばりたい
+    # ------------------------------------------------------------------
+    s = new_slide(prs)
+    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
+                "家庭もキャリアも、全力でがんばりたい", 36, color=NAVY_DEEP, bold=True)
+
+    # 中央の対比数値
+    add_textbox(s, Inches(1.8), Inches(2.2), Inches(3.6), Inches(1.6),
+                "希望\n34%", 48, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
+    add_textbox(s, Inches(5.4), Inches(2.75), Inches(2.5), Inches(0.6),
+                "↔", 36, color=INK_SOFT, align=PP_ALIGN.CENTER)
+    add_textbox(s, Inches(7.9), Inches(2.2), Inches(3.6), Inches(1.6),
+                "現実\n32%", 48, color=BLOOM, bold=True, align=PP_ALIGN.CENTER)
+
+    add_textbox(s, Inches(0.7), Inches(4.1), Inches(11.5), Inches(1.3),
+                "仕事・家庭生活・個人の生活すべてを大切にしたいという希望は34%ある一方、\n"
+                "現実には仕事を優先している人が32%。制約自体は無くなりません。\n"
+                "知らずに選択肢を狭めてしまう状況だけは、変えられると考えました。",
+                20, color=INK, line_spacing=1.4)
+
+    add_footnote(
+        s,
+        "出典: 東京都「男女平等参画に関する世論調査」（令和2年度）／"
+        "東京都「男女雇用平等参画状況調査」（令和7年度、女性が挙げる課題1位「家庭責任が重いイメージ」69.4%）",
+    )
+    add_slide_number(s, 2)
+    set_notes(s, "家庭もキャリアも全力でがんばりたい女性にとって、世の中には様々な制約があります。"
+                 "東京都の世論調査でも、家庭も仕事も大切にしたいという希望は34%ある一方、現実に叶うのは"
+                 "32%でした。この制約自体は無くせませんが、何が選べるかを知らないまま選択肢を狭めて"
+                 "しまう状況は変えられると考えました。")
+
+    # ------------------------------------------------------------------
+    # 3. 解決策｜使える制度を、出典付きで手渡す
+    # ------------------------------------------------------------------
+    s = new_slide(prs)
+    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
+                "使える制度を、出典付きで手渡す", 34, color=NAVY_DEEP, bold=True)
+
+    add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
+                        Inches(0.7), Inches(1.5), width=Inches(7.4), height=Inches(4.23))
+
+    labels = ["同じ時間軸", "出典付きの事実", "決めるのは自分"]
+    for i, label in enumerate(labels):
+        top = Inches(1.6 + i * 1.15)
+        add_rect(s, Inches(8.5), top, Inches(4.0), Inches(0.85), fill_color=RGBColor(0xF2, 0xF4, 0xF7))
+        add_textbox(s, Inches(8.7), top + Inches(0.18), Inches(3.6), Inches(0.5),
+                    f"0{i+1}  {label}", 18, color=NAVY, bold=True)
+
+    add_textbox(s, Inches(8.5), Inches(5.3), Inches(4.0), Inches(1.5),
+                "「国の制度」「東京都の制度」を実施主体ごとに明示し、\n"
+                "公式ページへのリンクを常に添える。",
+                14, color=INK_SOFT, line_spacing=1.3)
+
+    add_footnote(
+        s,
+        "出典: 育児・介護休業法／労働基準法／母子保健法（厚生労働省・こども家庭庁）、"
+        "東京都不妊検査等助成事業（東京都福祉局）。平均値・他人との比較は表示しない。",
+    )
+    add_slide_number(s, 3)
+    set_notes(s, "東京都の子育て支援制度は7,812件もあり、自分で読み切れる量ではありません。"
+                 "育休は子が2歳になるまで延長できる、産後パパ育休は8週間以内に4週間まで取れるなど、"
+                 "日本・東京都の制度上の上限を、実施主体と出典付きでタイムラインに表示します。"
+                 "平均値や他人と比べた遅れは表示しません。見せるのは『あなたが使える権利はどこまでか』"
+                 "という選べる余地だけです。")
+
+    # ------------------------------------------------------------------
+    # 4. デモ｜何度でも立て直せる
+    # ------------------------------------------------------------------
+    s = new_slide(prs)
+    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
+                "何度でも立て直せる", 36, color=NAVY_DEEP, bold=True)
+
+    add_picture_framed(s, ASSETS / "timeline-overview.jpg",
+                        Inches(0.7), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
+    add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
+                        Inches(6.6), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
+
+    add_textbox(s, Inches(0.7), Inches(5.0), Inches(11.5), Inches(1.3),
+                "結婚・出産・転職などの予定を自由に置き、必要な制度情報をすぐに確認できます。\n"
+                "一度決めて終わりではなく、状況が変わるたびに何度でも軽やかに描き直せます。",
+                20, color=INK, line_spacing=1.4)
+
+    add_textbox(s, Inches(0.7), Inches(6.55), Inches(6.0), Inches(0.4),
+                "公開デモ: my-career-app-559fd.web.app", 14, color=NAVY, bold=True)
+    add_footnote(
+        s,
+        "希望される支援も「新しい休業」より「時間の組み替え」（有給53.7%・フレックス49.4%、"
+        "東京都「男女雇用平等参画状況調査」令和7年度）",
+    )
+    add_slide_number(s, 4)
+    set_notes(s, "こちらが公開デモです。予定を動かすと、つながりのあるイベントも一緒に動きます。"
+                 "対話型AIに話しかけると、確認済みの制度情報だけを根拠に答えます。一度決めて終わりでは"
+                 "なく、状況が変わるたびに何度でも軽やかに描き直せることを大切にしています。"
+                 "\n\n[登壇メモ] 対話型AI（Gemini Function Calling）の実際の応答画面は、"
+                 "未サインイン状態では取得できなかった（送信にGoogleサインインが必要なため）。"
+                 "登壇時は実機でサインインして見せるか、口頭説明にとどめる。")
+
+    # ------------------------------------------------------------------
+    # 5. 広がり｜一つの画面を、家庭で。男性が体験する
+    # ------------------------------------------------------------------
+    s = new_slide(prs)
+    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
+                "一つの画面を、家庭で。男性が体験する", 32, color=NAVY_DEEP, bold=True)
+
+    add_textbox(s, Inches(0.7), Inches(1.6), Inches(11.5), Inches(0.6),
+                "同じ画面を、二人で見る", 22, color=INK, bold=True, align=PP_ALIGN.CENTER)
+
+    # 左: 実装済み
+    add_rect(s, Inches(1.2), Inches(2.6), Inches(5.0), Inches(2.3), fill_color=RGBColor(0xF2, 0xF4, 0xF7))
+    add_textbox(s, Inches(1.5), Inches(2.85), Inches(4.4), Inches(0.5),
+                "実装済み・ログイン不要", 14, color=NAVY, bold=True)
+    add_textbox(s, Inches(1.5), Inches(3.35), Inches(4.4), Inches(1.3),
+                "自分のプランを描く", 26, color=NAVY_DEEP, bold=True)
+
+    # 右: 構想
+    add_rect(s, Inches(7.1), Inches(2.6), Inches(5.0), Inches(2.3), line_color=NAVY)
+    add_textbox(s, Inches(7.4), Inches(2.85), Inches(4.4), Inches(0.5),
+                "構想中", 14, color=BLOOM, bold=True)
+    add_textbox(s, Inches(7.4), Inches(3.25), Inches(4.4), Inches(1.5),
+                "パートナーと一緒に見る\n男性が自分ごととして体験する",
+                20, color=NAVY_DEEP, bold=True, line_spacing=1.3)
+
+    add_footnote(
+        s,
+        "出典: 東京都「男女雇用平等参画状況調査」（令和7年度）。男性の育休取得率61.2%。",
+    )
+    add_slide_number(s, 5)
+    set_notes(s, "今のところ、この画面はログインせずに誰でも触れます。まずは自分のプランを一緒に見て話す"
+                 "きっかけとして使ってほしいと考えています。将来は、これを男性自身が体験するプログラムにも"
+                 "発展させ、女性が抱える制約の多さを、当事者として実感してもらう場にしたいと考えています。")
+
+    # ------------------------------------------------------------------
+    # 6. 締め｜このデータが、次の施策を動かす
+    # ------------------------------------------------------------------
+    s = new_slide(prs)
+    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
+                "このデータが、次の施策を動かす", 34, color=NAVY_DEEP, bold=True)
+
+    steps = ["東京都・国の\nオープンデータ", "一人ひとりの\nライフプラン", "次の施策へ"]
+    step_w = Inches(3.4)
+    gap = Inches(0.5)
+    start_left = Inches(0.9)
+    for i, step in enumerate(steps):
+        left = start_left + i * (step_w + gap)
+        add_rect(s, left, Inches(1.9), step_w, Inches(1.5), fill_color=RGBColor(0xF2, 0xF4, 0xF7))
+        add_textbox(s, left, Inches(2.15), step_w, Inches(1.0), step, 18, color=NAVY_DEEP,
+                    bold=True, align=PP_ALIGN.CENTER, line_spacing=1.2)
+        if i < len(steps) - 1:
+            arrow_left = left + step_w
+            add_textbox(s, arrow_left, Inches(2.35), gap, Inches(0.6), "→", 24,
+                        color=INK_SOFT, align=PP_ALIGN.CENTER)
+
+    add_textbox(s, Inches(0.7), Inches(4.2), Inches(11.5), Inches(1.0),
+                "知ったうえで、自分で決める", 32, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
+
+    add_textbox(s, Inches(0.7), Inches(5.4), Inches(11.5), Inches(0.5),
+                "公開デモ: my-career-app-559fd.web.app", 16, color=NAVY_DEEP, bold=True,
+                align=PP_ALIGN.CENTER)
+
+    add_footnote(s, "制度情報の出典は各スライド記載のとおり。データはオープンデータと法令から出典付きで取り込む。")
+    add_slide_number(s, 6)
+    set_notes(s, "制度情報はオープンデータと法令から出典付きで取り込んでいます。一人ひとりが実際にどんな"
+                 "ライフプランを描き、どこで諦めたかのデータは、都にも国にもまだありません。ここで積み重なる"
+                 "プランが、いずれ東京都や国が女性を支援する施策を増やすきっかけになることを願っています。"
+                 "決めるのはいつも本人です。ライフコンパス東京で、自分らしい人生を描き直せる選択肢を届けます。")
+
+    prs.save(str(OUTPUT))
+    print(f"wrote {OUTPUT}")
+
+
+if __name__ == "__main__":
+    build()
