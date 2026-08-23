@@ -37,7 +37,9 @@ abstract final class ScriptedCoach {
       return const ScriptedReply(
         responseText:
             '出産に向けた一般的な流れをタイムラインに置きました。妊活の目安から産休・育休・復職までが並びます。'
-            '実際の時期は体調や職場の状況で変わるので、気になるところはドラッグで動かせます。',
+            '実際の時期は体調や職場の状況で変わるので、気になるところはドラッグで動かせます。'
+            '育児休業は、保育所に入れないなどの事情がある場合、お子さんが2歳になるまで延長できます'
+            '（育児・介護休業法）。',
         templateId: 'tmpl-childbirth',
         goalTitle: '出産',
         goalMonthsFromNow: 24,
