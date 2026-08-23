@@ -16,7 +16,7 @@ import copy
 from pathlib import Path
 
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
@@ -38,7 +38,8 @@ NAVY_DEEP = RGBColor(0x14, 0x28, 0x42)
 LINE = RGBColor(0xD9, 0xD0, 0xBC)
 BLOOM = RGBColor(0xC2, 0x70, 0x8C)
 
-FONT_JP = "Hiragino Sans"  # Windows フォールバックは font.name の英数指定と ea 指定を両方設定して担保する
+FONT_JP = "Hiragino Sans"  # macOS 前提（発表者の環境）。Windows で開く場合はフォント未搭載のため
+                            # OS 側のフォント置換に委ねられる（Yu Gothic 等に自動代替される）
 
 
 def set_font(run, size, color=INK, bold=False, name=FONT_JP):
@@ -46,7 +47,7 @@ def set_font(run, size, color=INK, bold=False, name=FONT_JP):
     run.font.bold = bold
     run.font.color.rgb = color
     run.font.name = name
-    # 日本語(East Asian)ランに対してもフォントを明示しないと、Windows で MSゴシックに落ちる
+    # 日本語(East Asian)ランにも明示しないと、macOS でも英数と和文でフォントが分かれて描画されうる
     rPr = run._r.get_or_add_rPr()
     ea = rPr.find(qn("a:ea"))
     if ea is None:
@@ -103,7 +104,13 @@ def add_slide_number(slide, n):
 
 
 def add_picture_framed(slide, path, left, top, width, height):
-    """画像を枠線付きで配置する（実画面のスクリーンショットであることを示す）。"""
+    """画像を枠線付きで配置する（実画面のスクリーンショットであることを示す）。
+
+    アセットが見当たらない場合は、空白のまま埋め込まれて気づかれないより、
+    ビルドを止めて気づけるほうがよい。
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"スライド用アセットが見つかりません: {path}")
     pic = slide.shapes.add_picture(str(path), left, top, width=width, height=height)
     pic.line.color.rgb = LINE
     pic.line.width = Pt(1)
@@ -140,9 +147,8 @@ def build():
                 "制度を知って、自分の人生を自分で描く", 22, color=NAVY, bold=True)
     add_textbox(s, Inches(0.7), Inches(2.75), Inches(6.0), Inches(0.5),
                 "LIFECOMPASS TOKYO", 12, color=INK_SOFT)
-    if (ASSETS / "timeline-overview.jpg").exists():
-        add_picture_framed(s, ASSETS / "timeline-overview.jpg",
-                            Inches(7.0), Inches(1.4), width=Inches(5.8), height=Inches(3.31))
+    add_picture_framed(s, ASSETS / "timeline-overview.jpg",
+                        Inches(7.0), Inches(1.4), width=Inches(5.8), height=Inches(3.31))
     add_footnote(s, "都知事杯オープンデータ・ハッカソン2026 First Stage")
     add_slide_number(s, 1)
     set_notes(s, "ライフコンパス東京は、結婚・妊娠・出産・子育てといったライフイベントとキャリアを、"
@@ -187,9 +193,8 @@ def build():
     add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
                 "使える制度を、出典付きで手渡す", 34, color=NAVY_DEEP, bold=True)
 
-    if (ASSETS / "event-detail-childbirth.jpg").exists():
-        add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
-                            Inches(0.7), Inches(1.5), width=Inches(7.4), height=Inches(4.23))
+    add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
+                        Inches(0.7), Inches(1.5), width=Inches(7.4), height=Inches(4.23))
 
     labels = ["同じ時間軸", "出典付きの事実", "決めるのは自分"]
     for i, label in enumerate(labels):
@@ -222,12 +227,10 @@ def build():
     add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
                 "何度でも立て直せる", 36, color=NAVY_DEEP, bold=True)
 
-    if (ASSETS / "timeline-overview.jpg").exists():
-        add_picture_framed(s, ASSETS / "timeline-overview.jpg",
-                            Inches(0.7), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
-    if (ASSETS / "event-detail-childbirth.jpg").exists():
-        add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
-                            Inches(6.6), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
+    add_picture_framed(s, ASSETS / "timeline-overview.jpg",
+                        Inches(0.7), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
+    add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
+                        Inches(6.6), Inches(1.5), width=Inches(5.7), height=Inches(3.25))
 
     add_textbox(s, Inches(0.7), Inches(5.0), Inches(11.5), Inches(1.3),
                 "結婚・出産・転職などの予定を自由に置き、必要な制度情報をすぐに確認できます。\n"
@@ -276,8 +279,7 @@ def build():
 
     add_footnote(
         s,
-        "出典: 東京都「男女雇用平等参画状況調査」（令和7年度）。男性の育休取得率61.2%。"
-        "ただし取得期間の最多は1〜3か月未満。",
+        "出典: 東京都「男女雇用平等参画状況調査」（令和7年度）。男性の育休取得率61.2%。",
     )
     add_slide_number(s, 5)
     set_notes(s, "今のところ、この画面はログインせずに誰でも触れます。まずは自分のプランを一緒に見て話す"
