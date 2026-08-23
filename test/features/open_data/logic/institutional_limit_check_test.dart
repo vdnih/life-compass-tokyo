@@ -65,16 +65,61 @@ void main() {
   });
 
   group('window 種別（出産: 産後ケア事業は出産から12ヶ月以内）', () {
-    test('出産イベントがあれば info が発火すること', () {
+    test('出産イベントがあれば産後ケア事業の info が発火すること', () {
+      final events = [
+        _event(catalogId: 'childbirth', date: '2026-01'),
+      ];
+
+      final results = checkInstitutionalLimits(events);
+      final postpartumCare = results.where((r) => r.ruleId == 'IL-postpartum-care');
+
+      expect(postpartumCare.length, 1);
+      expect(postpartumCare.first.severity, ConstraintSeverity.info);
+    });
+
+    test('出産イベントに紐づく window 種別の制度上限がすべて発火すること', () {
       final events = [
         _event(catalogId: 'childbirth', date: '2026-01'),
       ];
 
       final results = checkInstitutionalLimits(events);
 
+      expect(
+        results.map((r) => r.ruleId).toSet(),
+        {
+          'IL-postpartum-care',
+          'IL-paternity-leave',
+          'IL-overtime-limit',
+          'IL-child-nursing-leave',
+        },
+      );
+    });
+  });
+
+  group('window 種別（復職: 短時間勤務は子が3歳になるまで）', () {
+    test('復職イベントがあれば info が発火すること', () {
+      final events = [
+        _event(catalogId: 'return-to-work', date: '2026-01'),
+      ];
+
+      final results = checkInstitutionalLimits(events);
+
       expect(results.length, 1);
-      expect(results.first.ruleId, 'IL-postpartum-care');
-      expect(results.first.severity, ConstraintSeverity.info);
+      expect(results.first.ruleId, 'IL-short-working-hours');
+    });
+  });
+
+  group('window 種別（不妊治療: 東京都の助成は検査開始日から2年以内）', () {
+    test('不妊治療イベントがあれば info が発火し、実施主体が東京都であること', () {
+      final events = [
+        _event(catalogId: 'fertility-treatment', date: '2026-01'),
+      ];
+
+      final results = checkInstitutionalLimits(events);
+
+      expect(results.length, 1);
+      expect(results.first.ruleId, 'IL-tokyo-fertility-test-subsidy');
+      expect(results.first.scopeLabel, '東京都の制度');
     });
   });
 
@@ -88,7 +133,7 @@ void main() {
     expect(results, isEmpty);
   });
 
-  test('出典情報（sourceLabel / sourceUrl）が結果に含まれること', () {
+  test('出典情報（sourceLabel / sourceUrl / scopeLabel）が結果に含まれること', () {
     final events = [
       _event(catalogId: 'childcare-leave', date: '2026-01', endDate: '2027-01'),
     ];
@@ -97,5 +142,6 @@ void main() {
 
     expect(result.sourceLabel, isNotNull);
     expect(result.sourceUrl, isNotNull);
+    expect(result.scopeLabel, '国の制度');
   });
 }

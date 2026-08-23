@@ -37,6 +37,10 @@ class ConstraintResult {
   /// 出典URL。無い場合（法令など）は null
   final String? sourceUrl;
 
+  /// 実施主体のラベル（例: '国の制度', '東京都の制度'）。
+  /// 制度上限（open_data feature）由来の結果のみ持つ。PDR-009 参照
+  final String? scopeLabel;
+
   const ConstraintResult({
     required this.ruleId,
     required this.targetEventTitle,
@@ -45,6 +49,7 @@ class ConstraintResult {
     required this.message,
     this.sourceLabel,
     this.sourceUrl,
+    this.scopeLabel,
   });
 
   @override
@@ -57,7 +62,8 @@ class ConstraintResult {
         other.severity == severity &&
         other.message == message &&
         other.sourceLabel == sourceLabel &&
-        other.sourceUrl == sourceUrl;
+        other.sourceUrl == sourceUrl &&
+        other.scopeLabel == scopeLabel;
   }
 
   @override
@@ -68,6 +74,7 @@ class ConstraintResult {
         severity.hashCode ^
         message.hashCode ^
         sourceLabel.hashCode ^
-        sourceUrl.hashCode;
+        sourceUrl.hashCode ^
+        scopeLabel.hashCode;
   }
 }

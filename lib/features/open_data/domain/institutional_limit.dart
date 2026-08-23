@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'data_source.dart';
+import 'institutional_scope.dart';
 
 /// 制度上限（B1）の形。PDR-008 の分類に基づき2種類を区別する。
 ///
@@ -43,6 +44,11 @@ class InstitutionalLimit {
 
   final DataSource source;
 
+  /// 実施主体（PDR-009）。「自分が対象になるか」の気づきのための分類で、
+  /// 出典（データの提供元）とは独立に持つ。両者はズレうる
+  /// （例: 産後ケア事業は実施主体が区市町村、データ提供元が東京都）。
+  final InstitutionalScope scope;
+
   const InstitutionalLimit({
     required this.id,
     required this.catalogId,
@@ -50,5 +56,6 @@ class InstitutionalLimit {
     required this.limitMonths,
     required this.message,
     required this.source,
+    required this.scope,
   });
 }

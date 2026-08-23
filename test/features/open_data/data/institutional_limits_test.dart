@@ -31,6 +31,13 @@ void main() {
       }
     });
 
+    test('全エントリが出典URLを持つこと（PDR-009: リンク導線が常に成立すること）', () {
+      for (final limit in institutionalLimits) {
+        expect(limit.source.url, isNotNull, reason: limit.id);
+        expect(limit.source.url, isNotEmpty, reason: limit.id);
+      }
+    });
+
     test('id が一意であること', () {
       final ids = institutionalLimits.map((l) => l.id).toList();
       expect(ids.toSet().length, ids.length);
