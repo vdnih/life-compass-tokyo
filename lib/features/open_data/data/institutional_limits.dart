@@ -53,12 +53,10 @@ const List<InstitutionalLimit> institutionalLimits = [
     message: '産後ケア事業は、出産から1年を経過するまでの間に利用できます'
         '（母子保健法 第17条の2）。実施はお住まいの区市町村です。',
     source: DataSource(
-      name: '東京デジタル2030ビジョン（こどもDX）子育て支援制度レジストリ「産後ケア事業」',
-      publisher: '東京都デジタルサービス局',
-      url: 'https://catalog.data.metro.tokyo.lg.jp/dataset/t000029d0000000034',
-      datasetId: 't000029d0000000034',
-      retrievedOn: '2026-08-23',
-      license: 'CC BY 4.0',
+      name: '母子保健法（第17条の2）「産後ケア事業」',
+      publisher: 'こども家庭庁',
+      url: 'https://sukoyaka21.cfa.go.jp/sango-care/guide_01/',
+      license: '該当なし（公的な法令情報）',
     ),
   ),
   InstitutionalLimit(
