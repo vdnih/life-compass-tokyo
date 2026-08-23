@@ -16,12 +16,16 @@ class DurationEventBar extends StatelessWidget {
   final List<ConstraintResult> eventConstraints;
   final bool isDimmed;
 
+  /// spike/ai-chat-ux: チャットが直前に追加/展開したイベントであることを示すリング表示
+  final bool isHighlighted;
+
   const DurationEventBar({
     super.key,
     required this.event,
     required this.barWidth,
     this.eventConstraints = const [],
     this.isDimmed = false,
+    this.isHighlighted = false,
   });
 
   @override
@@ -31,8 +35,9 @@ class DurationEventBar extends StatelessWidget {
     final hasWarning = eventConstraints.isNotEmpty;
 
     final userBudget = event.budgetYen;
-    final catalogDefault =
-        PredefinedCatalogRegistry.findById(event.catalogId)?.defaultBudgetYen;
+    final catalogDefault = PredefinedCatalogRegistry.findById(
+      event.catalogId,
+    )?.defaultBudgetYen;
     final budgetText = userBudget != null
         ? _formatBudget(userBudget)
         : (catalogDefault != null ? _formatBudget(catalogDefault) : null);
@@ -40,122 +45,125 @@ class DurationEventBar extends StatelessWidget {
 
     final effectiveWidth = barWidth.clamp(30.0, double.infinity);
 
-    return Opacity(
-      opacity: opacity,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                constraints: BoxConstraints(
-                  maxWidth: effectiveWidth,
-                  minWidth: effectiveWidth,
-                ),
-                height: 50,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: color.withValues(alpha: 0.30),
-                    width: 1,
+    return buildHighlightRing(
+      isHighlighted: isHighlighted,
+      child: Opacity(
+        opacity: opacity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: effectiveWidth,
+                    minWidth: effectiveWidth,
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 3,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(8),
-                            bottomLeft: Radius.circular(8),
+                  height: 50,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.30),
+                      width: 1,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 3,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(8),
+                              bottomLeft: Radius.circular(8),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            event.title,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: color,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                          ),
-                          if (budgetText != null) ...[
-                            const SizedBox(height: 2),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              budgetText,
+                              event.title,
                               style: TextStyle(
-                                fontSize: 8,
-                                fontWeight: FontWeight.w500,
-                                color: isDefaultBudget
-                                    ? Colors.grey.shade400
-                                    : color.withValues(alpha: 0.8),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: color,
                               ),
                               overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
                             ),
+                            if (budgetText != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                budgetText,
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDefaultBudget
+                                      ? Colors.grey.shade400
+                                      : color.withValues(alpha: 0.8),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (hasWarning)
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF8C42),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.warning_rounded,
-                      color: Colors.white,
-                      size: 12,
-                    ),
+                    ],
                   ),
                 ),
-            ],
-          ),
-          if (event.isFuturePlan) ...[
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                event.status.label,
-                style: TextStyle(
-                  fontSize: 9,
-                  color: color,
-                  fontWeight: FontWeight.w600,
+                if (hasWarning)
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF8C42),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.warning_rounded,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            if (event.isFuturePlan) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  event.status.label,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

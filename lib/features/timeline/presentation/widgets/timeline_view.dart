@@ -1,18 +1,22 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../ai_coach/presentation/highlight_provider.dart';
 import '../../../auth/logic/auth_provider.dart';
 import '../../../catalog/domain/predefined_life_event.dart';
 import '../../../user_profile/user_profile.dart';
 import '../../domain/constraint_result.dart';
 import '../../domain/event_dependency.dart';
 import '../../domain/event_stacking.dart';
+import '../../domain/goal_template.dart';
 import '../../domain/life_event.dart';
 import '../../domain/timeline_scale.dart';
 import '../../domain/year_month.dart';
 import '../../logic/cascade_move_provider.dart';
 import '../../logic/dependency_provider.dart';
+import '../../logic/goal_template_provider.dart';
 import '../../logic/timeline_events_provider.dart';
 import '../add_event_dialog.dart';
 import 'catalog_drop_preview.dart';
@@ -128,6 +132,13 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   /// ドラッグ中のスナップ先スロットインデックス（マグネティックUI用）
   int? _snapSlotIndex;
 
+  /// テンプレート（イベントセット）適用が実行中かどうか。
+  ///
+  /// [GoalTemplateNotifier.applyTemplate] は複数イベントを直列 await するため、
+  /// 完了前に同じ／別のテンプレートを連続でドロップすると二重生成されうる。
+  /// 旧 `GoalSetupDialog` の `_isApplying` ガードに相当する。
+  bool _isApplyingTemplate = false;
+
   final _dropTargetKey = GlobalKey();
 
   static const double axisHeight = 60.0;
@@ -141,6 +152,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   // ---- scroll ----
   final ScrollController _horizontalScrollController = ScrollController();
   bool _hasScrolledToNow = false;
+
+  /// 直近の [build] で使った [TimelineScale]。spike/ai-chat-ux: チャットのハイライト
+  /// フォーカス（[chatHighlightProvider]）を任意の年月へスクロールさせるのに使う。
+  /// [_scaleForScrollToNow] は「現在」専用でデフォルト origin 固定のため流用しない。
+  TimelineScale? _lastScale;
 
   @override
   void initState() {
@@ -196,6 +212,33 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final viewportWidth =
         _horizontalScrollController.position.viewportDimension;
     final targetOffset = (nowXPos - viewportWidth / 2).clamp(
+      0.0,
+      _horizontalScrollController.position.maxScrollExtent,
+    );
+    _horizontalScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  /// spike/ai-chat-ux: チャットがテンプレート展開した先のゴール年月へスクロールする。
+  /// [_lastScale]（直近 build の実スケール）を使うため、イベントで origin が
+  /// 前倒しされていても正しい位置に合う（[_scaleForScrollToNow] は現在専用でこれをしない）。
+  void _animateToYearMonth(YearMonth target) {
+    // postFrameCallback 経由（chatHighlightProvider の listener）で呼ばれるため、
+    // スケジュール後に dispose される可能性がある。dispose() は
+    // _horizontalScrollController.dispose() を呼ぶため、mounted を先に見ないと
+    // 破棄済みコントローラへアクセスして例外になりうる。
+    if (!mounted) return;
+    if (!_horizontalScrollController.hasClients) return;
+    final scale = _lastScale;
+    if (scale == null) return;
+    final anchor = widget.mode.anchorOf(target);
+    final xPos = scale.xCenterOf(anchor);
+    final viewportWidth =
+        _horizontalScrollController.position.viewportDimension;
+    final targetOffset = (xPos - viewportWidth / 2).clamp(
       0.0,
       _horizontalScrollController.position.maxScrollExtent,
     );
@@ -262,9 +305,25 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final events = widget.events;
     final now = DateTime.now();
     final scale = _buildScale(events, now);
+    _lastScale = scale;
 
     final profile = ref.watch(userProfileNotifierProvider).value;
     final dependenciesAsync = ref.watch(dependencyProvider);
+
+    // spike/ai-chat-ux: チャットが直前に追加/展開したイベントをリング表示し、
+    // ゴール年月へ自動スクロールする。
+    final chatHighlight = ref.watch(chatHighlightProvider);
+    ref.listen(chatHighlightProvider, (previous, next) {
+      final focus = next.focusYearMonth;
+      if (focus == null || next.eventIds.isEmpty) return;
+      // focusYearMonth だけで比較すると、同じ年月へ2回目のハイライトが来た
+      // 場合（例: 同じ月内で同じキーワードを2回送信）に「変化なし」と
+      // 誤判定してスクロールが起きない。生成イベント集合の変化で判定する。
+      if (setEquals(previous?.eventIds ?? const {}, next.eventIds)) return;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _animateToYearMonth(focus),
+      );
+    });
 
     final stackIndices = computeStackIndices(events, scale);
     _rowHeight = computeStackedRowHeight(
@@ -368,6 +427,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                           scale,
                           stackIndices,
                           context,
+                          chatHighlight.eventIds,
                         ),
                     ],
                   ),
@@ -580,6 +640,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
               });
             }
           }
+          // GoalTemplate（イベントセット）はドロップ位置のスナップ帯のみ表示し、
+          // 単発イベントのようなゴーストカードプレビューは出さない（複数イベント分の
+          // プレビュー作り込みはスコープ外）。
         },
         onLeave: (_) {
           if (mounted) {
@@ -614,6 +677,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
             _applyCascadeMove(data, newDateStr, events);
           } else if (data is PredefinedLifeEvent) {
             _applyAddFromCatalog(data, newDateStr);
+          } else if (data is GoalTemplate) {
+            _applyAddFromTemplate(data, newDateStr);
           }
         },
         builder: (context, candidateData, _) {
@@ -678,6 +743,39 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     }
   }
 
+  /// テンプレート（イベントセット）をドロップ位置の月をゴール日として一括生成する。
+  ///
+  /// 旧 `GoalSetupDialog`（ゴール日入力→逆算プレビュー→適用というモーダルフロー）は
+  /// 使いづらいというフィードバックを受けて廃止し、単発カタログ追加と同じ
+  /// ドラッグ&ドロップの操作感に置き換えた。逆算の計算エンジン自体
+  /// （[GoalTemplateNotifier.applyTemplate]）は変更していない。
+  Future<void> _applyAddFromTemplate(GoalTemplate template, String date) async {
+    if (_isApplyingTemplate) return;
+    _isApplyingTemplate = true;
+    try {
+      final result = await ref
+          .read(goalTemplateProvider.notifier)
+          .applyTemplate(
+            templateId: template.id,
+            goalDate: date,
+            goalTitle: template.name,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '「${template.name}」（${result.generatedEvents.length}件）を追加しました',
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      _isApplyingTemplate = false;
+    }
+  }
+
   Future<void> _applyCascadeMove(
     String eventId,
     String newDateStr,
@@ -734,6 +832,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     TimelineScale scale,
     Map<String, int> stackIndices,
     BuildContext context,
+    Set<String> highlightedEventIds,
   ) {
     final result = <Widget>[];
 
@@ -791,6 +890,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       final isInCascade =
           _draggingEventId != null &&
           _cascadePreviewChanges.any((c) => c.eventId == event.id);
+      final isHighlighted = highlightedEventIds.contains(event.id);
 
       result.add(
         Positioned(
@@ -889,12 +989,14 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                         barWidth: barWidth,
                         eventConstraints: eventConstraints,
                         isDimmed: isDragging || (isInCascade && !isDragging),
+                        isHighlighted: isHighlighted,
                       )
                     else
                       PointEventMarker(
                         event: event,
                         eventConstraints: eventConstraints,
                         isDimmed: isDragging || (isInCascade && !isDragging),
+                        isHighlighted: isHighlighted,
                       ),
                   ],
                 ),

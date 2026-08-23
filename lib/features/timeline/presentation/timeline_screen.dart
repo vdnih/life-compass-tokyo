@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../ai_coach/presentation/coach_chat_panel.dart';
+import '../../ai_coach/presentation/coach_chat_sheet.dart';
+import '../../ai_coach/presentation/widgets/panel_tab_bar.dart';
 import '../../auth/logic/auth_provider.dart';
 import '../../auth/presentation/sign_in_dialog.dart';
 import '../../catalog/presentation/catalog_panel.dart';
@@ -9,9 +12,9 @@ import '../../user_profile/profile_settings_dialog.dart';
 import '../logic/budget_summary_provider.dart';
 import '../logic/timeline_events_provider.dart';
 import '../logic/constraint_checker_provider.dart';
+import 'widgets/template_set_panel.dart';
 import 'widgets/timeline_view.dart';
 import 'add_event_dialog.dart';
-import 'goal_setup_dialog.dart';
 import 'timeline_keys.dart';
 
 export 'widgets/timeline_view.dart' show TimelineViewMode;
@@ -134,22 +137,6 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               showSelectedIcon: false,
             ),
           ),
-          // 目標設定ボタン
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: IconButton(
-              tooltip: '目標設定',
-              icon: const Icon(Icons.flag_outlined, color: Colors.white),
-              onPressed: authPending
-                  ? null
-                  : () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const GoalSetupDialog(),
-                      );
-                    },
-            ),
-          ),
           // プロフィール / サインインボタン
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -244,21 +231,87 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           );
 
           if (isDesktop) {
-            // デスクトップ: 左にカタログパネル（200px固定）+ 右にタイムライン
+            // デスクトップ: 左パネルを「AIコーチ / カタログ」タブ化（280px固定）+ 右にタイムライン
+            // spike/ai-chat-ux: PDR-006 Step 2。対話ファーストにするためカタログは二軍タブに回す
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(width: 200, child: CatalogPanel()),
+                const SizedBox(width: 280, child: _DesktopCoachPanel()),
                 Container(width: 1, color: Colors.grey.shade200),
                 Expanded(child: timelineWithAddButton),
               ],
             );
           } else {
-            // モバイル: タイムラインのみ表示（＋ボタンでイベント追加）
-            return timelineWithAddButton;
+            // モバイル: タイムライン全画面 + ボトムシート型チャット（＋ボタンでイベント追加も残す）
+            // spike/ai-chat-ux: シートの折りたたみ高さ分タイムラインと両FABを底上げし、
+            // 隠れないようにする。CoachChatSheet は `constraints`（この LayoutBuilder の
+            // body 高さ）を基準に折りたたみ高さを決めるため、ここも同じ基準
+            // （collapsedSizeFraction）から算出し、固定値の食い違いで FAB が
+            // シートに隠れないようにする。
+            final bottomInset =
+                constraints.maxHeight * CoachChatSheet.collapsedSizeFraction +
+                16;
+            return Stack(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(bottom: bottomInset),
+                  child: timelineWithAddButton,
+                ),
+                const CoachChatSheet(),
+              ],
+            );
           }
         },
       ),
+    );
+  }
+}
+
+/// デスクトップ左パネルの「AIコーチ / カタログ / テンプレート」タブ切り替え
+///
+/// spike/ai-chat-ux: `IndexedStack` で選択中のタブのみ描画・ヒットテストする。
+/// 非選択タブも `IndexedStack` の子としてはマウントされ続けるため、カタログの
+/// 検索文字列・展開状態はタブを切り替えても保たれる。
+class _DesktopCoachPanel extends StatefulWidget {
+  const _DesktopCoachPanel();
+
+  @override
+  State<_DesktopCoachPanel> createState() => _DesktopCoachPanelState();
+}
+
+class _DesktopCoachPanelState extends State<_DesktopCoachPanel> {
+  // spike/ai-chat-ux: 対話ファーストにするため初期タブは「AIコーチ」(0)。
+  // カタログD&Dのテスト（timeline_view_test.dart「カタログからのドロップ」）は
+  // タブを明示的に切り替えてからドラッグする。
+  int _tabIndex = 0;
+
+  static const _tabs = [
+    PanelTabItem(label: 'AIコーチ', icon: Icons.auto_awesome),
+    PanelTabItem(label: 'カタログ', icon: Icons.list_alt),
+    PanelTabItem(label: 'テンプレート', icon: Icons.dashboard_customize_outlined),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        PanelTabBar(
+          items: _tabs,
+          selectedIndex: _tabIndex,
+          onSelected: (index) => setState(() => _tabIndex = index),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: IndexedStack(
+            index: _tabIndex,
+            children: [
+              const CoachChatPanel(),
+              const CatalogPanel(),
+              const TemplateSetPanel(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
