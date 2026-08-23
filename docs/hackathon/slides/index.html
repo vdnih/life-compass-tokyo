@@ -357,6 +357,17 @@
   }
   .demo-url b { color: var(--navy); font-weight: 700; }
 
+  /* ---------- Shared: source footnote (prints, unlike .notes) ---------- */
+  .footnote {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 68ch;
+  }
+
   /* ---------- Slide 5: Expansion ---------- */
   .expand .col { display: flex; flex-direction: column; padding-top: 18px; }
   .expand .divider { background: var(--line); }
@@ -542,12 +553,13 @@
         <div class="constraint-card" style="right:40px; top:0px;"><span class="k">CAREER</span>転職・昇進</div>
         <div class="constraint-card" style="left:0px; bottom:100px;"><span class="k">LIFE</span>妊娠・出産</div>
         <div class="constraint-card" style="right:0px; bottom:110px;"><span class="k">CAREER</span>復職・継続</div>
-        <div class="thesis-pin"><div class="display">知らないまま、<br>選択肢を狭めていないか</div></div>
+        <div class="thesis-pin"><div class="display">希望34％ ↔ 現実32％</div></div>
         <div class="career-line">
           <span class="label">キャリア</span><div class="track"></div><span class="label">プライベート</span>
         </div>
       </div>
-      <div class="notes"><b>話すこと：</b>「家庭もキャリアも全力でがんばりたい女性にとって、世の中には様々な制約があります。結婚・妊娠・出産・子育ては、どうしてもキャリアに影響しかねません。この制約自体は無くせませんが、何が選べるかを知らないまま選択肢を狭めてしまう状況は変えられると考えました。」</div>
+      <div class="footnote">仕事・家庭・個人の生活すべてを大切にしたい希望34％、実際は仕事を優先32％（東京都「男女平等参画に関する世論調査」令和2年度）。女性が挙げる課題1位は「家庭責任が重いイメージ」69.4％（東京都「男女雇用平等参画状況調査」令和7年度）</div>
+      <div class="notes"><b>話すこと：</b>「家庭もキャリアも全力でがんばりたい女性にとって、世の中には様々な制約があります。東京都の世論調査でも、家庭も仕事も大切にしたいという希望は34％ある一方、現実に叶うのは32％でした。この制約自体は無くせませんが、何が選べるかを知らないまま選択肢を狭めてしまう状況は変えられると考えました。」</div>
     </div>
   </section>
 
@@ -561,7 +573,7 @@
       <div class="eyebrow">解決策</div>
       <h1 class="headline small display">制度上、何が選べるかを<br>出典付きで示す</h1>
       <div class="left">
-        <p class="sub">育休は子が2歳になるまで延長できる、産後パパ育休は8週間以内に4週間まで取れる——平均値や他人と比べた遅れではなく、「あなたに何が許されているか」という選べる余地だけを、実施主体と出典付きで見せます。</p>
+        <p class="sub">東京都の子育て支援制度は7,812件もあり、自分で読み切れる量ではありません。育休は子が2歳になるまで延長できる、産後パパ育休は8週間以内に4週間まで取れる——平均値や他人と比べた遅れではなく、「あなたに何が許されているか」という選べる余地だけを、実施主体と出典付きで見せます。</p>
         <div class="principles">
           <div class="principle"><div class="n">01</div><div class="t">同じ時間軸</div></div>
           <div class="principle"><div class="n">02</div><div class="t">出典付きの事実</div></div>
@@ -580,7 +592,8 @@
           <div class="src">↗ 東京都不妊検査等助成事業・東京都福祉局</div>
         </div>
       </div>
-      <div class="notes"><b>話すこと：</b>「日本・東京都の制度上の上限を、実施主体と出典付きでタイムラインに表示します。平均値や他人と比べた遅れは表示しません。見せるのは『あなたに何が許されているか』という選べる余地だけです。」</div>
+      <div class="footnote">東京デジタル2030ビジョン（こどもDX）子育て支援制度レジストリ（302種類・7,812件・63自治体、東京都デジタルサービス局、CC BY 4.0）</div>
+      <div class="notes"><b>話すこと：</b>「東京都の子育て支援制度は7,812件もあり、自分で読み切れる量ではありません。育休は子が2歳になるまで延長できる、産後パパ育休は8週間以内に4週間まで取れるなど、日本・東京都の制度上の上限を、実施主体と出典付きでタイムラインに表示します。平均値や他人と比べた遅れは表示しません。見せるのは『あなたに何が許されているか』という選べる余地だけです。」</div>
     </div>
   </section>
 
@@ -608,7 +621,8 @@
         </div>
       </div>
       <div class="demo-url">公開デモ： <b>my-career-app-559fd.web.app</b></div>
-      <div class="notes"><b>話すこと：</b>「こちらが公開デモです。予定を動かすと、つながりのあるイベントも一緒に動きます。対話型AIに話しかけると、確認済みの制度情報だけを根拠に答えます。一度決めて終わりではなく、何度でも軽やかに描き直せることを大切にしています。」</div>
+      <div class="footnote">希望される支援も「新しい休業」より「時間の組み替え」——半日・時間単位の有給休暇53.7％、フレックスタイム制度49.4％（東京都「男女雇用平等参画状況調査」令和7年度）</div>
+      <div class="notes"><b>話すこと：</b>「こちらが公開デモです。予定を動かすと、つながりのあるイベントも一緒に動きます。対話型AIに話しかけると、確認済みの制度情報だけを根拠に答えます。一度決めて終わりではなく、状況が変わるたびに何度でも軽やかに描き直せることを大切にしています。」</div>
     </div>
   </section>
 
@@ -636,6 +650,7 @@
           <div class="visual program"></div>
         </div>
       </div>
+      <div class="footnote">男性の育児休業等取得率61.2％（前年度比+6.4pt）。ただし取得期間の最多は「1か月以上3か月未満」38.6％（東京都「男女雇用平等参画状況調査」令和7年度）</div>
       <div class="notes"><b>話すこと：</b>「今のところ、この画面はログインせずに誰でも触れます。まずは自分のプランを一緒に見て話すきっかけとして使ってほしいと考えています。将来は、これを男性自身が体験するプログラムにも発展させ、女性が抱える制約の多さを、当事者として実感してもらう場にしたいと考えています。」</div>
     </div>
   </section>
@@ -660,7 +675,7 @@
         <div class="display">選べる余地をコンパスに、<br>自分らしい人生を描く</div>
       </div>
       <div class="qr-row"><div class="box"></div><span>my-career-app-559fd.web.app</span></div>
-      <div class="notes"><b>話すこと：</b>「制度情報はオープンデータと法令から出典付きで取り込んでいます。ここで積み重なる一人ひとりのプランが、いずれ東京都や国が女性を支援する施策を増やすきっかけになることを願っています。決めるのはいつも本人です。ライフコンパス東京で、自分らしい人生を描き直せる選択肢を届けます。」</div>
+      <div class="notes"><b>話すこと：</b>「制度情報はオープンデータと法令から出典付きで取り込んでいます。一人ひとりが実際にどんなライフプランを描き、どこで諦めたかのデータは、都にも国にもまだありません。ここで積み重なるプランが、いずれ東京都や国が女性を支援する施策を増やすきっかけになることを願っています。決めるのはいつも本人です。ライフコンパス東京で、自分らしい人生を描き直せる選択肢を届けます。」</div>
     </div>
   </section>
 
