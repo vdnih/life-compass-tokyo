@@ -50,3 +50,8 @@ app.*.map.json
 # Claude Code（settings.json は共有、local はマシン固有のため除外）
 .claude/settings.local.json
 .claude/worktrees/
+# ハッカソン提出資料の根拠にした一次資料PDF・事務局配布資料。
+# 出典URLは docs/hackathon/SUBMISSION_DRAFT.md に記載しているためリポジトリには入れない。
+docs/hackathon/データ/
+docs/hackathon/*.pdf
+docs/hackathon/slides/~$*.pptx

@@ -41,6 +41,12 @@ BLOOM = RGBColor(0xC2, 0x70, 0x8C)
 FONT_JP = "Hiragino Sans"  # macOS 前提（発表者の環境）。Windows で開く場合はフォント未搭載のため
                             # OS 側のフォント置換に委ねられる（Yu Gothic 等に自動代替される）
 
+# 事務局「提出資料について」が資料内容の必須項目として求めるチーム紹介。
+# 提出フォーム 1-1／1-8 と同じ値を入れる（SUBMISSION_DRAFT.md「1. チーム情報」が正）。
+TEAM_NAME = "浦安ライフ"
+TEAM_MEMBERS = "あかり（プロダクトオーナー・マーケター）／りょう（エンジニア）"
+TEAM_ONELINER = "浦安在住・東京で働く夫婦。「女性がもっとイキイキできる社会に」という思いから作りました。"
+
 
 def set_font(run, size, color=INK, bold=False, name=FONT_JP):
     run.font.size = Pt(size)
@@ -144,59 +150,131 @@ def build():
     add_textbox(s, Inches(0.7), Inches(0.9), Inches(6.0), Inches(1.2),
                 "ライフコンパス東京", 44, color=NAVY_DEEP, bold=True)
     add_textbox(s, Inches(0.7), Inches(1.95), Inches(6.0), Inches(0.8),
-                "制度を知って、自分の人生を自分で描く", 22, color=NAVY, bold=True)
+                "自分の人生を、自分で描き直す", 22, color=NAVY, bold=True)
     add_textbox(s, Inches(0.7), Inches(2.75), Inches(6.0), Inches(0.5),
                 "LIFECOMPASS TOKYO", 12, color=INK_SOFT)
     add_picture_framed(s, ASSETS / "timeline-overview.jpg",
                         Inches(7.0), Inches(1.4), width=Inches(5.8), height=Inches(3.31))
+
+    # 事務局「提出資料について」で資料内容の必須項目として求められているチーム紹介。
+    # 本編2分を圧迫しないよう、独立スライドではなく表紙に置く。
+    add_rect(s, Inches(0.7), Inches(3.55), Inches(5.9), Inches(1.65),
+             fill_color=RGBColor(0xF2, 0xF4, 0xF7))
+    add_textbox(s, Inches(0.95), Inches(3.7), Inches(5.4), Inches(0.4),
+                f"チーム {TEAM_NAME}（2名）", 14, color=NAVY, bold=True)
+    add_textbox(s, Inches(0.95), Inches(4.1), Inches(5.4), Inches(1.0),
+                f"{TEAM_MEMBERS}\n{TEAM_ONELINER}",
+                12, color=INK, line_spacing=1.35)
+
     add_footnote(s, "都知事杯オープンデータ・ハッカソン2026 First Stage")
     add_slide_number(s, 1)
-    set_notes(s, "ライフコンパス東京は、結婚・妊娠・出産・子育てといったライフイベントとキャリアを、"
-                 "一つの時間軸の上で考え直せるWebアプリです。")
+    set_notes(s, "[話者: あかり / 0:00-0:13]\n"
+                 "浦安ライフのあかりです。エンジニアの夫、りょうと作りました。"
+                 "女性がもっとイキイキできる社会に。その思いで作った、ライフコンパス東京です。")
 
     # ------------------------------------------------------------------
-    # 2. 課題｜家庭もキャリアも、全力でがんばりたい
+    # 2. 課題①｜「女性は家庭の方が向いている」と言われる
     # ------------------------------------------------------------------
     s = new_slide(prs)
     add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
-                "家庭もキャリアも、全力でがんばりたい", 36, color=NAVY_DEEP, bold=True)
+                "「女性は家庭の方が向いている」と言われる", 32, color=NAVY_DEEP, bold=True)
 
-    # 中央の対比数値
-    add_textbox(s, Inches(1.8), Inches(2.2), Inches(3.6), Inches(1.6),
-                "希望\n34%", 48, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
-    add_textbox(s, Inches(5.4), Inches(2.75), Inches(2.5), Inches(0.6),
-                "↔", 36, color=INK_SOFT, align=PP_ALIGN.CENTER)
-    add_textbox(s, Inches(7.9), Inches(2.2), Inches(3.6), Inches(1.6),
-                "現実\n32%", 48, color=BLOOM, bold=True, align=PP_ALIGN.CENTER)
+    add_textbox(s, Inches(0.7), Inches(1.3), Inches(11.5), Inches(0.4),
+                "「育児は◯◯の方が向いている」と思う人の割合", 16, color=INK_SOFT)
 
-    add_textbox(s, Inches(0.7), Inches(4.1), Inches(11.5), Inches(1.3),
-                "仕事・家庭生活・個人の生活すべてを大切にしたいという希望は34%ある一方、\n"
-                "現実には仕事を優先している人が32%。制約自体は無くなりません。\n"
-                "知らずに選択肢を狭めてしまう状況だけは、変えられると考えました。",
-                20, color=INK, line_spacing=1.4)
+    # 左: 女性の方が向いている
+    add_textbox(s, Inches(0.9), Inches(1.9), Inches(5.4), Inches(0.5),
+                "育児は女性の方が向いている", 20, color=BLOOM, bold=True, align=PP_ALIGN.CENTER)
+    add_textbox(s, Inches(0.9), Inches(2.45), Inches(5.4), Inches(1.2),
+                "68%", 60, color=BLOOM, bold=True, align=PP_ALIGN.CENTER)
+
+    add_textbox(s, Inches(6.35), Inches(2.75), Inches(0.7), Inches(0.6),
+                "↔", 32, color=INK_SOFT, align=PP_ALIGN.CENTER)
+
+    # 右: 男性の方が向いている
+    add_textbox(s, Inches(7.05), Inches(1.9), Inches(5.4), Inches(0.5),
+                "育児は男性の方が向いている", 20, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
+    add_textbox(s, Inches(7.05), Inches(2.45), Inches(5.4), Inches(1.2),
+                "7%", 60, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
+
+    add_textbox(s, Inches(0.7), Inches(4.0), Inches(11.5), Inches(0.6),
+                "望んでいないのではなく、諦めざるを得ないのではないか。",
+                24, color=NAVY_DEEP, bold=True, align=PP_ALIGN.CENTER)
+
+    add_textbox(s, Inches(0.7), Inches(4.75), Inches(11.5), Inches(1.2),
+                "企業が挙げる課題1位は「管理職を希望する女性が少ない」46.4%。\n"
+                "でも本人が挙げる1位は「家庭責任が重いイメージ」69.4%。",
+                17, color=INK, line_spacing=1.4, align=PP_ALIGN.CENTER)
 
     add_footnote(
         s,
-        "出典: 東京都「男女平等参画に関する世論調査」（令和2年度）／"
-        "東京都「男女雇用平等参画状況調査」（令和7年度、女性が挙げる課題1位「家庭責任が重いイメージ」69.4%）",
+        "出典: 東京都「男女平等参画に関する世論調査」（令和7年8月調査, n=1,615。"
+        "「性別で向いている仕事・向いていない仕事がある」は83%）／"
+        "東京都「男女雇用平等参画状況調査」（令和7年度、事業所 n=347・従業員女性 n=556）",
     )
     add_slide_number(s, 2)
-    set_notes(s, "家庭もキャリアも全力でがんばりたい女性にとって、世の中には様々な制約があります。"
-                 "東京都の世論調査でも、家庭も仕事も大切にしたいという希望は34%ある一方、現実に叶うのは"
-                 "32%でした。この制約自体は無くせませんが、何が選べるかを知らないまま選択肢を狭めて"
-                 "しまう状況は変えられると考えました。")
+    set_notes(s, "[話者: あかり / 0:13-0:39]\n"
+                 "家庭もキャリアもがんばりたい女性は、日々悩んでいます。ひとつは、周りからの見られ方。"
+                 "育児は女性が向いていると考える人が68パーセント、男性は7パーセント。"
+                 "企業は「管理職を望む女性が少ない」と言う。でも本人の悩みは「家庭責任が重いイメージ」。"
+                 "諦めているのではないでしょうか。")
 
     # ------------------------------------------------------------------
-    # 3. 解決策｜使える制度を、出典付きで手渡す
+    # 3. 課題②｜使える制度を、知らない
     # ------------------------------------------------------------------
     s = new_slide(prs)
     add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
-                "使える制度を、出典付きで手渡す", 34, color=NAVY_DEEP, bold=True)
+                "もうひとつの悩み。使える制度を、知らない", 32, color=NAVY_DEEP, bold=True)
+
+    add_textbox(s, Inches(0.7), Inches(1.25), Inches(11.5), Inches(0.4),
+                "自分の職場に制度があるか「わからない」", 16, color=INK_SOFT)
+
+    bars = [
+        ("産前産後休暇", 6.0, NAVY),
+        ("通院休暇制度", 33.9, NAVY),
+        ("妊娠障害休暇", 42.8, NAVY),
+        ("出産障害休暇", 47.3, BLOOM),
+    ]
+    bar_left = Inches(3.1)
+    bar_max = Inches(6.2)  # 50%を満尺として換算
+    row_top = 1.85
+    row_height = 0.85
+    for label, pct, color in bars:
+        top = Inches(row_top)
+        add_textbox(s, Inches(0.7), top + Inches(0.08), Inches(2.2), Inches(0.5),
+                    label, 16, color=INK, bold=(color == BLOOM))
+        bar_width = Inches(bar_max.inches * pct / 50)
+        add_rect(s, bar_left, top, bar_width, Inches(0.5), fill_color=color)
+        add_textbox(s, bar_left + bar_width + Inches(0.15), top + Inches(0.03), Inches(1.5),
+                    Inches(0.5), f"{pct:.1f}%", 18, color=color, bold=True)
+        row_top += row_height
+
+    add_textbox(s, Inches(0.7), Inches(5.55), Inches(11.5), Inches(0.6),
+                "知らない制度は、選択肢に入らない。",
+                24, color=NAVY_DEEP, bold=True, align=PP_ALIGN.CENTER)
+
+    add_footnote(
+        s,
+        "出典: 東京都「男女雇用平等参画状況調査」（令和7年度）従業員調査（n=1,076）。"
+        "母性保護に関する制度ごとの「わからない」の割合",
+    )
+    add_slide_number(s, 3)
+    set_notes(s, "[話者: あかり / 0:39-0:56]\n"
+                 "もうひとつは、使える制度を知らないこと。産前産後休暇を知らない人は6パーセント。"
+                 "でも出産障害休暇は、47パーセントが「職場にあるか分からない」。"
+                 "知らない制度は、選択肢に入りません。")
+
+    # ------------------------------------------------------------------
+    # 4. 解決策｜何が選べるかを知って、自分で決める
+    # ------------------------------------------------------------------
+    s = new_slide(prs)
+    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
+                "何が選べるかを知って、自分で決める", 34, color=NAVY_DEEP, bold=True)
 
     add_picture_framed(s, ASSETS / "event-detail-childbirth.jpg",
                         Inches(0.7), Inches(1.5), width=Inches(7.4), height=Inches(4.23))
 
-    labels = ["同じ時間軸", "出典付きの事実", "決めるのは自分"]
+    labels = ["決めるのは自分", "同じ時間軸", "出典付きの事実"]
     for i, label in enumerate(labels):
         top = Inches(1.6 + i * 1.15)
         add_rect(s, Inches(8.5), top, Inches(4.0), Inches(0.85), fill_color=RGBColor(0xF2, 0xF4, 0xF7))
@@ -213,15 +291,14 @@ def build():
         "出典: 育児・介護休業法／労働基準法／母子保健法（厚生労働省・こども家庭庁）、"
         "東京都不妊検査等助成事業（東京都福祉局）。平均値・他人との比較は表示しない。",
     )
-    add_slide_number(s, 3)
-    set_notes(s, "東京都の子育て支援制度は7,812件もあり、自分で読み切れる量ではありません。"
-                 "育休は子が2歳になるまで延長できる、産後パパ育休は8週間以内に4週間まで取れるなど、"
-                 "日本・東京都の制度上の上限を、実施主体と出典付きでタイムラインに表示します。"
-                 "平均値や他人と比べた遅れは表示しません。見せるのは『あなたが使える権利はどこまでか』"
-                 "という選べる余地だけです。")
+    add_slide_number(s, 4)
+    set_notes(s, "[話者: りょう / 0:56-1:14 ※ここから交代]\n"
+                 "ここからは実装です。都の子育て支援制度は7,812件。読み切れる量ではありません。"
+                 "そこで、育休は子が2歳まで、といった国と都の制度上の上限だけを、"
+                 "実施主体と出典リンク付きで表示しました。")
 
     # ------------------------------------------------------------------
-    # 4. デモ｜何度でも立て直せる
+    # 5. デモ｜何度でも立て直せる
     # ------------------------------------------------------------------
     s = new_slide(prs)
     add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
@@ -246,16 +323,19 @@ def build():
         "希望される支援も「新しい休業」より「時間の組み替え」（有給53.7%・フレックス49.4%、"
         "東京都「男女雇用平等参画状況調査」令和7年度）",
     )
-    add_slide_number(s, 4)
-    set_notes(s, "こちらが公開デモです。予定を動かすと、つながりのあるイベントも一緒に動きます。"
-                 "対話型AIに話しかけると、確認済みの制度情報だけを根拠に答えます。一度決めて終わりでは"
-                 "なく、状況が変わるたびに何度でも軽やかに描き直せることを大切にしています。"
-                 "\n\n[登壇メモ] 対話型AI（Gemini Function Calling）の実際の応答画面は、"
-                 "未サインイン状態では取得できなかった（送信にGoogleサインインが必要なため）。"
-                 "登壇時は実機でサインインして見せるか、口頭説明にとどめる。")
+    add_slide_number(s, 5)
+    set_notes(s, "[話者: りょう / 1:14-1:31]\n"
+                 "結婚、出産、転職の予定を、同じ時間軸に自由に置けます。"
+                 "ひとつ動かすと、つながるイベントも一緒に動く。"
+                 "AIも、確認済みの制度情報だけを根拠に答えます。何度でも描き直せます。"
+                 "\n\n[登壇メモ] 収録ではライブデモ（アプリ画面のリアルタイム操作）は一切できない"
+                 "（事務局「提出資料について」）。動く様子を見せる場合は、事前に収録した無音動画を"
+                 "このスライドに埋め込み、画面共有オプションの2項目にチェックを入れて共有する。"
+                 "対話型AI（Gemini Function Calling）の応答画面は未サインインでは取得できないため"
+                 "（送信にGoogleサインインが必要）、サインイン状態で録画したものを使う。")
 
     # ------------------------------------------------------------------
-    # 5. 広がり｜一つの画面を、家庭で。男性が体験する
+    # 6. 広がり｜一つの画面を、家庭で。男性が体験する
     # ------------------------------------------------------------------
     s = new_slide(prs)
     add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
@@ -281,15 +361,19 @@ def build():
 
     add_footnote(
         s,
-        "出典: 東京都「男女雇用平等参画状況調査」（令和7年度）。男性の育休取得率61.2%。",
+        "出典: 東京都「男女雇用平等参画状況調査」（令和7年度）。母性保護に関する制度8項目"
+        "すべてで、男性の「わからない」が女性より高い（出産障害休暇: 男性52.6%／女性42.4%）。",
     )
-    add_slide_number(s, 5)
-    set_notes(s, "今のところ、この画面はログインせずに誰でも触れます。まずは自分のプランを一緒に見て話す"
-                 "きっかけとして使ってほしいと考えています。将来は、これを男性自身が体験するプログラムにも"
-                 "発展させ、女性が抱える制約の多さを、当事者として実感してもらう場にしたいと考えています。")
+    add_slide_number(s, 6)
+    set_notes(s, "[話者: りょう / 1:31-1:46]\n"
+                 "この画面はログイン不要で、家庭で一緒に見られます。"
+                 "制度を「分からない」と答えた割合は、8項目すべてで男性の方が高い。"
+                 "男性が体験する場にも広げたいと考えています。"
+                 "\n\n[質疑用] 男性の育休取得率は61.2%まで上がったが、取得期間は「1か月〜3か月未満」"
+                 "38.6%が最多で、女性の「6か月〜1年未満」30.2%とは差がある。")
 
     # ------------------------------------------------------------------
-    # 6. 締め｜このデータが、次の施策を動かす
+    # 7. 締め｜このデータが、次の施策を動かす
     # ------------------------------------------------------------------
     s = new_slide(prs)
     add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
@@ -316,15 +400,19 @@ def build():
                 "公開デモ: my-career-app-559fd.web.app", 16, color=NAVY_DEEP, bold=True,
                 align=PP_ALIGN.CENTER)
 
-    add_footnote(s, "制度情報の出典は各スライド記載のとおり。データはオープンデータと法令から出典付きで取り込む。")
-    add_slide_number(s, 6)
-    set_notes(s, "制度情報はオープンデータと法令から出典付きで取り込んでいます。一人ひとりが実際にどんな"
-                 "ライフプランを描き、どこで諦めたかのデータは、都にも国にもまだありません。ここで積み重なる"
-                 "プランが、いずれ東京都や国が女性を支援する施策を増やすきっかけになることを願っています。"
-                 "決めるのはいつも本人です。ライフコンパス東京で、自分らしい人生を描き直せる選択肢を届けます。")
+    add_footnote(
+        s,
+        "制度情報の出典は各スライド記載のとおり。行政に力を入れてほしいこと1位「家事・育児や"
+        "介護中の人への家庭と仕事の両立支援」64%（東京都「男女平等参画に関する世論調査」令和7年8月調査）",
+    )
+    add_slide_number(s, 7)
+    set_notes(s, "[話者: あかり / 1:46-2:00 ※ここで交代して締める]\n"
+                 "誰がどこで諦めたかのデータは、都にも国にもありません。"
+                 "ここで積み重なるプランが、次の施策につながることを願っています。"
+                 "決めるのは、いつも本人です。")
 
     # ------------------------------------------------------------------
-    # 7. 参考（付録）｜利用データと使い方
+    # 8. 参考（付録）｜利用データと使い方
     #
     # 提出フォーム 4-1「利用データ一覧」はデータ名とURLのセットしか登録できず、
     # 提供元・ライセンス・使われ方までは書けない。審査5軸の筆頭「データ活用」に
@@ -354,7 +442,7 @@ def build():
     add_textbox(
         s, Inches(0.95), Inches(4.35), Inches(11.15), Inches(1.85),
         "・男女雇用平等参画状況調査（令和7年度）／東京都産業労働局／CC BY 4.0\n"
-        "・男女平等参画に関する世論調査（令和2年度）／東京都（政策企画局・生活文化局）\n"
+        "・男女平等参画に関する世論調査（令和7年8月調査）／東京都政策企画局\n"
         "・子育て支援制度レジストリ（東京デジタル2030ビジョン こどもDX）／東京都デジタルサービス局／\n"
         "  CC BY 4.0（7,812件の根拠として引用。更新終了のため制度上限の一次情報は東京都福祉局の\n"
         "  公式ページを採用）",
@@ -366,7 +454,7 @@ def build():
                 14, color=NAVY, bold=True)
 
     add_footnote(s, "各データの出典URL・ライセンス表記の詳細は提出フォーム 4-1 に記載。")
-    add_slide_number(s, 7)
+    add_slide_number(s, 8)
     set_notes(s, "[付録：本編2分では話さない。質疑で聞かれたときのための補足]"
                  "アプリ画面に表示する制度上限は、東京都福祉局の不妊検査等助成事業と、"
                  "育児・介護休業法など国の法令から出典付きで取り込んでいます。"
