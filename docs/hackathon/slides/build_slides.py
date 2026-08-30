@@ -173,35 +173,42 @@ def build():
                  "女性がもっとイキイキできる社会に。その思いで作った、ライフコンパス東京です。")
 
     # ------------------------------------------------------------------
-    # 2. 課題①｜「女性は家庭の方が向いている」と言われる
+    # 2. 課題①｜家庭もキャリアも、全力でがんばりたい／でも周りはこう言う
+    #
+    # 見出しは必ず「彼女」を主語に置く。ここを「思い込み」側の主語にすると、
+    # 全体メッセージの起点（家庭もキャリアも全力でがんばりたい女性がいる）が
+    # 資料から消える。
     # ------------------------------------------------------------------
     s = new_slide(prs)
-    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
-                "「女性は家庭の方が向いている」と言われる", 32, color=NAVY_DEEP, bold=True)
+    add_textbox(s, Inches(0.7), Inches(0.45), Inches(11.5), Inches(0.8),
+                "家庭もキャリアも、全力でがんばりたい", 34, color=NAVY_DEEP, bold=True)
+    add_textbox(s, Inches(0.7), Inches(1.2), Inches(11.5), Inches(0.5),
+                "——でも、周りは「女性は家庭の方が向いている」と言う",
+                20, color=BLOOM, bold=True)
 
-    add_textbox(s, Inches(0.7), Inches(1.3), Inches(11.5), Inches(0.4),
-                "「育児は◯◯の方が向いている」と思う人の割合", 16, color=INK_SOFT)
+    add_textbox(s, Inches(0.7), Inches(1.85), Inches(11.5), Inches(0.35),
+                "「育児は◯◯の方が向いている」と思う人の割合", 14, color=INK_SOFT)
 
     # 左: 女性の方が向いている
-    add_textbox(s, Inches(0.9), Inches(1.9), Inches(5.4), Inches(0.5),
+    add_textbox(s, Inches(0.9), Inches(2.3), Inches(5.4), Inches(0.5),
                 "育児は女性の方が向いている", 20, color=BLOOM, bold=True, align=PP_ALIGN.CENTER)
-    add_textbox(s, Inches(0.9), Inches(2.45), Inches(5.4), Inches(1.2),
-                "68%", 60, color=BLOOM, bold=True, align=PP_ALIGN.CENTER)
+    add_textbox(s, Inches(0.9), Inches(2.85), Inches(5.4), Inches(1.2),
+                "68%", 58, color=BLOOM, bold=True, align=PP_ALIGN.CENTER)
 
-    add_textbox(s, Inches(6.35), Inches(2.75), Inches(0.7), Inches(0.6),
+    add_textbox(s, Inches(6.35), Inches(3.15), Inches(0.7), Inches(0.6),
                 "↔", 32, color=INK_SOFT, align=PP_ALIGN.CENTER)
 
     # 右: 男性の方が向いている
-    add_textbox(s, Inches(7.05), Inches(1.9), Inches(5.4), Inches(0.5),
+    add_textbox(s, Inches(7.05), Inches(2.3), Inches(5.4), Inches(0.5),
                 "育児は男性の方が向いている", 20, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
-    add_textbox(s, Inches(7.05), Inches(2.45), Inches(5.4), Inches(1.2),
-                "7%", 60, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
+    add_textbox(s, Inches(7.05), Inches(2.85), Inches(5.4), Inches(1.2),
+                "7%", 58, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
 
-    add_textbox(s, Inches(0.7), Inches(4.0), Inches(11.5), Inches(0.6),
+    add_textbox(s, Inches(0.7), Inches(4.35), Inches(11.5), Inches(0.6),
                 "望んでいないのではなく、諦めざるを得ないのではないか。",
                 24, color=NAVY_DEEP, bold=True, align=PP_ALIGN.CENTER)
 
-    add_textbox(s, Inches(0.7), Inches(4.75), Inches(11.5), Inches(1.2),
+    add_textbox(s, Inches(0.7), Inches(5.05), Inches(11.5), Inches(1.1),
                 "企業が挙げる課題1位は「管理職を希望する女性が少ない」46.4%。\n"
                 "でも本人が挙げる1位は「家庭責任が重いイメージ」69.4%。",
                 17, color=INK, line_spacing=1.4, align=PP_ALIGN.CENTER)
@@ -214,19 +221,21 @@ def build():
     )
     add_slide_number(s, 2)
     set_notes(s, "[話者: あかり / 0:13-0:39]\n"
-                 "家庭もキャリアもがんばりたい女性は、日々悩んでいます。ひとつは、周りからの見られ方。"
-                 "育児は女性が向いていると考える人が68パーセント、男性は7パーセント。"
-                 "企業は「管理職を望む女性が少ない」と言う。でも本人の悩みは「家庭責任が重いイメージ」。"
-                 "諦めているのではないでしょうか。")
+                 "家庭もキャリアも、全力でがんばりたい。そういう女性が、身近にいます。"
+                 "でも、育児は女性が向いていると考える人が68パーセント、男性は7パーセント。"
+                 "企業は「女性が望んでいない」と見る。でも本人の悩みは「家庭責任が重いイメージ」。"
+                 "望んでいないのではなく、諦めているのではないでしょうか。"
+                 "\n\n※サブ見出しは読み上げない（スライドの読み上げにならないようにする）。")
 
     # ------------------------------------------------------------------
-    # 3. 課題②｜使える制度を、知らない
+    # 3. 課題②｜がんばりたくても、使える制度を知らない
+    #
+    # スライド2と同じく主語は「彼女」。2枚で一続きの文として読ませる。
     # ------------------------------------------------------------------
     s = new_slide(prs)
-    add_textbox(s, Inches(0.7), Inches(0.5), Inches(11.5), Inches(0.9),
-                "もうひとつの悩み。使える制度を、知らない", 32, color=NAVY_DEEP, bold=True)
-
-    add_textbox(s, Inches(0.7), Inches(1.25), Inches(11.5), Inches(0.4),
+    add_textbox(s, Inches(0.7), Inches(0.45), Inches(11.5), Inches(0.8),
+                "がんばりたくても、使える制度を知らない", 34, color=NAVY_DEEP, bold=True)
+    add_textbox(s, Inches(0.7), Inches(1.2), Inches(11.5), Inches(0.4),
                 "自分の職場に制度があるか「わからない」", 16, color=INK_SOFT)
 
     bars = [
@@ -260,7 +269,7 @@ def build():
     )
     add_slide_number(s, 3)
     set_notes(s, "[話者: あかり / 0:39-0:56]\n"
-                 "もうひとつは、使える制度を知らないこと。産前産後休暇を知らない人は6パーセント。"
+                 "そして、使える制度を知りません。産前産後休暇を知らない人は6パーセント。"
                  "でも出産障害休暇は、47パーセントが「職場にあるか分からない」。"
                  "知らない制度は、選択肢に入りません。")
 
